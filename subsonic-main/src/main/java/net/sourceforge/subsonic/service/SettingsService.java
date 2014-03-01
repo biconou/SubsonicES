@@ -1227,7 +1227,26 @@ public class SettingsService {
         return result.toArray(new String[result.size()]);
     }
 
-    private void validateLicense() {
+    
+    /*
+     * Patch pour désactiver le contrôle de licence
+     * 
+     *  
+     * https://github.com/Mach5/supersonic/issues/88
+     * 
+     * 
+     * - Edit file subsonic-main/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+     * - Find the method validateLicense and replace the entire method by this stub:
+     * - private void validateLicense() { licenseValidated = true; }
+     * - Build and install subsonic.
+     * - Log in to subsonic, click "get premium" and register the name "Freedom" (without the quotes) with key "d5aa1729c8c253e5d917a5264855eab8" (without the quotes),
+     * - Log out and log in, and you'll be a premium user of a premium server.
+     */
+    
+    
+    private void validateLicense() { licenseValidated = true; }
+    
+  /*  private void validateLicense() {
         String email = getLicenseEmail();
         Date date = getLicenseDate();
 
@@ -1260,7 +1279,9 @@ public class SettingsService {
         } finally {
             client.getConnectionManager().shutdown();
         }
-    }
+    } */
+    
+    
 
     public void validateLicenseAsync() {
         new Thread() {
