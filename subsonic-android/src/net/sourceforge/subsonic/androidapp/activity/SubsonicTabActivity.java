@@ -25,13 +25,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.TextView;
 import net.sourceforge.subsonic.androidapp.R;
@@ -42,15 +40,17 @@ import net.sourceforge.subsonic.androidapp.service.MusicService;
 import net.sourceforge.subsonic.androidapp.service.MusicServiceFactory;
 import net.sourceforge.subsonic.androidapp.util.Constants;
 import net.sourceforge.subsonic.androidapp.util.ImageLoader;
+import net.sourceforge.subsonic.androidapp.util.Logger;
 import net.sourceforge.subsonic.androidapp.util.ModalBackgroundTask;
 import net.sourceforge.subsonic.androidapp.util.Util;
+import net.sourceforge.subsonic.androidapp.util.VideoPlayerType;
 
 /**
  * @author Sindre Mehus
  */
 public class SubsonicTabActivity extends Activity {
 
-    private static final String TAG = SubsonicTabActivity.class.getSimpleName();
+    private static final Logger LOG = new Logger(SubsonicTabActivity.class);
     private static ImageLoader IMAGE_LOADER;
 
     private boolean destroyed;
@@ -231,7 +231,7 @@ public class SubsonicTabActivity extends Activity {
             if (downloadService != null) {
                 return downloadService;
             }
-            Log.w(TAG, "DownloadService not running. Attempting to start it.");
+            LOG.warn("DownloadService not running. Attempting to start it.");
             startService(new Intent(this, DownloadServiceImpl.class));
             Util.sleepQuietly(50L);
         }
@@ -313,6 +313,20 @@ public class SubsonicTabActivity extends Activity {
         };
 
         task.execute();
+    }
+
+    protected void playVideo(MusicDirectory.Entry entry)  {
+        if (!Util.isNetworkConnected(this)) {
+            Util.toast(this, R.string.select_album_no_network);
+            return;
+        }
+
+        VideoPlayerType player = Util.getVideoPlayerType(this);
+        try {
+            player.playVideo(this, entry);
+        } catch (Exception e) {
+            Util.toast(this, e.getMessage(), false);
+        }
     }
 }
 

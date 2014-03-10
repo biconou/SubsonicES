@@ -25,18 +25,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import android.content.Context;
-import android.util.Log;
 import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
 import net.sourceforge.subsonic.androidapp.service.MusicService;
 import net.sourceforge.subsonic.androidapp.service.MusicServiceFactory;
 
 /**
  * @author Sindre Mehus
- * @version $Id: ShufflePlayBuffer.java 1951 2010-11-25 12:55:01Z sindre_mehus $
+ * @version $Id: ShufflePlayBuffer.java 3539 2013-10-30 21:16:25Z sindre_mehus $
  */
 public class ShufflePlayBuffer {
 
-    private static final String TAG = ShufflePlayBuffer.class.getSimpleName();
+    private static final Logger LOG = new Logger(ShufflePlayBuffer.class);
     private static final int CAPACITY = 50;
     private static final int REFILL_THRESHOLD = 40;
 
@@ -58,7 +57,7 @@ public class ShufflePlayBuffer {
     }
 
     public List<MusicDirectory.Entry> get(int size) {
-        clearBufferIfnecessary();
+        clearBufferIfNecessary();
 
         List<MusicDirectory.Entry> result = new ArrayList<MusicDirectory.Entry>(size);
         synchronized (buffer) {
@@ -66,7 +65,7 @@ public class ShufflePlayBuffer {
                 result.add(buffer.remove(buffer.size() - 1));
             }
         }
-        Log.i(TAG, "Taking " + result.size() + " songs from shuffle play buffer. " + buffer.size() + " remaining.");
+        LOG.info("Taking " + result.size() + " songs from shuffle play buffer. " + buffer.size() + " remaining.");
         return result;
     }
 
@@ -77,7 +76,7 @@ public class ShufflePlayBuffer {
     private void refill() {
 
         // Check if active server has changed.
-        clearBufferIfnecessary();
+        clearBufferIfNecessary();
 
         if (buffer.size() > REFILL_THRESHOLD || (!Util.isNetworkConnected(context) && !Util.isOffline(context))) {
             return;
@@ -90,17 +89,18 @@ public class ShufflePlayBuffer {
 
             synchronized (buffer) {
                 buffer.addAll(songs.getChildren());
-                Log.i(TAG, "Refilled shuffle play buffer with " + songs.getChildren().size() + " songs.");
+                LOG.info("Refilled shuffle play buffer with " + songs.getChildren().size() + " songs.");
             }
         } catch (Exception x) {
-            Log.w(TAG, "Failed to refill shuffle play buffer.", x);
+            LOG.warn("Failed to refill shuffle play buffer.", x);
         }
     }
 
-    private void clearBufferIfnecessary() {
+    private void clearBufferIfNecessary() {
         synchronized (buffer) {
-            if (currentServer != Util.getActiveServer(context)) {
-                currentServer = Util.getActiveServer(context);
+            int activeServer = Util.getActiveServer(context).getId();
+            if (currentServer != activeServer) {
+                currentServer = activeServer;
                 buffer.clear();
             }
         }

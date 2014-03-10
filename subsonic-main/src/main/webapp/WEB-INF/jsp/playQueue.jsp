@@ -22,7 +22,6 @@
     var songs = null;
     var currentAlbumUrl = null;
     var currentStreamUrl = null;
-    var startPlayer = false;
     var repeatEnabled = false;
     var slider = null;
 
@@ -140,20 +139,23 @@
         skip(parseInt(getCurrentSongIndex()) - 1);
     }
     function onPlay(id) {
-        startPlayer = true;
         playQueueService.play(id, playQueueCallback);
     }
-    function onPlayPlaylist(id) {
-        startPlayer = true;
-        playQueueService.playPlaylist(id, playQueueCallback);
+    function onPlayPlaylist(id, index) {
+        index = index || 0;
+        playQueueService.playPlaylist(id, index, playQueueCallback);
+    }
+    function onPlayStarred() {
+        playQueueService.playStarred(playQueueCallback);
     }
     function onPlayRandom(id, count) {
-        startPlayer = true;
         playQueueService.playRandom(id, count, playQueueCallback);
     }
     function onAdd(id) {
-        startPlayer = false;
         playQueueService.add(id, playQueueCallback);
+    }
+    function onAddNext(id) {
+        playQueueService.addAt(id, getCurrentSongIndex() + 1, playQueueCallback);
     }
     function onShuffle() {
         playQueueService.shuffle(playQueueCallback);
@@ -198,8 +200,9 @@
         playQueueService.sortByAlbum(playQueueCallback);
     }
     function onSavePlaylist() {
-        playQueueService.savePlaylist(function () {
+        playlistService.createPlaylistForPlayQueue(function () {
             top.left.updatePlaylists();
+            top.left.showAllPlaylists();
             $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveasplaylist"/>");
         });
     }
@@ -326,15 +329,14 @@
         }
 
     <c:if test="${model.player.web}">
-        triggerPlayer();
+        triggerPlayer(playQueue.startPlayerAt);
     </c:if>
     }
 
-    function triggerPlayer() {
-        if (startPlayer) {
-            startPlayer = false;
-            if (songs.length > 0) {
-                skip(0);
+    function triggerPlayer(startPlayerAt) {
+        if (startPlayerAt != -1) {
+            if (songs.length > startPlayerAt) {
+                skip(startPlayerAt);
             }
         }
         updateCurrentImage();
@@ -409,6 +411,7 @@
 
     <!-- actionSelected() is invoked when the users selects from the "More actions..." combo box. -->
     function actionSelected(id) {
+        var selectedIndexes = getSelectedIndexes();
         if (id == "top") {
             return;
         } else if (id == "savePlaylist") {
@@ -429,9 +432,9 @@
             selectAll(false);
         } else if (id == "removeSelected") {
             onRemoveSelected();
-        } else if (id == "download") {
-            location.href = "download.view?player=${model.player.id}&" + getSelectedIndexes();
-        } else if (id == "appendPlaylist") {
+        } else if (id == "download" && selectedIndexes != "") {
+            location.href = "download.view?player=${model.player.id}&" + selectedIndexes;
+        } else if (id == "appendPlaylist" && selectedIndexes != "") {
             onAppendPlaylist();
         }
         $("#moreActions").prop("selectedIndex", 0);
@@ -476,8 +479,8 @@
             </c:if>
 
             <c:if test="${model.user.streamRole and not model.player.web}">
-                <td style="white-space:nowrap;" id="stop"><b><a href="javascript:void(0)" onclick="onStop()"><fmt:message key="playlist.stop"/></a></b> | </td>
-                <td style="white-space:nowrap;" id="start"><b><a href="javascript:void(0)" onclick="onStart()"><fmt:message key="playlist.start"/></a></b> | </td>
+                <td style="white-space:nowrap;" id="stop"><span class="header"><b><a href="javascript:void(0)" onclick="onStop()"><fmt:message key="playlist.stop"/></a></b></span>  | </td>
+                <td style="white-space:nowrap;" id="start"><span class="header"><b><a href="javascript:void(0)" onclick="onStart()"><fmt:message key="playlist.start"/></a></b></span>  | </td>
             </c:if>
 
             <c:if test="${model.player.jukebox}">
@@ -506,21 +509,25 @@
             </c:if>
 
             <c:if test="${model.player.web}">
-                <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onPrevious()"><b>&laquo;</b></a></td>
-                <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onNext(false)"><b>&raquo;</b></a> |</td>
+                <td><span class="header">
+                    <a href="javascript:void(0)" onclick="onPrevious()"><img src="<spring:theme code="backImage"/>" alt=""></a></span>
+                </td>
+                <td><span class="header">
+                    <a href="javascript:void(0)" onclick="onNext(false)"><img src="<spring:theme code="forwardImage"/>" alt=""></a></span>
+                </td>
             </c:if>
 
-            <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onClear()"><fmt:message key="playlist.clear"/></a> |</td>
-            <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onShuffle()"><fmt:message key="playlist.shuffle"/></a> |</td>
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:void(0)" onclick="onClear()"><fmt:message key="playlist.clear"/></a></span> |</td>
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:void(0)" onclick="onShuffle()"><fmt:message key="playlist.shuffle"/></a></span> |</td>
 
             <c:if test="${model.player.web or model.player.jukebox or model.player.external}">
-                <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onToggleRepeat()"><span id="toggleRepeat"><fmt:message key="playlist.repeat_on"/></span></a> |</td>
+                <td style="white-space:nowrap;"><span class="header"><a href="javascript:void(0)" onclick="onToggleRepeat()"><span id="toggleRepeat"><fmt:message key="playlist.repeat_on"/></span></a></span>  |</td>
             </c:if>
 
-            <td style="white-space:nowrap;"><a href="javascript:void(0)" onclick="onUndo()"><fmt:message key="playlist.undo"/></a> |</td>
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:void(0)" onclick="onUndo()"><fmt:message key="playlist.undo"/></a></span>  |</td>
 
             <c:if test="${model.user.settingsRole}">
-                <td style="white-space:nowrap;"><a href="playerSettings.view?id=${model.player.id}" target="main"><fmt:message key="playlist.settings"/></a> |</td>
+                <td style="white-space:nowrap;"><span class="header"><a href="playerSettings.view?id=${model.player.id}" target="main"><fmt:message key="playlist.settings"/></a></span>  |</td>
             </c:if>
 
             <td style="white-space:nowrap;"><select id="moreActions" onchange="actionSelected(this.options[selectedIndex].id)">
@@ -578,13 +585,13 @@
             </c:if>
 
             <td style="padding-right:1.25em">
-                <img id="currentImage" src="<spring:theme code="currentImage"/>" alt="" style="display:none">
+                <img id="currentImage" src="<spring:theme code="currentImage"/>" alt="" style="display:none;padding-right: 0.5em">
                 <c:choose>
                     <c:when test="${model.player.externalWithPlaylist}">
-                        <span id="title">Title</span>
+                        <span id="title" class="songTitle">Title</span>
                     </c:when>
                     <c:otherwise>
-                        <a id="titleUrl" href="javascript:void(0)">Title</a>
+                        <span class="songTitle"><a id="titleUrl" href="javascript:void(0)">Title</a></span>
                     </c:otherwise>
                 </c:choose>
             </td>

@@ -18,6 +18,23 @@
  */
 package net.sourceforge.subsonic.androidapp.service;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Handler;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
+import android.view.KeyEvent;
+import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
+import net.sourceforge.subsonic.androidapp.domain.PlayerState;
+import net.sourceforge.subsonic.androidapp.util.CacheCleaner;
+import net.sourceforge.subsonic.androidapp.util.Constants;
+import net.sourceforge.subsonic.androidapp.util.FileUtil;
+import net.sourceforge.subsonic.androidapp.util.Logger;
+import net.sourceforge.subsonic.androidapp.util.NotificationUtil;
+import net.sourceforge.subsonic.androidapp.util.Util;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,26 +42,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
-import android.util.Log;
-import android.view.KeyEvent;
-import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
-import net.sourceforge.subsonic.androidapp.domain.PlayerState;
-import net.sourceforge.subsonic.androidapp.util.CacheCleaner;
-import net.sourceforge.subsonic.androidapp.util.FileUtil;
-import net.sourceforge.subsonic.androidapp.util.Util;
-
 /**
  * @author Sindre Mehus
  */
 public class DownloadServiceLifecycleSupport {
 
-    private static final String TAG = DownloadServiceLifecycleSupport.class.getSimpleName();
+    private static final Logger LOG = new Logger(DownloadServiceLifecycleSupport.class);
     private static final String FILENAME_DOWNLOADS_SER = "downloadstate.ser";
 
     private final DownloadServiceImpl downloadService;
@@ -61,7 +64,7 @@ public class DownloadServiceLifecycleSupport {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.i(TAG, "intentReceiver.onReceive: " + action);
+            LOG.info("intentReceiver.onReceive: " + action);
             if (DownloadServiceImpl.CMD_PLAY.equals(action)) {
                 downloadService.play();
             } else if (DownloadServiceImpl.CMD_NEXT.equals(action)) {
@@ -91,7 +94,7 @@ public class DownloadServiceLifecycleSupport {
                 try {
                     downloadService.checkDownloads();
                 } catch (Throwable x) {
-                    Log.e(TAG, "checkDownloads() failed.", x);
+                    LOG.error("checkDownloads() failed.", x);
                 }
             }
         };
@@ -99,11 +102,19 @@ public class DownloadServiceLifecycleSupport {
         executorService = Executors.newScheduledThreadPool(2);
         executorService.scheduleWithFixedDelay(downloadChecker, 5, 5, TimeUnit.SECONDS);
 
+        Runnable cleaner = new Runnable() {
+            @Override
+            public void run() {
+                new CacheCleaner(downloadService, downloadService).clean();
+            }
+        };
+        executorService.schedule(cleaner, 0L, TimeUnit.SECONDS);
+
         // Pause when headset is unplugged.
         headsetEventReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.i(TAG, "Headset event for: " + intent.getExtras().get("name"));
+                LOG.info("Headset event for: " + intent.getExtras().get("name"));
                 if (intent.getExtras().getInt("state") == 0) {
                     downloadService.pause();
                 }
@@ -117,10 +128,10 @@ public class DownloadServiceLifecycleSupport {
             public void onReceive(Context context, Intent intent) {
                 externalStorageAvailable = Intent.ACTION_MEDIA_MOUNTED.equals(intent.getAction());
                 if (!externalStorageAvailable) {
-                    Log.i(TAG, "External media is ejecting. Stopping playback.");
+                    LOG.info("External media is ejecting. Stopping playback.");
                     downloadService.reset();
                 } else {
-                    Log.i(TAG, "External media is available.");
+                    LOG.info("External media is available.");
                 }
             }
         };
@@ -148,15 +159,21 @@ public class DownloadServiceLifecycleSupport {
         downloadService.registerReceiver(intentReceiver, commandFilter);
 
         deserializeDownloadQueue();
-
-        new CacheCleaner(downloadService, downloadService).clean();
     }
 
     public void onStart(Intent intent) {
-        if (intent != null && intent.getExtras() != null) {
+        if (intent == null) {
+            return;
+        }
+
+        if (intent.getExtras() != null) {
             KeyEvent event = (KeyEvent) intent.getExtras().get(Intent.EXTRA_KEY_EVENT);
             if (event != null) {
                 handleKeyEvent(event);
+            }
+            if (intent.getBooleanExtra(Constants.INTENT_EXTRA_NAME_HIDE_NOTIFICATION, false)) {
+                NotificationUtil.setNotificationHiddenByUser(downloadService, true);
+                NotificationUtil.hideNotification(downloadService, new Handler());
             }
         }
     }
@@ -185,7 +202,7 @@ public class DownloadServiceLifecycleSupport {
         state.currentPlayingIndex = downloadService.getCurrentPlayingIndex();
         state.currentPlayingPosition = downloadService.getPlayerPosition();
 
-        Log.i(TAG, "Serialized currentPlayingIndex: " + state.currentPlayingIndex + ", currentPlayingPosition: " + state.currentPlayingPosition);
+        LOG.info("Serialized currentPlayingIndex: " + state.currentPlayingIndex + ", currentPlayingPosition: " + state.currentPlayingPosition);
         FileUtil.serialize(downloadService, state, FILENAME_DOWNLOADS_SER);
     }
 
@@ -194,7 +211,7 @@ public class DownloadServiceLifecycleSupport {
         if (state == null) {
             return;
         }
-        Log.i(TAG, "Deserialized currentPlayingIndex: " + state.currentPlayingIndex + ", currentPlayingPosition: " + state.currentPlayingPosition);
+        LOG.info("Deserialized currentPlayingIndex: " + state.currentPlayingIndex + ", currentPlayingPosition: " + state.currentPlayingPosition);
         downloadService.restore(state.songs, state.currentPlayingIndex, state.currentPlayingPosition);
 
         // Work-around: Serialize again, as the restore() method creates a serialization without current playing info.

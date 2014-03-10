@@ -39,7 +39,7 @@ public class AlbumDao extends AbstractDao {
 
     private static final Logger LOG = Logger.getLogger(AlbumDao.class);
     private static final String COLUMNS = "id, path, name, artist, song_count, duration_seconds, cover_art_path, " +
-            "play_count, last_played, comment, created, last_scanned, present";
+            "year, genre, play_count, last_played, comment, created, last_scanned, present";
 
     private final RowMapper rowMapper = new AlbumMapper();
 
@@ -104,6 +104,8 @@ public class AlbumDao extends AbstractDao {
                 "song_count=?," +
                 "duration_seconds=?," +
                 "cover_art_path=?," +
+                "year=?," +
+                "genre=?," +
                 "play_count=?," +
                 "last_played=?," +
                 "comment=?," +
@@ -112,13 +114,15 @@ public class AlbumDao extends AbstractDao {
                 "present=? " +
                 "where artist=? and name=?";
 
-        int n = update(sql, album.getSongCount(), album.getDurationSeconds(), album.getCoverArtPath(), album.getPlayCount(), album.getLastPlayed(),
-                album.getComment(), album.getCreated(), album.getLastScanned(), album.isPresent(), album.getArtist(), album.getName());
+        int n = update(sql, album.getSongCount(), album.getDurationSeconds(), album.getCoverArtPath(), album.getYear(),
+                album.getGenre(), album.getPlayCount(), album.getLastPlayed(), album.getComment(), album.getCreated(),
+                album.getLastScanned(), album.isPresent(), album.getArtist(), album.getName());
 
         if (n == 0) {
 
-            update("insert into album (" + COLUMNS + ") values (" + questionMarks(COLUMNS) + ")", null, album.getPath(), album.getName(), album.getArtist(),
-                    album.getSongCount(), album.getDurationSeconds(), album.getCoverArtPath(), album.getPlayCount(), album.getLastPlayed(),
+            update("insert into album (" + COLUMNS + ") values (" + questionMarks(COLUMNS) + ")", null, album.getPath(),
+                    album.getName(), album.getArtist(), album.getSongCount(), album.getDurationSeconds(),
+                    album.getCoverArtPath(), album.getYear(), album.getGenre(), album.getPlayCount(), album.getLastPlayed(),
                     album.getComment(), album.getCreated(), album.getLastScanned(), album.isPresent());
         }
 
@@ -184,10 +188,38 @@ public class AlbumDao extends AbstractDao {
      * @return The most recently starred albums for this user.
      */
     public List<Album> getStarredAlbums(int offset, int count, String username) {
-        return query("select " + prefix(COLUMNS, "album") + " from album, starred_album where album.id = starred_album.album_id and " +
+        return query("select " + prefix(COLUMNS, "album") + " from starred_album, album where album.id = starred_album.album_id and " +
                 "album.present and starred_album.username=? order by starred_album.created desc limit ? offset ?",
                 rowMapper, username, count, offset);
     }
+
+    /**
+     * Returns albums in a genre.
+     *
+     * @param offset Number of albums to skip.
+     * @param count  Maximum number of albums to return.
+     * @param genre The genre name.
+     * @return Albums in the genre.
+     */
+    public List<Album> getAlbumsByGenre(int offset, int count, String genre) {
+        return query("select " + COLUMNS + " from album where present and genre=? limit ? offset ?",
+                rowMapper, genre, count, offset);
+    }
+
+    /**
+     * Returns albums within a year range.
+     *
+     * @param offset Number of albums to skip.
+     * @param count  Maximum number of albums to return.
+     * @param fromYear The first year in the range.
+     * @param toYear The last year in the range.
+     * @return Albums in the year range.
+     */
+    public List<Album> getAlbumsByYear(int offset, int count, int fromYear, int toYear) {
+        return query("select " + COLUMNS + " from album where present and year between ? and ? order by year limit ? offset ?",
+                rowMapper, fromYear, toYear, count, offset);
+    }
+
 
     public void markNonPresent(Date lastScanned) {
         int minId = queryForInt("select top 1 id from album where last_scanned != ? and present", 0, lastScanned);
@@ -232,12 +264,14 @@ public class AlbumDao extends AbstractDao {
                     rs.getInt(5),
                     rs.getInt(6),
                     rs.getString(7),
-                    rs.getInt(8),
-                    rs.getTimestamp(9),
-                    rs.getString(10),
+                    rs.getInt(8) == 0 ? null : rs.getInt(8),
+                    rs.getString(9),
+                    rs.getInt(10),
                     rs.getTimestamp(11),
-                    rs.getTimestamp(12),
-                    rs.getBoolean(13));
+                    rs.getString(12),
+                    rs.getTimestamp(13),
+                    rs.getTimestamp(14),
+                    rs.getBoolean(15));
         }
     }
 }

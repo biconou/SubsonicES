@@ -23,18 +23,18 @@ import java.io.Serializable;
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.media.audiofx.Equalizer;
-import android.util.Log;
 import net.sourceforge.subsonic.androidapp.util.FileUtil;
+import net.sourceforge.subsonic.androidapp.util.Logger;
 
 /**
  * Backward-compatible wrapper for {@link Equalizer}, which is API Level 9.
  *
  * @author Sindre Mehus
- * @version $Id: EqualizerController.java 2340 2011-07-15 21:12:22Z sindre_mehus $
+ * @version $Id: EqualizerController.java 3539 2013-10-30 21:16:25Z sindre_mehus $
  */
 public class EqualizerController {
 
-    private static final String TAG = EqualizerController.class.getSimpleName();
+    private static final Logger LOG = new Logger(EqualizerController.class);
 
     private final Context context;
     private Equalizer equalizer;
@@ -60,7 +60,7 @@ public class EqualizerController {
         try {
             equalizer = new Equalizer(0, mediaPlayer.getAudioSessionId());
         } catch (Throwable x) {
-            Log.w(TAG, "Failed to create equalizer.", x);
+            LOG.warn("Failed to create equalizer.", x);
         }
     }
 
@@ -70,7 +70,7 @@ public class EqualizerController {
                 FileUtil.serialize(context, new EqualizerSettings(equalizer), "equalizer.dat");
             }
         } catch (Throwable x) {
-            Log.w(TAG, "Failed to save equalizer settings.", x);
+            LOG.warn("Failed to save equalizer settings.", x);
         }
     }
 
@@ -83,7 +83,7 @@ public class EqualizerController {
                 }
             }
         } catch (Throwable x) {
-            Log.w(TAG, "Failed to load equalizer settings.", x);
+            LOG.warn("Failed to load equalizer settings.", x);
         }
     }
 

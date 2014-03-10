@@ -18,19 +18,17 @@
  */
 package net.sourceforge.subsonic.service.jukebox;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicReference;
+import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.service.JukeboxService;
+import org.apache.commons.io.IOUtils;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
-
-import org.apache.commons.io.IOUtils;
-
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.service.JukeboxService;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static net.sourceforge.subsonic.service.jukebox.AudioPlayer.State.*;
 
@@ -40,10 +38,11 @@ import static net.sourceforge.subsonic.service.jukebox.AudioPlayer.State.*;
  * Supports pause and resume, but not restarting.
  *
  * @author Sindre Mehus
- * @version $Id: AudioPlayer.java 2493 2011-10-31 21:20:13Z sindre_mehus $
+ * @version $Id: AudioPlayer.java 3701 2013-11-27 11:15:27Z sindre_mehus $
  */
 public class AudioPlayer {
 
+    public static final float DEFAULT_GAIN = 0.75f;
     private static final Logger LOG = Logger.getLogger(JukeboxService.class);
 
     private final InputStream in;
@@ -63,7 +62,7 @@ public class AudioPlayer {
 
         if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
             gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-            setGain(0.5f);
+            setGain(DEFAULT_GAIN);
         }
         new AudioDataWriter();
     }
@@ -132,7 +131,7 @@ public class AudioPlayer {
         if (gainControl != null) {
 
             double minGainDB = gainControl.getMinimum();
-            double maxGainDB = gainControl.getMaximum();
+            double maxGainDB = Math.min(0.0, gainControl.getMaximum());  // Don't use positive gain to avoid distortion.
             double ampGainDB = 0.5f * maxGainDB - minGainDB;
             double cste = Math.log(10.0) / 20;
             double valueDB = minGainDB + (1 / cste) * Math.log(1 + (Math.exp(cste * ampGainDB) - 1) * gain);

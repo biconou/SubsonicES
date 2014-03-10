@@ -97,6 +97,7 @@
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="shareService" ref="shareService"/>
         <property name="playerService" ref="playerService"/>
+        <property name="playlistService" ref="playlistService"/>
         <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="setRatingController" class="net.sourceforge.subsonic.controller.SetRatingController">
@@ -157,6 +158,11 @@
         <property name="playerService" ref="playerService"/>
         <property name="securityService" ref="securityService"/>
         <property name="transcodingService" ref="transcodingService"/>
+    </bean>
+    <bean id="dlnaSettingsController" class="net.sourceforge.subsonic.controller.DLNASettingsController">
+        <property name="viewName" value="dlnaSettings"/>
+        <property name="upnpService" ref="upnpService"/>
+        <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="shareSettingsController" class="net.sourceforge.subsonic.controller.ShareSettingsController">
         <property name="viewName" value="shareSettings"/>
@@ -262,7 +268,6 @@
         <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="coverArtController" class="net.sourceforge.subsonic.controller.CoverArtController">
-        <property name="securityService" ref="securityService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
@@ -340,7 +345,7 @@
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="musicIndexService" ref="musicIndexService"/>
     </bean>
-    <bean id="restController" class="net.sourceforge.subsonic.controller.RESTController">
+    <bean id="restController" class="net.sourceforge.subsonic.controller.RESTController" init-method="init">
         <property name="settingsService" ref="settingsService"/>
         <property name="securityService" ref="securityService"/>
         <property name="playerService" ref="playerService"/>
@@ -417,6 +422,7 @@
                 <prop key="/search.view">searchController</prop>
                 <prop key="/settings.view">settingsController</prop>
                 <prop key="/playerSettings.view">playerSettingsController</prop>
+                <prop key="/dlnaSettings.view">dlnaSettingsController</prop>
                 <prop key="/shareSettings.view">shareSettingsController</prop>
                 <prop key="/musicFolderSettings.view">musicFolderSettingsController</prop>
                 <prop key="/networkSettings.view">networkSettingsController</prop>
@@ -463,17 +469,10 @@
 
     <bean id="themeSource" class="net.sourceforge.subsonic.theme.SubsonicThemeSource">
         <property name="basenamePrefix" value="net.sourceforge.subsonic.theme."/>
-        <property name="defaultResourceBundle" value="net.sourceforge.subsonic.theme.default"/>
-    </bean>
-
-    <bean id="localeResolver"
-          class="net.sourceforge.subsonic.i18n.SubsonicLocaleResolver">
-        <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
     </bean>
 
-    <bean id="themeResolver"
-          class="net.sourceforge.subsonic.theme.SubsonicThemeResolver">
+    <bean id="themeResolver" class="net.sourceforge.subsonic.theme.SubsonicThemeResolver">
         <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
     </bean>

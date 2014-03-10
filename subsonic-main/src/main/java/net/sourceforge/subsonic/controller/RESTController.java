@@ -30,13 +30,13 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 
@@ -53,6 +53,7 @@ import net.sourceforge.subsonic.dao.MediaFileDao;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.Artist;
 import net.sourceforge.subsonic.domain.Bookmark;
+import net.sourceforge.subsonic.domain.Genre;
 import net.sourceforge.subsonic.domain.InternetRadio;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
@@ -85,12 +86,14 @@ import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.ShareService;
 import net.sourceforge.subsonic.service.StatusService;
 import net.sourceforge.subsonic.service.TranscodingService;
+import net.sourceforge.subsonic.util.Pair;
 import net.sourceforge.subsonic.util.StringUtil;
 import net.sourceforge.subsonic.util.XMLBuilder;
 
 import static net.sourceforge.subsonic.security.RESTRequestParameterProcessingFilter.decrypt;
 import static net.sourceforge.subsonic.util.XMLBuilder.Attribute;
 import static net.sourceforge.subsonic.util.XMLBuilder.AttributeSet;
+import static org.springframework.web.bind.ServletRequestUtils.*;
 
 /**
  * Multi-controller used for the REST API.
@@ -134,6 +137,19 @@ public class RESTController extends MultiActionController {
     private ArtistDao artistDao;
     private AlbumDao albumDao;
     private BookmarkDao bookmarkDao;
+
+    private final Map<BookmarkKey, Bookmark> bookmarkCache = new ConcurrentHashMap<BookmarkKey, Bookmark>();
+
+    public void init() {
+        refreshBookmarkCache();
+    }
+
+    private void refreshBookmarkCache() {
+        bookmarkCache.clear();
+        for (Bookmark bookmark : bookmarkDao.getBookmarks()) {
+            bookmarkCache.put(BookmarkKey.forBookmark(bookmark), bookmark);
+        }
+    }
 
     public void ping(HttpServletRequest request, HttpServletResponse response) throws Exception {
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
@@ -180,8 +196,9 @@ public class RESTController extends MultiActionController {
     public void getIndexes(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         XMLBuilder builder = createXMLBuilder(request, response, true);
+        String username = securityService.getCurrentUser(request).getUsername();
 
-        long ifModifiedSince = ServletRequestUtils.getLongParameter(request, "ifModifiedSince", 0L);
+        long ifModifiedSince = getLongParameter(request, "ifModifiedSince", 0L);
         long lastModified = leftController.getLastModified(request);
 
         if (lastModified <= ifModifiedSince) {
@@ -190,10 +207,10 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        builder.add("indexes", "lastModified", lastModified, false);
-
+        builder.add("indexes", false, new Attribute("lastModified", lastModified),
+                new Attribute("ignoredArticles", settingsService.getIgnoredArticles()));
         List<MusicFolder> musicFolders = settingsService.getAllMusicFolders();
-        Integer musicFolderId = ServletRequestUtils.getIntParameter(request, "musicFolderId");
+        Integer musicFolderId = getIntParameter(request, "musicFolderId");
         if (musicFolderId != null) {
             for (MusicFolder musicFolder : musicFolders) {
                 if (musicFolderId.equals(musicFolder.getId())) {
@@ -205,9 +222,7 @@ public class RESTController extends MultiActionController {
 
         List<MediaFile> shortcuts = leftController.getShortcuts(musicFolders, settingsService.getShortcutsAsArray());
         for (MediaFile shortcut : shortcuts) {
-            builder.add("shortcut", true,
-                    new Attribute("name", shortcut.getName()),
-                    new Attribute("id", shortcut.getId()));
+            builder.add("shortcut", createAttributesForArtist(shortcut, username), true);
         }
 
         SortedMap<MusicIndex, SortedSet<MusicIndex.SortableArtistWithMediaFiles>> indexedArtists =
@@ -219,9 +234,11 @@ public class RESTController extends MultiActionController {
             for (MusicIndex.SortableArtistWithMediaFiles artist : entry.getValue()) {
                 for (MediaFile mediaFile : artist.getMediaFiles()) {
                     if (mediaFile.isDirectory()) {
+                        Date starredDate = mediaFileDao.getMediaFileStarredDate(mediaFile.getId(), username);
                         builder.add("artist", true,
                                 new Attribute("name", artist.getName()),
-                                new Attribute("id", mediaFile.getId()));
+                                new Attribute("id", mediaFile.getId()),
+                                new Attribute("starred", StringUtil.toISO8601(starredDate)));
                     }
                 }
             }
@@ -230,7 +247,6 @@ public class RESTController extends MultiActionController {
 
         // Add children
         Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
         List<MediaFile> singleSongs = leftController.getSingleSongs(musicFolders, false);
 
         for (MediaFile singleSong : singleSongs) {
@@ -247,8 +263,10 @@ public class RESTController extends MultiActionController {
 
         builder.add("genres", false);
 
-        for (String genre : mediaFileDao.getGenres()) {
-            builder.add("genre", (Iterable<Attribute>) null, genre, true);
+        for (Genre genre : mediaFileDao.getGenres(false)) {
+            List<Attribute> attrs = Arrays.asList(new Attribute("songCount", genre.getSongCount()),
+                    new Attribute("albumCount", genre.getAlbumCount()));
+            builder.add("genre", attrs, genre.getName(), true);
         }
         builder.endAll();
         response.getWriter().print(builder);
@@ -262,9 +280,9 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("songsByGenre", false);
 
-        String genre = ServletRequestUtils.getRequiredStringParameter(request, "genre");
-        int offset = ServletRequestUtils.getIntParameter(request, "offset", 0);
-        int count = ServletRequestUtils.getIntParameter(request, "count", 10);
+        String genre = getRequiredStringParameter(request, "genre");
+        int offset = getIntParameter(request, "offset", 0);
+        int count = getIntParameter(request, "count", 10);
         count = Math.max(0, Math.min(count, 500));
 
         for (MediaFile mediaFile : mediaFileDao.getSongsByGenre(genre, offset, count)) {
@@ -280,7 +298,7 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         String username = securityService.getCurrentUsername(request);
 
-        builder.add("artists", false);
+        builder.add("artists", "ignoredArticles", settingsService.getIgnoredArticles(), false);
 
         List<Artist> artists = artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE);
         SortedMap<MusicIndex, SortedSet<MusicIndex.SortableArtistWithArtist>> indexedArtists = musicIndexService.getIndexedArtists(artists);
@@ -309,12 +327,20 @@ public class RESTController extends MultiActionController {
         return attributes;
     }
 
+    private AttributeSet createAttributesForArtist(MediaFile artist, String username) {
+        AttributeSet attributes = new AttributeSet();
+        attributes.add("id", artist.getId());
+        attributes.add("name", artist.getName());
+        attributes.add("starred", StringUtil.toISO8601(mediaFileDao.getMediaFileStarredDate(artist.getId(), username)));
+        return attributes;
+    }
+
     public void getArtist(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
         String username = securityService.getCurrentUsername(request);
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         Artist artist = artistDao.getArtist(id);
         if (artist == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Artist not found.");
@@ -349,6 +375,8 @@ public class RESTController extends MultiActionController {
         attributes.add("duration", album.getDurationSeconds());
         attributes.add("created", StringUtil.toISO8601(album.getCreated()));
         attributes.add("starred", StringUtil.toISO8601(albumDao.getAlbumStarredDate(album.getId(), username)));
+        attributes.add("year", album.getYear());
+        attributes.add("genre", album.getGenre());
 
         return attributes;
     }
@@ -360,7 +388,7 @@ public class RESTController extends MultiActionController {
         attributes.add("name", playlist.getName());
         attributes.add("comment", playlist.getComment());
         attributes.add("owner", playlist.getUsername());
-        attributes.add("public", playlist.isPublic());
+        attributes.add("public", playlist.isShared());
         attributes.add("songCount", playlist.getFileCount());
         attributes.add("duration", playlist.getDurationSeconds());
         attributes.add("created", StringUtil.toISO8601(playlist.getCreated()));
@@ -373,7 +401,7 @@ public class RESTController extends MultiActionController {
         String username = securityService.getCurrentUsername(request);
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         Album album = albumDao.getAlbum(id);
         if (album == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Album not found.");
@@ -395,7 +423,7 @@ public class RESTController extends MultiActionController {
         String username = securityService.getCurrentUsername(request);
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         MediaFile song = mediaFileDao.getMediaFile(id);
         if (song == null || song.isDirectory()) {
             error(request, response, ErrorCode.NOT_FOUND, "Song not found.");
@@ -412,7 +440,7 @@ public class RESTController extends MultiActionController {
         Player player = playerService.getPlayer(request, response);
         String username = securityService.getCurrentUsername(request);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         MediaFile dir = mediaFileService.getMediaFile(id);
         if (dir == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Directory not found");
@@ -430,6 +458,7 @@ public class RESTController extends MultiActionController {
             // Ignored.
         }
         attributes.add("name", dir.getName());
+        attributes.add("starred", StringUtil.toISO8601(mediaFileDao.getMediaFileStarredDate(id, username)));
 
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("directory", attributes, false);
@@ -470,8 +499,8 @@ public class RESTController extends MultiActionController {
 
         SearchCriteria criteria = new SearchCriteria();
         criteria.setQuery(query.toString().trim());
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "count", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "offset", 0));
+        criteria.setCount(getIntParameter(request, "count", 20));
+        criteria.setOffset(getIntParameter(request, "offset", 0));
 
         SearchResult result = searchService.search(criteria, SearchService.IndexType.SONG);
         builder.add("searchResult", false,
@@ -497,25 +526,23 @@ public class RESTController extends MultiActionController {
         String query = request.getParameter("query");
         SearchCriteria criteria = new SearchCriteria();
         criteria.setQuery(StringUtils.trimToEmpty(query));
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "artistCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "artistOffset", 0));
+        criteria.setCount(getIntParameter(request, "artistCount", 20));
+        criteria.setOffset(getIntParameter(request, "artistOffset", 0));
         SearchResult artists = searchService.search(criteria, SearchService.IndexType.ARTIST);
         for (MediaFile mediaFile : artists.getMediaFiles()) {
-            builder.add("artist", true,
-                    new Attribute("name", mediaFile.getName()),
-                    new Attribute("id", mediaFile.getId()));
+            builder.add("artist", createAttributesForArtist(mediaFile, username), true);
         }
 
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "albumCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "albumOffset", 0));
+        criteria.setCount(getIntParameter(request, "albumCount", 20));
+        criteria.setOffset(getIntParameter(request, "albumOffset", 0));
         SearchResult albums = searchService.search(criteria, SearchService.IndexType.ALBUM);
         for (MediaFile mediaFile : albums.getMediaFiles()) {
             AttributeSet attributes = createAttributesForMediaFile(player, mediaFile, username);
             builder.add("album", attributes, true);
         }
 
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "songCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "songOffset", 0));
+        criteria.setCount(getIntParameter(request, "songCount", 20));
+        criteria.setOffset(getIntParameter(request, "songOffset", 0));
         SearchResult songs = searchService.search(criteria, SearchService.IndexType.SONG);
         for (MediaFile mediaFile : songs.getMediaFiles()) {
             AttributeSet attributes = createAttributesForMediaFile(player, mediaFile, username);
@@ -537,22 +564,22 @@ public class RESTController extends MultiActionController {
         String query = request.getParameter("query");
         SearchCriteria criteria = new SearchCriteria();
         criteria.setQuery(StringUtils.trimToEmpty(query));
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "artistCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "artistOffset", 0));
+        criteria.setCount(getIntParameter(request, "artistCount", 20));
+        criteria.setOffset(getIntParameter(request, "artistOffset", 0));
         SearchResult searchResult = searchService.search(criteria, SearchService.IndexType.ARTIST_ID3);
         for (Artist artist : searchResult.getArtists()) {
             builder.add("artist", createAttributesForArtist(artist, username), true);
         }
 
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "albumCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "albumOffset", 0));
+        criteria.setCount(getIntParameter(request, "albumCount", 20));
+        criteria.setOffset(getIntParameter(request, "albumOffset", 0));
         searchResult = searchService.search(criteria, SearchService.IndexType.ALBUM_ID3);
         for (Album album : searchResult.getAlbums()) {
             builder.add("album", createAttributesForAlbum(album, username), true);
         }
 
-        criteria.setCount(ServletRequestUtils.getIntParameter(request, "songCount", 20));
-        criteria.setOffset(ServletRequestUtils.getIntParameter(request, "songOffset", 0));
+        criteria.setCount(getIntParameter(request, "songCount", 20));
+        criteria.setOffset(getIntParameter(request, "songOffset", 0));
         searchResult = searchService.search(criteria, SearchService.IndexType.SONG);
         for (MediaFile song : searchResult.getMediaFiles()) {
             builder.add("song", createAttributesForMediaFile(player, song, username), true);
@@ -601,7 +628,7 @@ public class RESTController extends MultiActionController {
 
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
 
         Playlist playlist = playlistService.getPlaylist(id);
         if (playlist == null) {
@@ -635,30 +662,30 @@ public class RESTController extends MultiActionController {
         }
 
         boolean returnPlaylist = false;
-        String action = ServletRequestUtils.getRequiredStringParameter(request, "action");
+        String action = getRequiredStringParameter(request, "action");
         if ("start".equals(action)) {
             playQueueService.doStart(request, response);
         } else if ("stop".equals(action)) {
             playQueueService.doStop(request, response);
         } else if ("skip".equals(action)) {
-            int index = ServletRequestUtils.getRequiredIntParameter(request, "index");
-            int offset = ServletRequestUtils.getIntParameter(request, "offset", 0);
+            int index = getRequiredIntParameter(request, "index");
+            int offset = getIntParameter(request, "offset", 0);
             playQueueService.doSkip(request, response, index, offset);
         } else if ("add".equals(action)) {
-            int[] ids = ServletRequestUtils.getIntParameters(request, "id");
-            playQueueService.doAdd(request, response, ids);
+            int[] ids = getIntParameters(request, "id");
+            playQueueService.doAdd(request, response, ids, null);
         } else if ("set".equals(action)) {
-            int[] ids = ServletRequestUtils.getIntParameters(request, "id");
+            int[] ids = getIntParameters(request, "id");
             playQueueService.doSet(request, response, ids);
         } else if ("clear".equals(action)) {
             playQueueService.doClear(request, response);
         } else if ("remove".equals(action)) {
-            int index = ServletRequestUtils.getRequiredIntParameter(request, "index");
+            int index = getRequiredIntParameter(request, "index");
             playQueueService.doRemove(request, response, index);
         } else if ("shuffle".equals(action)) {
             playQueueService.doShuffle(request, response);
         } else if ("setGain".equals(action)) {
-            float gain = ServletRequestUtils.getRequiredFloatParameter(request, "gain");
+            float gain = getRequiredFloatParameter(request, "gain");
             jukeboxService.setGain(gain);
         } else if ("get".equals(action)) {
             returnPlaylist = true;
@@ -704,7 +731,7 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request, true);
         String username = securityService.getCurrentUsername(request);
 
-        Integer playlistId = ServletRequestUtils.getIntParameter(request, "playlistId");
+        Integer playlistId = getIntParameter(request, "playlistId");
         String name = request.getParameter("name");
         if (playlistId == null && name == null) {
             error(request, response, ErrorCode.MISSING_PARAMETER, "Playlist ID or name must be specified.");
@@ -727,13 +754,13 @@ public class RESTController extends MultiActionController {
             playlist.setName(name);
             playlist.setCreated(new Date());
             playlist.setChanged(new Date());
-            playlist.setPublic(false);
+            playlist.setShared(false);
             playlist.setUsername(username);
             playlistService.createPlaylist(playlist);
         }
 
         List<MediaFile> songs = new ArrayList<MediaFile>();
-        for (int id : ServletRequestUtils.getIntParameters(request, "songId")) {
+        for (int id : getIntParameters(request, "songId")) {
             MediaFile song = mediaFileService.getMediaFile(id);
             if (song != null) {
                 songs.add(song);
@@ -750,7 +777,7 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request, true);
         String username = securityService.getCurrentUsername(request);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "playlistId");
+        int id = getRequiredIntParameter(request, "playlistId");
         Playlist playlist = playlistService.getPlaylist(id);
         if (playlist == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Playlist not found: " + id);
@@ -769,9 +796,9 @@ public class RESTController extends MultiActionController {
         if (comment != null) {
             playlist.setComment(comment);
         }
-        Boolean isPublic = ServletRequestUtils.getBooleanParameter(request, "public");
-        if (isPublic != null) {
-            playlist.setPublic(isPublic);
+        Boolean shared = getBooleanParameter(request, "public");
+        if (shared != null) {
+            playlist.setShared(shared);
         }
         playlistService.updatePlaylist(playlist);
 
@@ -790,7 +817,7 @@ public class RESTController extends MultiActionController {
         boolean songsChanged = false;
 
         SortedSet<Integer> tmp = new TreeSet<Integer>();
-        for (int songIndexToRemove : ServletRequestUtils.getIntParameters(request, "songIndexToRemove")) {
+        for (int songIndexToRemove : getIntParameters(request, "songIndexToRemove")) {
             tmp.add(songIndexToRemove);
         }
         List<Integer> songIndexesToRemove = new ArrayList<Integer>(tmp);
@@ -799,7 +826,7 @@ public class RESTController extends MultiActionController {
             songs.remove(songIndexToRemove.intValue());
             songsChanged = true;
         }
-        for (int songToAdd : ServletRequestUtils.getIntParameters(request, "songIdToAdd")) {
+        for (int songToAdd : getIntParameters(request, "songIdToAdd")) {
             MediaFile song = mediaFileService.getMediaFile(songToAdd);
             if (song != null) {
                 songs.add(song);
@@ -819,7 +846,7 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request, true);
         String username = securityService.getCurrentUsername(request);
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         Playlist playlist = playlistService.getPlaylist(id);
         if (playlist == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Playlist not found: " + id);
@@ -844,35 +871,39 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("albumList", false);
 
-        int size = ServletRequestUtils.getIntParameter(request, "size", 10);
-        int offset = ServletRequestUtils.getIntParameter(request, "offset", 0);
+        int size = getIntParameter(request, "size", 10);
+        int offset = getIntParameter(request, "offset", 0);
         size = Math.max(0, Math.min(size, 500));
-        String type = ServletRequestUtils.getRequiredStringParameter(request, "type");
+        String type = getRequiredStringParameter(request, "type");
 
-        List<HomeController.Album> albums;
+        List<MediaFile> albums;
         if ("highest".equals(type)) {
-            albums = homeController.getHighestRated(offset, size);
+            albums = ratingService.getHighestRatedAlbums(offset, size);
         } else if ("frequent".equals(type)) {
-            albums = homeController.getMostFrequent(offset, size);
+            albums = mediaFileService.getMostFrequentlyPlayedAlbums(offset, size);
         } else if ("recent".equals(type)) {
-            albums = homeController.getMostRecent(offset, size);
+            albums = mediaFileService.getMostRecentlyPlayedAlbums(offset, size);
         } else if ("newest".equals(type)) {
-            albums = homeController.getNewest(offset, size);
+            albums = mediaFileService.getNewestAlbums(offset, size);
         } else if ("starred".equals(type)) {
-            albums = homeController.getStarred(offset, size, username);
+            albums = mediaFileService.getStarredAlbums(offset, size, username);
         } else if ("alphabeticalByArtist".equals(type)) {
-            albums = homeController.getAlphabetical(offset, size, true);
+            albums = mediaFileService.getAlphabeticalAlbums(offset, size, true);
         } else if ("alphabeticalByName".equals(type)) {
-            albums = homeController.getAlphabetical(offset, size, false);
+            albums = mediaFileService.getAlphabeticalAlbums(offset, size, false);
+        } else if ("byGenre".equals(type)) {
+            albums = mediaFileService.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"));
+        } else if ("byYear".equals(type)) {
+            albums = mediaFileService.getAlbumsByYear(offset, size, getRequiredIntParameter(request, "fromYear"),
+                    getRequiredIntParameter(request, "toYear"));
         } else if ("random".equals(type)) {
-            albums = homeController.getRandom(size);
+            albums = searchService.getRandomAlbums(size);
         } else {
             throw new Exception("Invalid list type: " + type);
         }
 
-        for (HomeController.Album album : albums) {
-            MediaFile mediaFile = mediaFileService.getMediaFile(album.getPath());
-            AttributeSet attributes = createAttributesForMediaFile(player, mediaFile, username);
+        for (MediaFile album : albums) {
+            AttributeSet attributes = createAttributesForMediaFile(player, album, username);
             builder.add("album", attributes, true);
         }
         builder.endAll();
@@ -885,10 +916,10 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("albumList2", false);
 
-        int size = ServletRequestUtils.getIntParameter(request, "size", 10);
-        int offset = ServletRequestUtils.getIntParameter(request, "offset", 0);
+        int size = getIntParameter(request, "size", 10);
+        int offset = getIntParameter(request, "offset", 0);
         size = Math.max(0, Math.min(size, 500));
-        String type = ServletRequestUtils.getRequiredStringParameter(request, "type");
+        String type = getRequiredStringParameter(request, "type");
         String username = securityService.getCurrentUsername(request);
 
         List<Album> albums;
@@ -902,6 +933,11 @@ public class RESTController extends MultiActionController {
             albums = albumDao.getAlphabetialAlbums(offset, size, true);
         } else if ("alphabeticalByName".equals(type)) {
             albums = albumDao.getAlphabetialAlbums(offset, size, false);
+        } else if ("byGenre".equals(type)) {
+            albums = albumDao.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"));
+        } else if ("byYear".equals(type)) {
+            albums = albumDao.getAlbumsByYear(offset, size, getRequiredIntParameter(request, "fromYear"),
+                    getRequiredIntParameter(request, "toYear"));
         } else if ("starred".equals(type)) {
             albums = albumDao.getStarredAlbums(offset, size, securityService.getCurrentUser(request).getUsername());
         } else if ("random".equals(type)) {
@@ -924,12 +960,12 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("randomSongs", false);
 
-        int size = ServletRequestUtils.getIntParameter(request, "size", 10);
+        int size = getIntParameter(request, "size", 10);
         size = Math.max(0, Math.min(size, 500));
-        String genre = ServletRequestUtils.getStringParameter(request, "genre");
-        Integer fromYear = ServletRequestUtils.getIntParameter(request, "fromYear");
-        Integer toYear = ServletRequestUtils.getIntParameter(request, "toYear");
-        Integer musicFolderId = ServletRequestUtils.getIntParameter(request, "musicFolderId");
+        String genre = getStringParameter(request, "genre");
+        Integer fromYear = getIntParameter(request, "fromYear");
+        Integer toYear = getIntParameter(request, "toYear");
+        Integer musicFolderId = getIntParameter(request, "musicFolderId");
         RandomSearchCriteria criteria = new RandomSearchCriteria(size, genre, fromYear, toYear, musicFolderId);
 
         for (MediaFile mediaFile : searchService.getRandomSongs(criteria)) {
@@ -947,8 +983,8 @@ public class RESTController extends MultiActionController {
 
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("videos", false);
-        int size = ServletRequestUtils.getIntParameter(request, "size", Integer.MAX_VALUE);
-        int offset = ServletRequestUtils.getIntParameter(request, "offset", 0);
+        int size = getIntParameter(request, "size", Integer.MAX_VALUE);
+        int offset = getIntParameter(request, "offset", 0);
 
         for (MediaFile mediaFile : mediaFileDao.getVideos(size, offset)) {
             builder.add("video", createAttributesForMediaFile(player, mediaFile, username), true);
@@ -1008,6 +1044,8 @@ public class RESTController extends MultiActionController {
         attributes.add("artist", mediaFile.getArtist());
         attributes.add("isDir", mediaFile.isDirectory());
         attributes.add("coverArt", findCoverArt(mediaFile, parent));
+        attributes.add("year", mediaFile.getYear());
+        attributes.add("genre", mediaFile.getGenre());
         attributes.add("created", StringUtil.toISO8601(mediaFile.getCreated()));
         attributes.add("starred", StringUtil.toISO8601(mediaFileDao.getMediaFileStarredDate(mediaFile.getId(), username)));
         attributes.add("userRating", ratingService.getRatingForUser(username, mediaFile));
@@ -1018,8 +1056,6 @@ public class RESTController extends MultiActionController {
             attributes.add("bitRate", mediaFile.getBitRate());
             attributes.add("track", mediaFile.getTrackNumber());
             attributes.add("discNumber", mediaFile.getDiscNumber());
-            attributes.add("year", mediaFile.getYear());
-            attributes.add("genre", mediaFile.getGenre());
             attributes.add("size", mediaFile.getFileSize());
             String suffix = mediaFile.getFormat();
             attributes.add("suffix", suffix);
@@ -1027,7 +1063,12 @@ public class RESTController extends MultiActionController {
             attributes.add("isVideo", mediaFile.isVideo());
             attributes.add("path", getRelativePath(mediaFile));
 
-            if (mediaFile.getArtist() != null && mediaFile.getAlbumName() != null) {
+            Bookmark bookmark = bookmarkCache.get(new BookmarkKey(username, mediaFile.getId()));
+            if (bookmark != null) {
+                attributes.add("bookmarkPosition", bookmark.getPositionMillis());
+            }
+
+            if (mediaFile.getAlbumArtist() != null && mediaFile.getAlbumName() != null) {
                 Album album = albumDao.getAlbum(mediaFile.getAlbumArtist(), mediaFile.getAlbumName());
                 if (album != null) {
                     attributes.add("albumId", album.getId());
@@ -1084,6 +1125,9 @@ public class RESTController extends MultiActionController {
             String folderPath = musicFolder.getPath().getPath();
             folderPath = folderPath.replace('\\', '/');
             String folderPathLower = folderPath.toLowerCase();
+            if (!folderPathLower.endsWith("/")) {
+                folderPathLower += "/";
+            }
 
             if (filePathLower.startsWith(folderPathLower)) {
                 String relativePath = filePath.substring(folderPath.length());
@@ -1151,9 +1195,9 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        boolean submission = ServletRequestUtils.getBooleanParameter(request, "submission", true);
-        int[] ids = ServletRequestUtils.getRequiredIntParameters(request, "id");
-        long[] times = ServletRequestUtils.getLongParameters(request, "time");
+        boolean submission = getBooleanParameter(request, "submission", true);
+        int[] ids = getRequiredIntParameters(request, "id");
+        long[] times = getLongParameters(request, "time");
         if (times.length > 0 && times.length != ids.length) {
             error(request, response, ErrorCode.GENERIC, "Wrong number of timestamps: " + times.length);
             return;
@@ -1187,7 +1231,7 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
         String username = securityService.getCurrentUser(request).getUsername();
-        for (int id : ServletRequestUtils.getIntParameters(request, "id")) {
+        for (int id : getIntParameters(request, "id")) {
             MediaFile mediaFile = mediaFileDao.getMediaFile(id);
             if (mediaFile == null) {
                 error(request, response, ErrorCode.NOT_FOUND, "Media file not found: " + id);
@@ -1199,7 +1243,7 @@ public class RESTController extends MultiActionController {
                 mediaFileDao.unstarMediaFile(id, username);
             }
         }
-        for (int albumId : ServletRequestUtils.getIntParameters(request, "albumId")) {
+        for (int albumId : getIntParameters(request, "albumId")) {
             Album album = albumDao.getAlbum(albumId);
             if (album == null) {
                 error(request, response, ErrorCode.NOT_FOUND, "Album not found: " + albumId);
@@ -1211,7 +1255,7 @@ public class RESTController extends MultiActionController {
                 albumDao.unstarAlbum(albumId, username);
             }
         }
-        for (int artistId : ServletRequestUtils.getIntParameters(request, "artistId")) {
+        for (int artistId : getIntParameters(request, "artistId")) {
             Artist artist = artistDao.getArtist(artistId);
             if (artist == null) {
                 error(request, response, ErrorCode.NOT_FOUND, "Artist not found: " + artistId);
@@ -1236,9 +1280,7 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("starred", false);
         for (MediaFile artist : mediaFileDao.getStarredDirectories(0, Integer.MAX_VALUE, username)) {
-            builder.add("artist", true,
-                    new Attribute("name", artist.getName()),
-                    new Attribute("id", artist.getId()));
+            builder.add("artist", createAttributesForArtist(artist, username), true);
         }
         for (MediaFile album : mediaFileDao.getStarredAlbums(0, Integer.MAX_VALUE, username)) {
             builder.add("album", createAttributesForMediaFile(player, album, username), true);
@@ -1274,8 +1316,8 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request);
         Player player = playerService.getPlayer(request, response);
         String username = securityService.getCurrentUsername(request);
-        boolean includeEpisodes = ServletRequestUtils.getBooleanParameter(request, "includeEpisodes", true);
-        Integer channelId = ServletRequestUtils.getIntParameter(request, "id");
+        boolean includeEpisodes = getBooleanParameter(request, "includeEpisodes", true);
+        Integer channelId = getIntParameter(request, "id");
 
         XMLBuilder builder = createXMLBuilder(request, response, true);
         builder.add("podcasts", false);
@@ -1339,7 +1381,7 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        String url = ServletRequestUtils.getRequiredStringParameter(request, "url");
+        String url = getRequiredStringParameter(request, "url");
         podcastService.createChannel(url);
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
@@ -1353,7 +1395,7 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         podcastService.deleteChannel(id);
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
@@ -1367,7 +1409,7 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         podcastService.deleteEpisode(id, true);
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
@@ -1381,7 +1423,7 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         PodcastEpisode episode = podcastService.getEpisode(id, true);
         if (episode == null) {
             error(request, response, ErrorCode.NOT_FOUND, "Podcast episode " + id + " not found.");
@@ -1432,13 +1474,14 @@ public class RESTController extends MultiActionController {
     public void createBookmark(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         String username = securityService.getCurrentUsername(request);
-        int mediaFileId = ServletRequestUtils.getRequiredIntParameter(request, "id");
-        long position = ServletRequestUtils.getRequiredLongParameter(request, "position");
+        int mediaFileId = getRequiredIntParameter(request, "id");
+        long position = getRequiredLongParameter(request, "position");
         String comment = request.getParameter("comment");
         Date now = new Date();
 
         Bookmark bookmark = new Bookmark(0, mediaFileId, position, username, comment, now, now);
         bookmarkDao.createOrUpdateBookmark(bookmark);
+        refreshBookmarkCache();
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
     }
@@ -1448,8 +1491,9 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
         String username = securityService.getCurrentUsername(request);
-        int mediaFileId = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int mediaFileId = getRequiredIntParameter(request, "id");
         bookmarkDao.deleteBookmark(username, mediaFileId);
+        refreshBookmarkCache();
 
         builder.endAll();
         response.getWriter().print(builder);
@@ -1497,7 +1541,7 @@ public class RESTController extends MultiActionController {
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
         List<MediaFile> files = new ArrayList<MediaFile>();
-        for (int id : ServletRequestUtils.getRequiredIntParameters(request, "id")) {
+        for (int id : getRequiredIntParameters(request, "id")) {
             files.add(mediaFileService.getMediaFile(id));
         }
 
@@ -1505,7 +1549,7 @@ public class RESTController extends MultiActionController {
 
         Share share = shareService.createShare(request, files);
         share.setDescription(request.getParameter("description"));
-        long expires = ServletRequestUtils.getLongParameter(request, "expires", 0L);
+        long expires = getLongParameter(request, "expires", 0L);
         if (expires != 0) {
             share.setExpires(new Date(expires));
         }
@@ -1526,7 +1570,7 @@ public class RESTController extends MultiActionController {
     public void deleteShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         User user = securityService.getCurrentUser(request);
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
 
         Share share = shareService.getShareById(id);
         if (share == null) {
@@ -1546,7 +1590,7 @@ public class RESTController extends MultiActionController {
     public void updateShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         User user = securityService.getCurrentUser(request);
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
 
         Share share = shareService.getShareById(id);
         if (share == null) {
@@ -1598,10 +1642,10 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request);
 
         Map<String, Object> map = new HashMap<String, Object>();
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         MediaFile file = mediaFileService.getMediaFile(id);
 
-        int timeOffset = ServletRequestUtils.getIntParameter(request, "timeOffset", 0);
+        int timeOffset = getIntParameter(request, "timeOffset", 0);
         timeOffset = Math.max(0, timeOffset);
         Integer duration = file.getDurationSeconds();
         if (duration != null) {
@@ -1616,11 +1660,11 @@ public class RESTController extends MultiActionController {
         map.put("c", request.getParameter("c"));
         map.put("v", request.getParameter("v"));
         map.put("video", file);
-        map.put("maxBitRate", ServletRequestUtils.getIntParameter(request, "maxBitRate", VideoPlayerController.DEFAULT_BIT_RATE));
+        map.put("maxBitRate", getIntParameter(request, "maxBitRate", VideoPlayerController.DEFAULT_BIT_RATE));
         map.put("duration", duration);
         map.put("timeOffset", timeOffset);
         map.put("bitRates", VideoPlayerController.BIT_RATES);
-        map.put("autoplay", ServletRequestUtils.getBooleanParameter(request, "autoplay", true));
+        map.put("autoplay", getBooleanParameter(request, "autoplay", true));
 
         ModelAndView result = new ModelAndView("rest/videoPlayer");
         result.addObject("model", map);
@@ -1640,8 +1684,8 @@ public class RESTController extends MultiActionController {
     public void changePassword(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
 
-        String username = ServletRequestUtils.getRequiredStringParameter(request, "username");
-        String password = decrypt(ServletRequestUtils.getRequiredStringParameter(request, "password"));
+        String username = getRequiredStringParameter(request, "username");
+        String password = decrypt(getRequiredStringParameter(request, "password"));
 
         User authUser = securityService.getCurrentUser(request);
         if (!authUser.isAdminRole() && !username.equals(authUser.getUsername())) {
@@ -1660,7 +1704,7 @@ public class RESTController extends MultiActionController {
     public void getUser(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
 
-        String username = ServletRequestUtils.getRequiredStringParameter(request, "username");
+        String username = getRequiredStringParameter(request, "username");
 
         User currentUser = securityService.getCurrentUser(request);
         if (!username.equals(currentUser.getUsername()) && !currentUser.isAdminRole()) {
@@ -1733,25 +1777,75 @@ public class RESTController extends MultiActionController {
         }
 
         UserSettingsCommand command = new UserSettingsCommand();
-        command.setUsername(ServletRequestUtils.getRequiredStringParameter(request, "username"));
-        command.setPassword(decrypt(ServletRequestUtils.getRequiredStringParameter(request, "password")));
-        command.setEmail(ServletRequestUtils.getRequiredStringParameter(request, "email"));
-        command.setLdapAuthenticated(ServletRequestUtils.getBooleanParameter(request, "ldapAuthenticated", false));
-        command.setAdminRole(ServletRequestUtils.getBooleanParameter(request, "adminRole", false));
-        command.setCommentRole(ServletRequestUtils.getBooleanParameter(request, "commentRole", false));
-        command.setCoverArtRole(ServletRequestUtils.getBooleanParameter(request, "coverArtRole", false));
-        command.setDownloadRole(ServletRequestUtils.getBooleanParameter(request, "downloadRole", false));
-        command.setStreamRole(ServletRequestUtils.getBooleanParameter(request, "streamRole", true));
-        command.setUploadRole(ServletRequestUtils.getBooleanParameter(request, "uploadRole", false));
-        command.setJukeboxRole(ServletRequestUtils.getBooleanParameter(request, "jukeboxRole", false));
-        command.setPodcastRole(ServletRequestUtils.getBooleanParameter(request, "podcastRole", false));
-        command.setSettingsRole(ServletRequestUtils.getBooleanParameter(request, "settingsRole", true));
-        command.setTranscodeSchemeName(ServletRequestUtils.getStringParameter(request, "transcodeScheme", TranscodeScheme.OFF.name()));
-        command.setShareRole(ServletRequestUtils.getBooleanParameter(request, "shareRole", false));
+        command.setUsername(getRequiredStringParameter(request, "username"));
+        command.setPassword(decrypt(getRequiredStringParameter(request, "password")));
+        command.setEmail(getRequiredStringParameter(request, "email"));
+        command.setLdapAuthenticated(getBooleanParameter(request, "ldapAuthenticated", false));
+        command.setAdminRole(getBooleanParameter(request, "adminRole", false));
+        command.setCommentRole(getBooleanParameter(request, "commentRole", false));
+        command.setCoverArtRole(getBooleanParameter(request, "coverArtRole", false));
+        command.setDownloadRole(getBooleanParameter(request, "downloadRole", false));
+        command.setStreamRole(getBooleanParameter(request, "streamRole", true));
+        command.setUploadRole(getBooleanParameter(request, "uploadRole", false));
+        command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", false));
+        command.setPodcastRole(getBooleanParameter(request, "podcastRole", false));
+        command.setSettingsRole(getBooleanParameter(request, "settingsRole", true));
+        command.setShareRole(getBooleanParameter(request, "shareRole", false));
+        command.setTranscodeSchemeName(TranscodeScheme.OFF.name());
 
         userSettingsController.createUser(command);
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
+    }
+
+    public void updateUser(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        request = wrapRequest(request);
+        User user = securityService.getCurrentUser(request);
+        if (!user.isAdminRole()) {
+            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to update users.");
+            return;
+        }
+
+        String username = getRequiredStringParameter(request, "username");
+        User u = securityService.getUserByName(username);
+        UserSettings s = settingsService.getUserSettings(username);
+
+        if (u == null) {
+            error(request, response, ErrorCode.NOT_FOUND, "No such user: " + username);
+            return;
+        } else if (User.USERNAME_ADMIN.equals(username)) {
+            error(request, response, ErrorCode.NOT_AUTHORIZED, "Not allowed to change admin user");
+            return;
+        }
+
+        UserSettingsCommand command = new UserSettingsCommand();
+        command.setUsername(username);
+        command.setEmail(getStringParameter(request, "email", u.getEmail()));
+        command.setLdapAuthenticated(getBooleanParameter(request, "ldapAuthenticated", u.isLdapAuthenticated()));
+        command.setAdminRole(getBooleanParameter(request, "adminRole", u.isAdminRole()));
+        command.setCommentRole(getBooleanParameter(request, "commentRole", u.isCommentRole()));
+        command.setCoverArtRole(getBooleanParameter(request, "coverArtRole", u.isCoverArtRole()));
+        command.setDownloadRole(getBooleanParameter(request, "downloadRole", u.isDownloadRole()));
+        command.setStreamRole(getBooleanParameter(request, "streamRole", u.isDownloadRole()));
+        command.setUploadRole(getBooleanParameter(request, "uploadRole", u.isUploadRole()));
+        command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", u.isJukeboxRole()));
+        command.setPodcastRole(getBooleanParameter(request, "podcastRole", u.isPodcastRole()));
+        command.setSettingsRole(getBooleanParameter(request, "settingsRole", u.isSettingsRole()));
+        command.setShareRole(getBooleanParameter(request, "shareRole", u.isShareRole()));
+        command.setTranscodeSchemeName(s.getTranscodeScheme().name());
+
+        if (hasParameter(request, "password")) {
+            command.setPassword(decrypt(getRequiredStringParameter(request, "password")));
+            command.setPasswordChange(true);
+        }
+
+        userSettingsController.updateUser(command);
+        XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
+        response.getWriter().print(builder);
+    }
+
+    private boolean hasParameter(HttpServletRequest request, String name) {
+        return request.getParameter(name) != null;
     }
 
     public void deleteUser(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -1762,7 +1856,12 @@ public class RESTController extends MultiActionController {
             return;
         }
 
-        String username = ServletRequestUtils.getRequiredStringParameter(request, "username");
+        String username = getRequiredStringParameter(request, "username");
+        if (User.USERNAME_ADMIN.equals(username)) {
+            error(request, response, ErrorCode.NOT_AUTHORIZED, "Not allowed to delete admin user");
+            return;
+        }
+
         securityService.deleteUser(username);
 
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
@@ -1773,7 +1872,7 @@ public class RESTController extends MultiActionController {
         request = wrapRequest(request);
         XMLBuilder builder = createXMLBuilder(request, response, true);
 
-        long since = ServletRequestUtils.getLongParameter(request, "since", 0L);
+        long since = getLongParameter(request, "since", 0L);
 
         builder.add("chatMessages", false);
 
@@ -1790,7 +1889,7 @@ public class RESTController extends MultiActionController {
 
     public void addChatMessage(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
-        chatService.doAddMessage(ServletRequestUtils.getRequiredStringParameter(request, "message"), request);
+        chatService.doAddMessage(getRequiredStringParameter(request, "message"), request);
         XMLBuilder builder = createXMLBuilder(request, response, true).endAll();
         response.getWriter().print(builder);
     }
@@ -1813,12 +1912,12 @@ public class RESTController extends MultiActionController {
 
     public void setRating(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
-        Integer rating = ServletRequestUtils.getRequiredIntParameter(request, "rating");
+        Integer rating = getRequiredIntParameter(request, "rating");
         if (rating == 0) {
             rating = null;
         }
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
+        int id = getRequiredIntParameter(request, "id");
         MediaFile mediaFile = mediaFileService.getMediaFile(id);
         if (mediaFile == null) {
             error(request, response, ErrorCode.NOT_FOUND, "File not found: " + id);
@@ -1881,7 +1980,7 @@ public class RESTController extends MultiActionController {
     }
 
     private static XMLBuilder createXMLBuilder(HttpServletRequest request, HttpServletResponse response, boolean ok) throws IOException {
-        String format = ServletRequestUtils.getStringParameter(request, "f", "xml");
+        String format = getStringParameter(request, "f", "xml");
         boolean json = "json".equals(format);
         boolean jsonp = "jsonp".equals(format);
         XMLBuilder builder;
@@ -2073,6 +2172,16 @@ public class RESTController extends MultiActionController {
 
         public String getMessage() {
             return message;
+        }
+    }
+
+    private static class BookmarkKey extends Pair<String, Integer> {
+        private BookmarkKey(String username, int mediaFileId) {
+            super(username, mediaFileId);
+        }
+
+        static BookmarkKey forBookmark(Bookmark b) {
+            return new BookmarkKey(b.getUsername(), b.getMediaFileId());
         }
     }
 }

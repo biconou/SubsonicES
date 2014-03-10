@@ -18,26 +18,23 @@
  */
 package net.sourceforge.subsonic.androidapp.util;
 
+import java.io.File;
+import java.util.WeakHashMap;
+
 import android.content.Context;
 import android.os.Handler;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Checkable;
 import android.widget.CheckedTextView;
-import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import net.sourceforge.subsonic.androidapp.R;
 import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
+import net.sourceforge.subsonic.androidapp.service.DownloadFile;
 import net.sourceforge.subsonic.androidapp.service.DownloadService;
 import net.sourceforge.subsonic.androidapp.service.DownloadServiceImpl;
-import net.sourceforge.subsonic.androidapp.service.DownloadFile;
-
-import java.io.File;
-import java.util.WeakHashMap;
 
 /**
  * Used to display songs in a {@code ListView}.
@@ -46,7 +43,7 @@ import java.util.WeakHashMap;
  */
 public class SongView extends RelativeLayout implements Checkable {
 
-    private static final String TAG = SongView.class.getSimpleName();
+    private static final Logger LOG = new Logger(SongView.class);
     private static final WeakHashMap<SongView, ?> INSTANCES = new WeakHashMap<SongView, Object>();
     private static Handler handler;
 
@@ -76,7 +73,7 @@ public class SongView extends RelativeLayout implements Checkable {
         INSTANCES.put(this, null);
         int instanceCount = INSTANCES.size();
         if (instanceCount > 50) {
-            Log.w(TAG, instanceCount + " live SongView instances");
+            LOG.warn(instanceCount + " live SongView instances");
         }
         startUpdater();
     }
@@ -87,19 +84,24 @@ public class SongView extends RelativeLayout implements Checkable {
 
         String bitRate = null;
         if (song.getBitRate() != null) {
-        	bitRate = String.format(getContext().getString(R.string.song_details_kbps), song.getBitRate());
-        }
-        
-        String fileFormat;
-        if (song.getTranscodedSuffix() != null && !song.getTranscodedSuffix().equals(song.getSuffix())) {
-        	fileFormat = String.format("%s > %s", song.getSuffix(), song.getTranscodedSuffix());
-    	} else {
-            fileFormat = song.getSuffix();
+            bitRate = String.format(getContext().getString(R.string.song_details_kbps), song.getBitRate());
         }
 
-        artist.append(song.getArtist()).append(" (")
-              .append(String.format(getContext().getString(R.string.song_details_all), bitRate == null ? "" : bitRate, fileFormat))
-              .append(")");
+        VideoPlayerType videoPlayer = Util.getVideoPlayerType(getContext());
+        String fileFormat;
+        if (song.getTranscodedSuffix() == null || song.getTranscodedSuffix().equals(song.getSuffix())
+                || (song.isVideo() && videoPlayer != VideoPlayerType.FLASH)) {
+            fileFormat = song.getSuffix();
+        } else {
+            fileFormat = String.format("%s > %s", song.getSuffix(), song.getTranscodedSuffix());
+        }
+
+        if (song.getArtist() != null) {
+            artist.append(song.getArtist()).append(" ");
+        }
+        artist.append("(")
+                .append(String.format(getContext().getString(R.string.song_details_all), bitRate == null ? "" : bitRate, fileFormat))
+                .append(")");
 
         titleTextView.setText(song.getTitle());
         artistTextView.setText(artist);
@@ -122,13 +124,12 @@ public class SongView extends RelativeLayout implements Checkable {
         if (completeFile.exists()) {
             statusTextView.setText(Util.formatDuration(song.getDuration()));
             downloadButton.setImageResource(downloadFile.isSaved() ? R.drawable.download_pinned : R.drawable.download_cached);
-        }
-        else if (downloadFile.isDownloading() && !downloadFile.isDownloadCancelled() && partialFile.exists()) {
+        } else if (downloadFile.isDownloading() && !downloadFile.isDownloadCancelled() && partialFile.exists()) {
             statusTextView.setText(Util.formatLocalizedBytes(partialFile.length(), getContext()));
             downloadButton.setImageResource(R.drawable.download_streaming);
         } else {
             statusTextView.setText(Util.formatDuration(song.getDuration()));
-            downloadButton.setImageDrawable(null);
+            downloadButton.setImageResource(R.drawable.action_overflow_small);
         }
 
         boolean playing = downloadService.getCurrentPlaying() == downloadFile;
@@ -163,7 +164,7 @@ public class SongView extends RelativeLayout implements Checkable {
                 }
             }
         } catch (Throwable x) {
-            Log.w(TAG, "Error when updating song views.", x);
+            LOG.warn("Error when updating song views.", x);
         }
     }
 

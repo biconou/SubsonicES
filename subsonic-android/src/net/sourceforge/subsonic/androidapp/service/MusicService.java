@@ -18,10 +18,6 @@
  */
 package net.sourceforge.subsonic.androidapp.service;
 
-import java.util.List;
-
-import org.apache.http.HttpResponse;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import net.sourceforge.subsonic.androidapp.domain.Indexes;
@@ -35,6 +31,10 @@ import net.sourceforge.subsonic.androidapp.domain.SearchResult;
 import net.sourceforge.subsonic.androidapp.domain.Version;
 import net.sourceforge.subsonic.androidapp.util.CancellableTask;
 import net.sourceforge.subsonic.androidapp.util.ProgressListener;
+import org.apache.http.HttpResponse;
+
+import java.net.URL;
+import java.util.List;
 
 /**
  * @author Sindre Mehus
@@ -52,6 +52,12 @@ public interface MusicService {
     MusicDirectory getMusicDirectory(String id, boolean refresh, Context context, ProgressListener progressListener) throws Exception;
 
     SearchResult search(SearchCritera criteria, Context context, ProgressListener progressListener) throws Exception;
+
+    SearchResult getStarred(Context context, ProgressListener progressListener) throws Exception;
+
+    void star(String id, boolean star, Context context, ProgressListener progressListener) throws Exception;
+
+    URL createShare(String id, Context context, ProgressListener progressListener) throws Exception;
 
     MusicDirectory getPlaylist(String id, Context context, ProgressListener progressListener) throws Exception;
 
@@ -75,7 +81,7 @@ public interface MusicService {
 
     Version getLatestVersion(Context context, ProgressListener progressListener) throws Exception;
 
-    String getVideoUrl(Context context, String id);
+    String getVideoUrl(Context context, String id, boolean useFlash) throws Exception;
 
     JukeboxStatus updateJukeboxPlaylist(List<String> ids, Context context, ProgressListener progressListener) throws Exception;
 

@@ -18,6 +18,29 @@
  */
 package net.sourceforge.subsonic.service;
 
+import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.dao.PodcastDao;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.PodcastChannel;
+import net.sourceforge.subsonic.domain.PodcastEpisode;
+import net.sourceforge.subsonic.domain.PodcastStatus;
+import net.sourceforge.subsonic.service.metadata.MetaData;
+import net.sourceforge.subsonic.service.metadata.MetaDataParser;
+import net.sourceforge.subsonic.service.metadata.MetaDataParserFactory;
+import net.sourceforge.subsonic.util.StringUtil;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.HttpConnectionParams;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.Namespace;
+import org.jdom.input.SAXBuilder;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -37,27 +60,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.HttpConnectionParams;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.Namespace;
-import org.jdom.input.SAXBuilder;
-
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.dao.PodcastDao;
-import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.PodcastChannel;
-import net.sourceforge.subsonic.domain.PodcastEpisode;
-import net.sourceforge.subsonic.domain.PodcastStatus;
-import net.sourceforge.subsonic.util.StringUtil;
 
 /**
  * Provides services for Podcast reception.
@@ -81,6 +83,7 @@ public class PodcastService {
     private SettingsService settingsService;
     private SecurityService securityService;
     private MediaFileService mediaFileService;
+    private MetaDataParserFactory metaDataParserFactory;
 
     public PodcastService() {
         ThreadFactory threadFactory = new ThreadFactory() {
@@ -420,7 +423,7 @@ public class PodcastService {
         InputStream in = null;
         OutputStream out = null;
 
-        if (getEpisode(episode.getId(), false) == null) {
+        if (isEpisodeDeleted(episode)) {
             LOG.info("Podcast " + episode.getUrl() + " was deleted. Aborting download.");
             return;
         }
@@ -430,7 +433,7 @@ public class PodcastService {
         HttpClient client = new DefaultHttpClient();
         try {
 
-            if (!isLicensedOrTrial()) {
+            if (!settingsService.getLicenseInfo().isLicenseOrTrialValid()) {
                 throw new Exception("Sorry, the trial period is expired.");
             }
 
@@ -464,22 +467,26 @@ public class PodcastService {
                 if (bytesDownloaded > nextLogCount) {
                     episode.setBytesDownloaded(bytesDownloaded);
                     nextLogCount += 30000L;
-                    if (getEpisode(episode.getId(), false) == null) {
+
+                    // Abort download if episode was deleted by user.
+                    if (isEpisodeDeleted(episode)) {
                         break;
                     }
                     podcastDao.updateEpisode(episode);
                 }
             }
 
-            if (getEpisode(episode.getId(), false) == null) {
+            if (isEpisodeDeleted(episode)) {
                 LOG.info("Podcast " + episode.getUrl() + " was deleted. Aborting download.");
                 IOUtils.closeQuietly(out);
                 file.delete();
             } else {
+                addMediaFileIdToEpisodes(Arrays.asList(episode));
                 episode.setBytesDownloaded(bytesDownloaded);
                 podcastDao.updateEpisode(episode);
                 LOG.info("Downloaded " + bytesDownloaded + " bytes from Podcast " + episode.getUrl());
                 IOUtils.closeQuietly(out);
+                updateTags(file, episode);
                 episode.setStatus(PodcastStatus.COMPLETED);
                 podcastDao.updateEpisode(episode);
                 deleteObsoleteEpisodes(channel);
@@ -497,12 +504,23 @@ public class PodcastService {
         }
     }
 
-    private boolean isLicensedOrTrial() {
-        boolean licensed = settingsService.isLicenseValid();
-        Date trialExpires = settingsService.getTrialExpires();
-        boolean trialValid = trialExpires.after(new Date());
+    private boolean isEpisodeDeleted(PodcastEpisode episode) {
+        episode = podcastDao.getEpisode(episode.getId());
+        return episode == null || episode.getStatus() == PodcastStatus.DELETED;
+    }
 
-        return licensed || trialValid;
+    private void updateTags(File file, PodcastEpisode episode) {
+        MediaFile mediaFile = mediaFileService.getMediaFile(file, false);
+        if (StringUtils.isNotBlank(episode.getTitle())) {
+            MetaDataParser parser = metaDataParserFactory.getParser(file);
+            if (!parser.isEditingSupported()) {
+                return;
+            }
+            MetaData metaData = parser.getRawMetaData(file);
+            metaData.setTitle(episode.getTitle());
+            parser.setMetaData(mediaFile, metaData);
+            mediaFileService.refreshMediaFile(mediaFile);
+        }
     }
 
     private synchronized void deleteObsoleteEpisodes(PodcastChannel channel) {
@@ -627,5 +645,9 @@ public class PodcastService {
 
     public void setMediaFileService(MediaFileService mediaFileService) {
         this.mediaFileService = mediaFileService;
+    }
+
+    public void setMetaDataParserFactory(MetaDataParserFactory metaDataParserFactory) {
+        this.metaDataParserFactory = metaDataParserFactory;
     }
 }

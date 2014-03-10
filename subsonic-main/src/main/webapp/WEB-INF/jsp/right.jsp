@@ -54,18 +54,15 @@
                         "<a title='" + nowPlaying[i].tooltip + "' target='main' href='" + nowPlaying[i].albumUrl + "'>";
 
                 if (nowPlaying[i].artist != null) {
-                    html += "<em>" + nowPlaying[i].artist + "</em><br/>";
+                    html += nowPlaying[i].artist + "<br/>";
                 }
 
-                html += nowPlaying[i].title + "</a><br/>" +
+                html += "<span class='songTitle'>" + nowPlaying[i].title + "</span></a><br/>" +
                         "<span class='forward'><a href='" + nowPlaying[i].lyricsUrl + "' onclick=\"return popupSize(this, 'lyrics', 430, 550)\">" +
-                        "<fmt:message key="main.lyrics"/>" + "</a></span></td><td style='padding-top:1em'>";
-
-                if (nowPlaying[i].coverArtUrl != null) {
-                    html += "<a title='" + nowPlaying[i].tooltip + "' rel='zoom' href='" + nowPlaying[i].coverArtZoomUrl + "'>" +
-                            "<img src='" + nowPlaying[i].coverArtUrl + "' width='48' height='48'></a>";
-                }
-                html += "</td></tr>";
+                        "<fmt:message key="main.lyrics"/>" + "</a></span></td><td style='padding-top:1em'>" +
+                        "<a title='" + nowPlaying[i].tooltip + "' target='main' href='" + nowPlaying[i].albumUrl + "'>" +
+                        "<img src='" + nowPlaying[i].coverArtUrl + "' width='60' height='60'></a>" +
+                        "</td></tr>";
 
                 var minutesAgo = nowPlaying[i].minutesAgo;
                 if (minutesAgo > 4) {

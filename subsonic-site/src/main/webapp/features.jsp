@@ -1,8 +1,6 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-<%! String current = "features"; %>
 <%@ include file="header.jsp" %>
 
 <body>
@@ -10,7 +8,9 @@
 <a name="top"/>
 
 <div id="container">
-<%@ include file="menu.jsp" %>
+<jsp:include page="menu.jsp">
+    <jsp:param name="current" value="features"/>
+</jsp:include>
 
 <div id="content">
 <div id="main-col">
@@ -46,7 +46,7 @@
             src="inc/img/top.gif" alt="Back To Top" height="16" width="16"/></a></div>
     <div class="content">
         <div class="screenshot">
-            <a href="inc/img/screenshots/screen13.png"><img src="inc/img/screenshots/thumb13.png" alt="" style="padding-left:10px"/></a>
+            <a href="inc/img/screenshots/android/android-2.png"><img src="inc/img/screenshots/android/android-thumb-2.png" alt="" style="padding-left:10px"/></a>
         </div>
         <div class="description">
             <ul class="list">
@@ -186,6 +186,7 @@
             <ul class="list">
                 <li>Download Podcasts with the integrated Podcast receiver.</li>
                 <li>Manage your internet TV and radio stations.</li>
+                <li>Play your media on compatible DLNA/UPnP devices.</li>
                 <li>Play music directly on the server's audio hardware using the <b>jukebox</b> mode.</li>
             </ul>
         </div>

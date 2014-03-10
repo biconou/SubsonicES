@@ -2,7 +2,6 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-<%! String current = "installation"; %>
 <%@ include file="header.jsp" %>
 
 <body>
@@ -10,7 +9,9 @@
 <a name="top"></a>
 
 <div id="container">
-<%@ include file="menu.jsp" %>
+<jsp:include page="menu.jsp">
+    <jsp:param name="current" value="documentation"/>
+</jsp:include>
 
 <div id="content">
 <div id="main-col">
@@ -213,7 +214,6 @@
                 Use this option if you want to deploy Subsonic in an external server, such as Tomcat, Jetty, GlassFish or Geronimo. Subsonic comes
                 packaged as a standard Java web application, <code>subsonic.war</code>, which can be easily deployed in any compatible servlet container.
                 The most commonly used server is Tomcat, and the rest of this section describes how to install or upgrade Subsonic on a Tomcat server.
-                (Please note that Subsonic currently doesn't work with Tomcat&nbsp;7.)
             </p>
 
             <ul>

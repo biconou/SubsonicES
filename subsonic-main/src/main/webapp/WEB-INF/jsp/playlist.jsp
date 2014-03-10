@@ -20,10 +20,10 @@
                         $(this).dialog("close");
                         var name = $("#newName").val();
                         var comment = $("#newComment").val();
-                        var isPublic = $("#newPublic").is(":checked");
+                        var shared = $("#newShared").is(":checked");
                         $("#name").html(name);
                         $("#comment").html(comment);
-                        playlistService.updatePlaylist(playlist.id, name, comment, isPublic, function (playlistInfo){playlistCallback(playlistInfo); top.left.updatePlaylists()});
+                        playlistService.updatePlaylist(playlist.id, name, comment, shared, function (playlistInfo){playlistCallback(playlistInfo); top.left.updatePlaylists()});
                     },
                     "<fmt:message key="common.cancel"/>": function() {
                         $(this).dialog("close");
@@ -61,7 +61,7 @@
             $("#songCount").html(playlist.fileCount);
             $("#duration").html(playlist.durationAsString);
 
-            if (playlist.public) {
+            if (playlist.shared) {
                 $("#shared").html("<fmt:message key="playlist2.shared"/>");
             } else {
                 $("#shared").html("<fmt:message key="playlist2.notshared"/>");
@@ -95,8 +95,8 @@
                     $("#artist" + id).html(truncate(song.artist));
                     $("#artist" + id).attr("title", song.artist);
                 }
-                if ($("#duration" + id)) {
-                    $("#duration" + id).html(song.durationAsString);
+                if ($("#songDuration" + id)) {
+                    $("#songDuration" + id).html(song.durationAsString);
                 }
 
                 $("#pattern" + id).addClass((i % 2 == 0) ? "bgcolor2" : "bgcolor1");
@@ -119,13 +119,16 @@
         }
 
         function onPlay(index) {
-            top.playQueue.onPlay(songs[index].id);
+            top.playQueue.onPlayPlaylist(playlist.id, index);
         }
         function onPlayAll() {
             top.playQueue.onPlayPlaylist(playlist.id);
         }
         function onAdd(index) {
             top.playQueue.onAdd(songs[index].id);
+        }
+        function onAddNext(index) {
+            top.playQueue.onAddNext(songs[index].id);
         }
         function onStar(index) {
             playlistService.toggleStar(playlist.id, index, playlistCallback);
@@ -152,18 +155,22 @@
 
 <h1 id="name">${model.playlist.name}</h1>
 <h2>
-    <a href="javascript:void(0)" onclick="onPlayAll();"><fmt:message key="common.play"/></a>
+    <span class="header"><a href="javascript:void(0)" onclick="onPlayAll();"><fmt:message key="common.play"/></a></span>
 
     <c:if test="${model.user.downloadRole}">
         <c:url value="download.view" var="downloadUrl"><c:param name="playlist" value="${model.playlist.id}"/></c:url>
-        | <a href="${downloadUrl}"><fmt:message key="common.download"/></a>
+        | <span class="header"><a href="${downloadUrl}"><fmt:message key="common.download"/></a></span>
+    </c:if>
+    <c:if test="${model.user.shareRole}">
+        <c:url value="createShare.view" var="shareUrl"><c:param name="playlist" value="${model.playlist.id}"/></c:url>
+        | <span class="header"><a href="${shareUrl}"><fmt:message key="share.title"/></a></span>
     </c:if>
     <c:if test="${model.editAllowed}">
-        | <a href="javascript:void(0)" onclick="onEditPlaylist();"><fmt:message key="common.edit"/></a>
-        | <a href="javascript:void(0)" onclick="onDeletePlaylist();"><fmt:message key="common.delete"/></a>
+        | <span class="header"><a href="javascript:void(0)" onclick="onEditPlaylist();"><fmt:message key="common.edit"/></a></span>
+        | <span class="header"><a href="javascript:void(0)" onclick="onDeletePlaylist();"><fmt:message key="common.delete"/></a></span>
     </c:if>
     <c:url value="exportPlaylist.view" var="exportUrl"><c:param name="id" value="${model.playlist.id}"/></c:url>
-    | <a href="${exportUrl}"><fmt:message key="playlist2.export"/></a>
+    | <span class="header"><a href="${exportUrl}"><fmt:message key="playlist2.export"/></a></span>
 
 </h2>
 
@@ -193,12 +200,15 @@
         <td class="bgcolor1"><a href="javascript:void(0)">
             <img id="add" src="<spring:theme code="addImage"/>" alt="<fmt:message key="common.add"/>" title="<fmt:message key="common.add"/>"
                  onclick="onAdd(this.id.substring(3) - 1)"></a></td>
+        <td class="bgcolor1"><a href="javascript:void(0)">
+            <img id="addNext" src="<spring:theme code="addNextImage"/>" alt="<fmt:message key="main.addnext"/>" title="<fmt:message key="main.addnext"/>"
+                 onclick="onAddNext(this.id.substring(7) - 1)"></a></td>
 
         <td style="padding-right:0.25em"></td>
-        <td style="padding-right:1.25em"><span id="title">Title</span></td>
+        <td style="padding-right:1.25em"><span id="title" class="songTitle">Title</span></td>
         <td style="padding-right:1.25em"><a id="albumUrl" target="main"><span id="album" class="detail">Album</span></a></td>
         <td style="padding-right:1.25em"><span id="artist" class="detail">Artist</span></td>
-        <td style="padding-right:1.25em;text-align:right;"><span id="duration" class="detail">Duration</span></td>
+        <td style="padding-right:1.25em;text-align:right;"><span id="songDuration" class="detail">Duration</span></td>
 
         <c:if test="${model.editAllowed}">
             <td class="bgcolor1"><a href="javascript:void(0)">
@@ -229,8 +239,8 @@
         <label for="newComment" style="display:block;margin-top:1em"><fmt:message key="playlist2.comment"/></label>
         <input type="text" name="newComment" id="newComment" value="${model.playlist.comment}" class="ui-widget-content"
                style="display:block;width:95%;"/>
-        <input type="checkbox" name="newPublic" id="newPublic" ${model.playlist.public ? "checked='checked'" : ""} style="margin-top:1.5em" class="ui-widget-content"/>
-        <label for="newPublic"><fmt:message key="playlist2.public"/></label>
+        <input type="checkbox" name="newShared" id="newShared" ${model.playlist.shared ? "checked='checked'" : ""} style="margin-top:1.5em" class="ui-widget-content"/>
+        <label for="newShared"><fmt:message key="playlist2.public"/></label>
     </form>
 </div>
 
