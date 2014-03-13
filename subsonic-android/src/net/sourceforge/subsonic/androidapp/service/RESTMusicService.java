@@ -18,20 +18,47 @@
  */
 package net.sourceforge.subsonic.androidapp.service;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import net.sourceforge.subsonic.androidapp.R;
+import net.sourceforge.subsonic.androidapp.domain.Indexes;
+import net.sourceforge.subsonic.androidapp.domain.JukeboxStatus;
+import net.sourceforge.subsonic.androidapp.domain.Lyrics;
+import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
+import net.sourceforge.subsonic.androidapp.domain.MusicFolder;
+import net.sourceforge.subsonic.androidapp.domain.Playlist;
+import net.sourceforge.subsonic.androidapp.domain.SearchCritera;
+import net.sourceforge.subsonic.androidapp.domain.SearchResult;
+import net.sourceforge.subsonic.androidapp.domain.ServerInfo;
+import net.sourceforge.subsonic.androidapp.domain.Version;
+import net.sourceforge.subsonic.androidapp.service.parser.AlbumListParser;
+import net.sourceforge.subsonic.androidapp.service.parser.ErrorParser;
+import net.sourceforge.subsonic.androidapp.service.parser.IndexesParser;
+import net.sourceforge.subsonic.androidapp.service.parser.JukeboxStatusParser;
+import net.sourceforge.subsonic.androidapp.service.parser.LicenseParser;
+import net.sourceforge.subsonic.androidapp.service.parser.LyricsParser;
+import net.sourceforge.subsonic.androidapp.service.parser.MusicDirectoryParser;
+import net.sourceforge.subsonic.androidapp.service.parser.MusicFoldersParser;
+import net.sourceforge.subsonic.androidapp.service.parser.PlaylistParser;
+import net.sourceforge.subsonic.androidapp.service.parser.PlaylistsParser;
+import net.sourceforge.subsonic.androidapp.service.parser.RandomSongsParser;
+import net.sourceforge.subsonic.androidapp.service.parser.SearchResult2Parser;
+import net.sourceforge.subsonic.androidapp.service.parser.SearchResultParser;
+import net.sourceforge.subsonic.androidapp.service.parser.ShareParser;
+import net.sourceforge.subsonic.androidapp.service.parser.VersionParser;
+import net.sourceforge.subsonic.androidapp.service.ssl.SSLSocketFactory;
+import net.sourceforge.subsonic.androidapp.service.ssl.TrustSelfSignedStrategy;
+import net.sourceforge.subsonic.androidapp.util.CancellableTask;
+import net.sourceforge.subsonic.androidapp.util.Constants;
+import net.sourceforge.subsonic.androidapp.util.FileUtil;
+import net.sourceforge.subsonic.androidapp.util.Logger;
+import net.sourceforge.subsonic.androidapp.util.ProgressListener;
+import net.sourceforge.subsonic.androidapp.util.ServerSettingsManager;
+import net.sourceforge.subsonic.androidapp.util.Util;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -59,53 +86,27 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.util.Log;
-import net.sourceforge.subsonic.androidapp.R;
-import net.sourceforge.subsonic.androidapp.domain.Indexes;
-import net.sourceforge.subsonic.androidapp.domain.JukeboxStatus;
-import net.sourceforge.subsonic.androidapp.domain.Lyrics;
-import net.sourceforge.subsonic.androidapp.domain.MusicDirectory;
-import net.sourceforge.subsonic.androidapp.domain.MusicFolder;
-import net.sourceforge.subsonic.androidapp.domain.Playlist;
-import net.sourceforge.subsonic.androidapp.domain.SearchCritera;
-import net.sourceforge.subsonic.androidapp.domain.SearchResult;
-import net.sourceforge.subsonic.androidapp.domain.ServerInfo;
-import net.sourceforge.subsonic.androidapp.domain.Version;
-import net.sourceforge.subsonic.androidapp.service.parser.AlbumListParser;
-import net.sourceforge.subsonic.androidapp.service.parser.ErrorParser;
-import net.sourceforge.subsonic.androidapp.service.parser.IndexesParser;
-import net.sourceforge.subsonic.androidapp.service.parser.JukeboxStatusParser;
-import net.sourceforge.subsonic.androidapp.service.parser.LicenseParser;
-import net.sourceforge.subsonic.androidapp.service.parser.LyricsParser;
-import net.sourceforge.subsonic.androidapp.service.parser.MusicDirectoryParser;
-import net.sourceforge.subsonic.androidapp.service.parser.MusicFoldersParser;
-import net.sourceforge.subsonic.androidapp.service.parser.PlaylistParser;
-import net.sourceforge.subsonic.androidapp.service.parser.PlaylistsParser;
-import net.sourceforge.subsonic.androidapp.service.parser.RandomSongsParser;
-import net.sourceforge.subsonic.androidapp.service.parser.SearchResult2Parser;
-import net.sourceforge.subsonic.androidapp.service.parser.SearchResultParser;
-import net.sourceforge.subsonic.androidapp.service.parser.VersionParser;
-import net.sourceforge.subsonic.androidapp.service.ssl.SSLSocketFactory;
-import net.sourceforge.subsonic.androidapp.service.ssl.TrustSelfSignedStrategy;
-import net.sourceforge.subsonic.androidapp.util.CancellableTask;
-import net.sourceforge.subsonic.androidapp.util.Constants;
-import net.sourceforge.subsonic.androidapp.util.FileUtil;
-import net.sourceforge.subsonic.androidapp.util.ProgressListener;
-import net.sourceforge.subsonic.androidapp.util.Util;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Sindre Mehus
  */
 public class RESTMusicService implements MusicService {
 
-    private static final String TAG = RESTMusicService.class.getSimpleName();
+    private static final Logger LOG = new Logger(RESTMusicService.class);
 
     private static final int SOCKET_CONNECT_TIMEOUT = 10 * 1000;
     private static final int SOCKET_READ_TIMEOUT_DEFAULT = 10 * 1000;
@@ -160,7 +161,7 @@ public class RESTMusicService implements MusicService {
         try {
             return new SSLSocketFactory(new TrustSelfSignedStrategy(), SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
         } catch (Throwable x) {
-            Log.e(TAG, "Failed to create custom SSL socket factory, using default.", x);
+            LOG.error("Failed to create custom SSL socket factory, using default.", x);
             return org.apache.http.conn.ssl.SSLSocketFactory.getSocketFactory();
         }
     }
@@ -317,6 +318,42 @@ public class RESTMusicService implements MusicService {
     }
 
     @Override
+    public SearchResult getStarred(Context context, ProgressListener progressListener) throws Exception {
+        checkServerVersion(context, "1.8", "Starring not supported.");
+
+        Reader reader = getReader(context, progressListener, "getStarred", null);
+        try {
+            return new SearchResult2Parser(context).parse(reader, progressListener);
+        } finally {
+            Util.close(reader);
+        }
+    }
+
+    @Override
+    public URL createShare(String id, Context context, ProgressListener progressListener) throws Exception {
+        checkServerVersion(context, "1.6", "Sharing not supported.");
+
+        Reader reader = getReader(context, progressListener, "createShare", null, "id", id);
+        try {
+            return new ShareParser(context).parse(reader, progressListener);
+        } finally {
+            Util.close(reader);
+        }
+    }
+
+    @Override
+    public void star(String id, boolean star, Context context, ProgressListener progressListener) throws Exception {
+        checkServerVersion(context, "1.8", "Starring not supported.");
+
+        Reader reader = getReader(context, progressListener, star ? "star" : "unstar", null, "id", id);
+        try {
+            new ErrorParser(context).parse(reader);
+        } finally {
+            Util.close(reader);
+        }
+    }
+
+    @Override
     public MusicDirectory getPlaylist(String id, Context context, ProgressListener progressListener) throws Exception {
         HttpParams params = new BasicHttpParams();
         HttpConnectionParams.setSoTimeout(params, SOCKET_READ_TIMEOUT_GET_PLAYLIST);
@@ -427,12 +464,10 @@ public class RESTMusicService implements MusicService {
     }
 
     private void checkServerVersion(Context context, String version, String text) throws ServerTooOldException {
-        Version serverVersion = Util.getServerRestVersion(context);
-        Version requiredVersion = new Version(version);
-        boolean ok = serverVersion == null || serverVersion.compareTo(requiredVersion) >= 0;
+        boolean ok = Util.isServerCompatibleTo(context, version);
 
         if (!ok) {
-            throw new ServerTooOldException(text, serverVersion, requiredVersion);
+            throw new ServerTooOldException(text);
         }
     }
 
@@ -520,14 +555,22 @@ public class RESTMusicService implements MusicService {
     }
 
     @Override
-    public String getVideoUrl(Context context, String id) {
-        StringBuilder builder = new StringBuilder(Util.getRestUrl(context, "videoPlayer"));
-        builder.append("&id=").append(id);
-        builder.append("&maxBitRate=500");
-        builder.append("&autoplay=true");
+    public String getVideoUrl(Context context, String id, boolean useFlash) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        if (useFlash) {
+            builder.append(Util.getRestUrl(context, "videoPlayer"));
+            builder.append("&id=").append(id);
+            builder.append("&maxBitRate=500");
+            builder.append("&autoplay=true");
+        } else {
+            checkServerVersion(context, "1.9", "Video streaming not supported.");
+            builder.append(Util.getRestUrl(context, "stream"));
+            builder.append("&id=").append(id);
+            builder.append("&format=raw");
+        }
 
         String url = rewriteUrlWithRedirect(context, builder.toString());
-        Log.i(TAG, "Using video URL: " + url);
+        LOG.info("Using video URL: " + url);
         return url;
     }
 
@@ -625,7 +668,7 @@ public class RESTMusicService implements MusicService {
     private HttpResponse getResponseForURL(Context context, String url, HttpParams requestParams,
                                            List<String> parameterNames, List<Object> parameterValues,
                                            List<Header> headers, ProgressListener progressListener, CancellableTask task) throws Exception {
-        Log.d(TAG, "Connections in pool: " + connManager.getConnectionsInPool());
+        LOG.debug("Connections in pool: " + connManager.getConnectionsInPool());
 
         // If not too many parameters, extract them to the URL rather than relying on the HTTP POST request being
         // received intact. Remember, HTTP POST requests are converted to GET requests during HTTP redirects, thus
@@ -648,7 +691,7 @@ public class RESTMusicService implements MusicService {
     private HttpResponse executeWithRetry(Context context, String url, String originalUrl, HttpParams requestParams,
                                           List<String> parameterNames, List<Object> parameterValues,
                                           List<Header> headers, ProgressListener progressListener, CancellableTask task) throws IOException {
-        Log.i(TAG, "Using URL " + url);
+        LOG.info("Using URL " + url);
 
         final AtomicReference<Boolean> cancelled = new AtomicReference<Boolean>(false);
         int attempts = 0;
@@ -678,7 +721,7 @@ public class RESTMusicService implements MusicService {
 
             if (requestParams != null) {
                 request.setParams(requestParams);
-                Log.d(TAG, "Socket read timeout: " + HttpConnectionParams.getSoTimeout(requestParams) + " ms.");
+                LOG.debug("Socket read timeout: " + HttpConnectionParams.getSoTimeout(requestParams) + " ms.");
             }
 
             if (headers != null) {
@@ -688,12 +731,9 @@ public class RESTMusicService implements MusicService {
             }
 
             // Set credentials to get through apache proxies that require authentication.
-            SharedPreferences prefs = Util.getPreferences(context);
-            int instance = prefs.getInt(Constants.PREFERENCES_KEY_SERVER_INSTANCE, 1);
-            String username = prefs.getString(Constants.PREFERENCES_KEY_USERNAME + instance, null);
-            String password = prefs.getString(Constants.PREFERENCES_KEY_PASSWORD + instance, null);
+            ServerSettingsManager.ServerSettings server = Util.getActiveServer(context);
             httpClient.getCredentialsProvider().setCredentials(new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
-                    new UsernamePasswordCredentials(username, password));
+                    new UsernamePasswordCredentials(server.getUsername(), server.getPassword()));
 
             try {
                 HttpResponse response = httpClient.execute(request, httpContext);
@@ -708,7 +748,7 @@ public class RESTMusicService implements MusicService {
                     String msg = context.getResources().getString(R.string.music_service_retry, attempts, HTTP_REQUEST_MAX_ATTEMPTS - 1);
                     progressListener.updateProgress(msg);
                 }
-                Log.w(TAG, "Got IOException (" + attempts + "), will retry", x);
+                LOG.warn("Got IOException (" + attempts + "), will retry", x);
                 increaseTimeouts(requestParams);
                 Util.sleepQuietly(2000L);
             }
@@ -744,7 +784,7 @@ public class RESTMusicService implements MusicService {
         redirectFrom = originalUrl.substring(0, originalUrl.indexOf("/rest/"));
         redirectTo = redirectedUrl.substring(0, redirectedUrl.indexOf("/rest/"));
 
-        Log.i(TAG, redirectFrom + " redirects to " + redirectTo);
+        LOG.info(redirectFrom + " redirects to " + redirectTo);
         redirectionLastChecked = System.currentTimeMillis();
         redirectionNetworkType = getCurrentNetworkType(context);
     }

@@ -9,16 +9,16 @@
     </script>
 </c:if>
 
-<c:set var="categories" value="${param.restricted ? 'personal password player share' : 'musicFolder general advanced personal user player share network transcoding internetRadio podcast'}"/>
+<c:set var="categories" value="${param.restricted ? 'personal password player share' : 'musicFolder general advanced personal user player network share dlna transcoding internetRadio podcast'}"/>
 <h1>
     <img src="<spring:theme code="settingsImage"/>" alt=""/>
-    <fmt:message key="settingsheader.title"/>
+    <span style="vertical-align: middle"><fmt:message key="settingsheader.title"/></span>
 </h1>
 
 <h2>
 <c:forTokens items="${categories}" delims=" " var="cat" varStatus="loopStatus">
     <c:choose>
-        <c:when test="${loopStatus.count > 1 and  (loopStatus.count - 1) % 6 != 0}">&nbsp;|&nbsp;</c:when>
+        <c:when test="${loopStatus.count > 1 and  (loopStatus.count - 1) % 7 != 0}">&nbsp;|&nbsp;</c:when>
         <c:otherwise></h2><h2></c:otherwise>
     </c:choose>
 
@@ -29,7 +29,7 @@
             <span class="headerSelected"><fmt:message key="settingsheader.${cat}"/></span>
         </c:when>
         <c:otherwise>
-            <a href="${url}"><fmt:message key="settingsheader.${cat}"/></a>
+            <span class="header"><a href="${url}"><fmt:message key="settingsheader.${cat}"/></a></span>
         </c:otherwise>
     </c:choose>
 

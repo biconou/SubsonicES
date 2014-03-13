@@ -25,6 +25,7 @@
     <string name="main.shuffle">Shuffle play</string>
     <string name="main.shuffle_confirm">Do you want to start shuffle play?</string>
     <string name="main.use_offline">Use offline</string>
+    <string name="main.starred">My starred music</string>
     <string name="main.use_connected">Use connected</string>
     <string name="main.settings">Settings</string>
     <string name="main.albums_title">ALBUMS</string>
@@ -47,13 +48,15 @@
     <string name="help.url">file:///android_asset/html/en/index.html</string>
     <string name="help.loading">Loading…</string>
 
-    <string name="play_video.loading">Loading video…</string>
-    <string name="play_video.noplugin">Please install Adobe Flash Player from Android Market.</string>
+    <string name="video.get_mx_player_text">MX Player is not installed. Get it for free on Play Store, or change video settings.</string>
+    <string name="video.get_mx_player_button">Get MX Player</string>
 
     <string name="search.label">Search</string>
     <string name="search.title">Search</string>
+    <string name="search.title_starred">Starred music</string>
     <string name="search.search">Click to search</string>
     <string name="search.no_match">No matches, please try again</string>
+    <string name="search.no_starred">No starred music found</string>
     <string name="search.artists">ARTISTS</string>
     <string name="search.albums">ALBUMS</string>
     <string name="search.songs">SONGS</string>
@@ -117,9 +120,11 @@
 
     <string name="settings.title">Subsonic settings</string>
     <string name="settings.test_connection_title">Test connection</string>
+    <string name="settings_add_server">Add server</string>
+    <string name="settings_delete_server">Forget this server</string>
+    <string name="settings_delete_server_confirm">Really forget this server?</string>
     <string name="settings.servers_title">Servers</string>
-    <string name="settings.server_unused1">Unused 1</string>
-    <string name="settings.server_unused2">Unused 2</string>
+    <string name="settings.server_unnamed">Unnamed</string>
     <string name="settings.server_name">Name</string>
     <string name="settings.server_address">Server address</string>
     <string name="settings.server_username">Username</string>
@@ -152,6 +157,8 @@
     <string name="settings.max_bitrate_unlimited">Unlimited</string>
     <string name="settings.wifi_required_title">Wi-Fi streaming only</string>
     <string name="settings.wifi_required_summary">Only stream media if connected to Wi-Fi</string>
+    <string name="settings.video_title">Video</string>
+    <string name="settings.video_player">Video player</string>
     <string name="settings.preload_1">1 song</string>
     <string name="settings.preload_2">2 songs</string>
     <string name="settings.preload_3">3 songs</string>
@@ -167,8 +174,6 @@
     <string name="settings.cache_size_10000">10 GB</string>
     <string name="settings.cache_size_20000">20 GB</string>
     <string name="settings.cache_size_unlimited">Unlimited</string>
-    <string name="settings.clear_search_history">Clear search history</string>
-    <string name="settings.search_history_cleared">Search history cleared</string>
     <string name="settings.other_title">Other settings</string>
     <string name="settings.scrobble_title">Scrobble to Last.fm</string>
     <string name="settings.scrobble_summary">Remember to set up your Last.fm user and password on the Subsonic server</string>
@@ -211,6 +216,17 @@
     <string name="widget.initial_text">Touch to select music</string>
     <string name="widget.sdcard_busy">SD card unavailable</string>
     <string name="widget.sdcard_missing">No SD card</string>
+
+    <string name="star.menu_star">Star</string>
+    <string name="star.menu_unstar">Unstar</string>
+    <string name="star.star_succesful">Starred \"%s\"</string>
+    <string name="star.unstar_succesful">Unstarred \"%s\"</string>
+    <string name="star.star_failed">Failed to star \"%s\"</string>
+    <string name="star.unstar_failed">Failed to unstar \"%s\"</string>
+
+    <string name="share.menu_share">Share…</string>
+    <string name="share.failed">Failed to share. %s</string>
+    <string name="share_via">Share via</string>
 
     <string name="util.bytes_format.gigabyte">0.00 GB</string>
     <string name="util.bytes_format.megabyte">0.00 MB</string>

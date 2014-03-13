@@ -18,29 +18,29 @@
  */
 package net.sourceforge.subsonic.ajax;
 
-import java.io.IOException;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import net.sourceforge.subsonic.dao.MediaFileDao;
-import net.sourceforge.subsonic.domain.Playlist;
-import net.sourceforge.subsonic.service.*;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.PlayQueue;
+import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.service.JukeboxService;
+import net.sourceforge.subsonic.service.MediaFileService;
+import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.PlaylistService;
+import net.sourceforge.subsonic.service.SecurityService;
+import net.sourceforge.subsonic.service.SettingsService;
+import net.sourceforge.subsonic.service.TranscodingService;
+import net.sourceforge.subsonic.util.StringUtil;
 import org.directwebremoting.WebContextFactory;
 import org.springframework.web.servlet.support.RequestContextUtils;
 
-import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.Player;
-import net.sourceforge.subsonic.domain.PlayQueue;
-import net.sourceforge.subsonic.util.StringUtil;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Provides AJAX-enabled services for manipulating the play queue of a player.
@@ -114,17 +114,41 @@ public class PlayQueueService {
 
         Player player = getCurrentPlayer(request, response);
         MediaFile file = mediaFileService.getMediaFile(id);
-        List<MediaFile> files = mediaFileService.getDescendantsOf(file, true);
-        return doPlay(request, player, files);
+
+        if (file.isFile()) {
+            MediaFile dir = mediaFileService.getParentOf(file);
+            List<MediaFile> songs = mediaFileService.getChildrenOf(dir, true, false, true);
+            if (!songs.isEmpty()) {
+                int index = songs.indexOf(file);
+                songs = songs.subList(index, songs.size());
+            }
+            return doPlay(request, player, songs).setStartPlayerAt(0);
+        } else {
+            List<MediaFile> songs = mediaFileService.getDescendantsOf(file, true);
+            return doPlay(request, player, songs).setStartPlayerAt(0);
+        }
     }
 
-    public PlayQueueInfo playPlaylist(int id) throws Exception {
+    public PlayQueueInfo playPlaylist(int id, int index) throws Exception {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
 
         List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        if (!files.isEmpty()) {
+            files = files.subList(index, files.size());
+        }
         Player player = getCurrentPlayer(request, response);
-        return doPlay(request, player, files);
+        return doPlay(request, player, files).setStartPlayerAt(0);
+    }
+
+    public PlayQueueInfo playStarred() throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        String username = securityService.getCurrentUsername(request);
+        List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username);
+        Player player = getCurrentPlayer(request, response);
+        return doPlay(request, player, files).setStartPlayerAt(0);
     }
 
     private PlayQueueInfo doPlay(HttpServletRequest request, Player player, List<MediaFile> files) throws Exception {
@@ -145,16 +169,22 @@ public class PlayQueueService {
         Player player = getCurrentPlayer(request, response);
         player.getPlayQueue().addFiles(false, randomFiles);
         player.getPlayQueue().setRandomSearchCriteria(null);
-        return convert(request, player, true);
+        return convert(request, player, true).setStartPlayerAt(0);
     }
 
     public PlayQueueInfo add(int id) throws Exception {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
-        return doAdd(request, response, new int[]{id});
+        return doAdd(request, response, new int[]{id}, null);
     }
 
-    public PlayQueueInfo doAdd(HttpServletRequest request, HttpServletResponse response, int[] ids) throws Exception {
+    public PlayQueueInfo addAt(int id, int index) throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+        return doAdd(request, response, new int[]{id}, index);
+    }
+
+    public PlayQueueInfo doAdd(HttpServletRequest request, HttpServletResponse response, int[] ids, Integer index) throws Exception {
         Player player = getCurrentPlayer(request, response);
         List<MediaFile> files = new ArrayList<MediaFile>(ids.length);
         for (int id : ids) {
@@ -164,7 +194,11 @@ public class PlayQueueService {
         if (player.isWeb()) {
             removeVideoFiles(files);
         }
-        player.getPlayQueue().addFiles(true, files);
+        if (index != null) {
+            player.getPlayQueue().addFilesAt(files, index);
+        } else {
+            player.getPlayQueue().addFiles(true, files);
+        }
         player.getPlayQueue().setRandomSearchCriteria(null);
         return convert(request, player, false);
     }
@@ -176,7 +210,7 @@ public class PlayQueueService {
         PlayQueue.Status status = playQueue.getStatus();
 
         playQueue.clear();
-        PlayQueueInfo result = doAdd(request, response, ids);
+        PlayQueueInfo result = doAdd(request, response, ids, null);
 
         int index = currentFile == null ? -1 : playQueue.getFiles().indexOf(currentFile);
         playQueue.setIndex(index);
@@ -308,27 +342,6 @@ public class PlayQueueService {
         jukeboxService.setGain(gain);
     }
 
-
-    public String savePlaylist() {
-        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
-        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
-        Player player = getCurrentPlayer(request, response);
-        Locale locale = settingsService.getLocale();
-        DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale);
-
-        Date now = new Date();
-        Playlist playlist = new Playlist();
-        playlist.setUsername(securityService.getCurrentUsername(request));
-        playlist.setCreated(now);
-        playlist.setChanged(now);
-        playlist.setPublic(false);
-        playlist.setName(dateFormat.format(now));
-
-        playlistService.createPlaylist(playlist);
-        playlistService.setFilesInPlaylist(playlist.getId(), player.getPlayQueue().getFiles());
-        return playlist.getName();
-    }
-        
     private List<MediaFile> getRandomChildren(MediaFile file, int count) throws IOException {
         List<MediaFile> children = mediaFileService.getDescendantsOf(file, false);
         removeVideoFiles(children);

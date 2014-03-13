@@ -34,6 +34,7 @@ import net.sourceforge.subsonic.dao.ArtistDao;
 import net.sourceforge.subsonic.dao.MediaFileDao;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.Artist;
+import net.sourceforge.subsonic.domain.Genres;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MediaLibraryStatistics;
 import net.sourceforge.subsonic.domain.MusicFolder;
@@ -158,16 +159,23 @@ public class MediaScannerService {
 
         try {
             Date lastScanned = new Date();
+
+            // Maps from artist name to album count.
             Map<String, Integer> albumCount = new HashMap<String, Integer>();
+            Genres genres = new Genres();
+
             scanCount = 0;
             statistics.reset();
 
+            mediaFileService.setMemoryCacheEnabled(false);
             searchService.startIndexing();
+
+            mediaFileService.clearMemoryCache();
 
             // Recurse through all files on disk.
             for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
                 MediaFile root = mediaFileService.getMediaFile(musicFolder.getPath(), false);
-                scanFile(root, musicFolder, lastScanned, albumCount);
+                scanFile(root, musicFolder, lastScanned, albumCount, genres);
             }
             LOG.info("Scanned media library with " + scanCount + " entries.");
 
@@ -184,6 +192,9 @@ public class MediaScannerService {
                 statistics.incrementAlbums(albums);
             }
 
+            // Update genres
+            mediaFileDao.updateGenres(genres.getGenres());
+
             settingsService.setMediaLibraryStatistics(statistics);
             settingsService.setLastScanned(lastScanned);
             settingsService.save(false);
@@ -192,12 +203,14 @@ public class MediaScannerService {
         } catch (Throwable x) {
             LOG.error("Failed to scan media library.", x);
         } finally {
-            scanning = false;
+            mediaFileService.setMemoryCacheEnabled(true);
             searchService.stopIndexing();
+            scanning = false;
         }
     }
 
-    private void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount) {
+    private void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned,
+                          Map<String, Integer> albumCount, Genres genres) {
         scanCount++;
         if (scanCount % 250 == 0) {
             LOG.info("Scanned media library with " + scanCount + " entries.");
@@ -213,10 +226,10 @@ public class MediaScannerService {
 
         if (file.isDirectory()) {
             for (MediaFile child : mediaFileService.getChildrenOf(file, true, false, false, false)) {
-                scanFile(child, musicFolder, lastScanned, albumCount);
+                scanFile(child, musicFolder, lastScanned, albumCount, genres);
             }
             for (MediaFile child : mediaFileService.getChildrenOf(file, false, true, false, false)) {
-                scanFile(child, musicFolder, lastScanned, albumCount);
+                scanFile(child, musicFolder, lastScanned, albumCount, genres);
             }
         } else {
             updateAlbum(file, lastScanned, albumCount);
@@ -224,6 +237,7 @@ public class MediaScannerService {
             statistics.incrementSongs(1);
         }
 
+        updateGenres(file, genres);
         mediaFileDao.markPresent(file.getPath(), lastScanned);
         artistDao.markPresent(file.getAlbumArtist(), lastScanned);
 
@@ -235,8 +249,22 @@ public class MediaScannerService {
         }
     }
 
+    private void updateGenres(MediaFile file, Genres genres) {
+        String genre = file.getGenre();
+        if (genre == null) {
+            return;
+        }
+        if (file.isAlbum()) {
+            genres.incrementAlbumCount(genre);
+        }
+        else if (file.isAudio()) {
+            genres.incrementSongCount(genre);
+        }
+    }
+
     private void updateAlbum(MediaFile file, Date lastScanned, Map<String, Integer> albumCount) {
-        if (file.getAlbumName() == null || file.getArtist() == null || file.getParentPath() == null || !file.isAudio()) {
+        String artist = file.getAlbumArtist() != null ? file.getAlbumArtist() : file.getArtist();
+        if (file.getAlbumName() == null || artist == null || file.getParentPath() == null || !file.isAudio()) {
             return;
         }
 
@@ -245,7 +273,7 @@ public class MediaScannerService {
             album = new Album();
             album.setPath(file.getParentPath());
             album.setName(file.getAlbumName());
-            album.setArtist(file.getArtist());
+            album.setArtist(artist);
             album.setCreated(file.getChanged());
         }
         if (album.getCoverArtPath() == null) {
@@ -254,12 +282,19 @@ public class MediaScannerService {
                 album.setCoverArtPath(parent.getCoverArtPath());
             }
         }
+        if (album.getYear() == null) {
+            album.setYear(file.getYear());
+        }
+        if (album.getGenre() == null) {
+            album.setGenre(file.getGenre());
+        }
+
         boolean firstEncounter = !lastScanned.equals(album.getLastScanned());
         if (firstEncounter) {
             album.setDurationSeconds(0);
             album.setSongCount(0);
-            Integer n = albumCount.get(file.getArtist());
-            albumCount.put(file.getArtist(), n == null ? 1 : n + 1);
+            Integer n = albumCount.get(artist);
+            albumCount.put(artist, n == null ? 1 : n + 1);
         }
         if (file.getDurationSeconds() != null) {
             album.setDurationSeconds(album.getDurationSeconds() + file.getDurationSeconds());
@@ -278,7 +313,7 @@ public class MediaScannerService {
         // Update the file's album artist, if necessary.
         if (!ObjectUtils.equals(album.getArtist(), file.getAlbumArtist())) {
             file.setAlbumArtist(album.getArtist());
-             mediaFileDao.createOrUpdateMediaFile(file);
+            mediaFileDao.createOrUpdateMediaFile(file);
         }
     }
 

@@ -7,14 +7,18 @@
  * Author: Sindre Mehus
  */
 
-/* The primary background color (light blue). */
+/* The primary background color (light gray). */
 .bgcolor1 {
-    background-color: #EFEFEF;
+    background-color: #F9F9F9;
 }
 
-/* The secondary background color (darker blue). */
+/* The secondary background color (darker gray). */
 .bgcolor2, .ruleTableHeader, .log {
-    background-color: #DEE3E7
+    background-color: #F1F1F1
+}
+
+.headerSelected {
+    border-bottom: 3px solid darkorange;
 }
 
 /* Put stuff here if you need to customize any of the frames. */
@@ -29,10 +33,6 @@
 .playlistframe {
 }
 
-/* Background color for selected header. */
-.headerSelected {
-    background-color: lightyellow;
-}
 
 /* Background color for form controls (use default). */
 input, select {
@@ -74,7 +74,7 @@ a:hover, a:hover * {
 }
 
 /* Simple dark border. */
-.border1, .ruleTableHeader, .ruleTableCell, .headerSelected, .log {
+.border1, .ruleTableHeader, .ruleTableCell, .log {
     border: 1px solid black;
 }
 
@@ -89,14 +89,18 @@ body {
     scrollbar-darkshadow-color: #98AAB1;
 }
 
-/* Font 1 */
-body, h2, form, label, table, a {
-    font-family: verdana, arial, sans-serif;
+body, form, label, table, a {
+    font-family: 'Roboto', arial, sans-serif;
 }
 
-/* Font 2 */
-h1, h1 a, .logo {
-    font-family: arial, sans-serif;
+h1, h1 a {
+    font-family: 'Ubuntu', arial, sans-serif;
+    font-weight: normal;
+}
+
+h2, h2 a, .topHeader a {
+    font-family: 'Roboto', arial, sans-serif;
+    font-weight: normal;
 }
 
 /***************************************************************************************
@@ -107,7 +111,7 @@ body {
     padding:0;
     border:0;
     margin:0.75em;
-    font-size: 9pt;
+    font-size: 10.1pt;
     line-height: 1.5em;
 }
 
@@ -125,16 +129,16 @@ p {
 
 h1 {
     white-space: nowrap;
-    font-size: 140%;
-    padding: 0 0 0.2em 0;
+    font-size: 150%;
+    padding: 0;
     border: 0;
     margin: 0;
 }
 
 h2 {
     white-space: nowrap;
-    font-size: 100%;
-    margin: 1em 0 0.2em 0;
+    font-size: 102%;
+    margin: 0.8em 0 0.2em 0;
 }
 
 form {
@@ -146,7 +150,7 @@ form {
 }
 
 input, select, textarea {
-    font-size: 9pt;
+    font-size: 90%;
 }
 
 label {
@@ -180,23 +184,32 @@ img {
     vertical-align: middle;
 }
 
-.headerSelected {
-    padding: 0.25em;
+.header, .headerSelected {
+    padding-left: 0.25em;
+    padding-right: 0.25em;
+    vertical-align: middle;
 }
 
 .detail {
     white-space: nowrap;
-    font-size: 8pt;
+    font-size: 90%;
     line-height: 1.25em;
+}
+
+.songTitle {
+    font-style: italic;
 }
 
 .warning {
     white-space: nowrap;
 }
 
-.logo {
+.topHeader, .topHeader a {
+    font-size: 102%;
+    padding: 0.15em 0 0 0;
+    margin: 0;
+    border: 0;
     white-space: nowrap;
-    font-size: 16pt;
 }
 
 .back, .forward {
@@ -207,23 +220,30 @@ img {
 }
 
 .back {
-    background-image:url("../icons/back.gif");
+    background-image:url("../icons/default_light/back.gif");
 }
 
 .forward {
-    background-image:url("../icons/forward.gif");
+    background-image:url("../icons/default_light/forward.gif");
 }
 
 .albumComment {
     width: 50em;
-    font-size: 8pt;
+    font-size: 90%;
     line-height: 1.4em;
     padding-top: 0.25em;
 }
 
+.albumThumb {
+    display:inline-block;
+    vertical-align: top;
+    padding-bottom: 1em;
+    padding-right: 1em;
+}
+
 .log {
     white-space: nowrap;
-    font-size: 8pt;
+    font-size: 90%;
     line-height: 1em;
 }
 
@@ -242,4 +262,8 @@ img {
 
 .ruleTableHeader {
     font-weight: bold;
+}
+
+.context-menu-item {
+    color: black;
 }

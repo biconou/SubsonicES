@@ -20,7 +20,7 @@ package net.sourceforge.subsonic.androidapp.util;
 
 /**
  * @author Sindre Mehus
- * @version $Id: Constants.java 3413 2013-04-14 16:15:13Z sindre_mehus $
+ * @version $Id: Constants.java 3566 2013-11-05 16:39:24Z sindre_mehus $
  */
 public final class Constants {
 
@@ -42,6 +42,7 @@ public final class Constants {
     public static final String INTENT_EXTRA_NAME_AUTOPLAY = "subsonic.playall";
     public static final String INTENT_EXTRA_NAME_ERROR = "subsonic.error";
     public static final String INTENT_EXTRA_NAME_QUERY = "subsonic.query";
+    public static final String INTENT_EXTRA_NAME_QUERY_STARRED = "subsonic.queryStarred";
     public static final String INTENT_EXTRA_NAME_PLAYLIST_ID = "subsonic.playlist.id";
     public static final String INTENT_EXTRA_NAME_PLAYLIST_NAME = "subsonic.playlist.name";
     public static final String INTENT_EXTRA_NAME_ALBUM_LIST_TYPE = "subsonic.albumlisttype";
@@ -50,18 +51,20 @@ public final class Constants {
     public static final String INTENT_EXTRA_NAME_SHUFFLE = "subsonic.shuffle";
     public static final String INTENT_EXTRA_NAME_REFRESH = "subsonic.refresh";
     public static final String INTENT_EXTRA_NAME_EXIT = "subsonic.exit" ;
+    public static final String INTENT_EXTRA_NAME_HIDE_NOTIFICATION = "subsonic.hidenotification";
 
     // Notification IDs.
     public static final int NOTIFICATION_ID_PLAYING = 100;
     public static final int NOTIFICATION_ID_ERROR = 101;
 
     // Preferences keys.
-    public static final String PREFERENCES_KEY_SERVER_INSTANCE = "serverInstanceId";
-    public static final String PREFERENCES_KEY_SERVER_NAME = "serverName";
-    public static final String PREFERENCES_KEY_SERVER_URL = "serverUrl";
+    @Deprecated public static final String PREFERENCES_KEY_SERVER_INSTANCE = "serverInstanceId";
+    @Deprecated public static final String PREFERENCES_KEY_SERVER_NAME = "serverName";
+    @Deprecated public static final String PREFERENCES_KEY_SERVER_URL = "serverUrl";
+    @Deprecated public static final String PREFERENCES_KEY_USERNAME = "username";
+    @Deprecated public static final String PREFERENCES_KEY_PASSWORD = "password";
     public static final String PREFERENCES_KEY_MUSIC_FOLDER_ID = "musicFolderId";
-    public static final String PREFERENCES_KEY_USERNAME = "username";
-    public static final String PREFERENCES_KEY_PASSWORD = "password";
+    public static final String PREFERENCES_KEY_VIDEO_PLAYER = "videoPlayer";
     public static final String PREFERENCES_KEY_MAX_BITRATE_WIFI = "maxBitrateWifi";
     public static final String PREFERENCES_KEY_MAX_BITRATE_MOBILE = "maxBitrateMobile";
     public static final String PREFERENCES_KEY_CACHE_SIZE = "cacheSize";
@@ -74,6 +77,7 @@ public final class Constants {
     public static final String PREFERENCES_KEY_REPEAT_MODE = "repeatMode";
     public static final String PREFERENCES_KEY_WIFI_REQUIRED_FOR_DOWNLOAD = "wifiRequiredForDownload";
     public static final String PREFERENCES_KEY_OFFLINE = "offline";
+    public static final String PREFERENCES_KEY_HIDE_NOTIFICATION_BY_USER = "hideNotificationByUser";
 
     // Name of the preferences file.
     public static final String PREFERENCES_FILE_NAME = "net.sourceforge.subsonic.androidapp_preferences";

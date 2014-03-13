@@ -4,7 +4,7 @@
     <%@ include file="head.jsp" %>
     <style type="text/css">
         #progressBar {width: 350px; height: 10px; border: 1px solid black; display:none;}
-        #progressBarContent {width: 0; height: 10px; background: url("<c:url value="/icons/progress.png"/>") repeat;}
+        #progressBarContent {width: 0; height: 10px; background: url("<c:url value="/icons/default_light/progress.png"/>") repeat;}
     </style>
     <script type="text/javascript" src="<c:url value="/dwr/interface/transferService.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
@@ -43,11 +43,14 @@
 
 <h1>
     <img src="<spring:theme code="moreImage"/>" alt=""/>
-    <fmt:message key="more.title"/>
+    <span style="vertical-align: middle"><fmt:message key="more.title"/></span>
 </h1>
 
 <c:if test="${model.user.streamRole}">
-    <h2><img src="<spring:theme code="randomImage"/>" alt=""/>&nbsp;<fmt:message key="more.random.title"/></h2>
+    <h2>
+        <img src="<spring:theme code="randomImage"/>" alt=""/>
+        <span style="vertical-align: middle"><fmt:message key="more.random.title"/></span>
+    </h2>
 
     <form method="post" action="randomPlayQueue.view?">
         <table>
@@ -66,7 +69,7 @@
                     <select name="genre">
                         <option value="any"><fmt:message key="more.random.anygenre"/></option>
                         <c:forEach items="${model.genres}" var="genre">
-                            <option value="${genre}"><str:truncateNicely upper="20">${genre}</str:truncateNicely></option>
+                            <option value="${genre.name}"><str:truncateNicely upper="20">${genre.name} (${genre.songCount})</str:truncateNicely></option>
                         </c:forEach>
                     </select>
                 </td>
@@ -115,19 +118,33 @@
     </form>
 </c:if>
 
-<a href="http://subsonic.org/pages/apps.jsp" target="_blank"><img alt="Apps" src="<c:url value="/icons/apps.png"/>" style="float: right;margin-left: 3em; margin-right: 3em"/></a>
-<h2><img src="<spring:theme code="androidImage"/>" alt=""/>&nbsp;<fmt:message key="more.apps.title"/></h2>
-<fmt:message key="more.apps.text"/> 
-<a href="<c:url value="/mini/index.html"/>" target="_blank"><img alt="MiniSub" src="<c:url value="/icons/minisub.png"/>" style="float: right;margin-left: 3em; margin-right: 3em"/></a>
-<h2><fmt:message key="more.minisub.title"/></h2>
+<a href="http://subsonic.org/pages/apps.jsp" target="_blank"><img alt="Apps" src="<c:url value="/icons/default_light/apps.png"/>" style="float: right;margin-left: 3em; margin-right: 3em"/></a>
+
+<h2>
+    <img src="<spring:theme code="androidImage"/>" alt=""/>
+    <span style="vertical-align: middle"><fmt:message key="more.apps.title"/></span>
+</h2>
+<fmt:message key="more.apps.text"/>
+<a href="<c:url value="/mini/index.html"/>" target="_blank"><img alt="MiniSub" src="<c:url value="/icons/default_light/minisub.png"/>" style="float: right;margin-left: 3em; margin-right: 3em"/></a>
+
+<h2>
+    <img src="<spring:theme code="html5Image"/>" alt=""/>
+    <span style="vertical-align: middle"><fmt:message key="more.minisub.title"/></span>
+</h2>
 <fmt:message key="more.minisub.text"/>
 
-<h2><img src="<spring:theme code="podcastImage"/>" alt=""/>&nbsp;<fmt:message key="more.podcast.title"/></h2>
+<h2>
+    <img src="<spring:theme code="podcastImage"/>" alt=""/>
+    <span style="vertical-align: middle"><fmt:message key="more.podcast.title"/></span>
+</h2>
 <fmt:message key="more.podcast.text"/>
 
 <c:if test="${model.user.uploadRole}">
 
-    <h2><img src="<spring:theme code="uploadImage"/>" alt=""/>&nbsp;<fmt:message key="more.upload.title"/></h2>
+    <h2>
+        <img src="<spring:theme code="uploadImage"/>" alt=""/>
+        <span style="vertical-align: middle"><fmt:message key="more.upload.title"/></span>
+    </h2>
 
     <form method="post" enctype="multipart/form-data" action="upload.view">
         <table>

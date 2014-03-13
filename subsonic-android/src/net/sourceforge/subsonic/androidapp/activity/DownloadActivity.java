@@ -18,17 +18,6 @@
  */
 package net.sourceforge.subsonic.androidapp.activity;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -71,10 +60,23 @@ import net.sourceforge.subsonic.androidapp.service.MusicServiceFactory;
 import net.sourceforge.subsonic.androidapp.util.Constants;
 import net.sourceforge.subsonic.androidapp.util.FadeOutAnimation;
 import net.sourceforge.subsonic.androidapp.util.PopupMenuHelper;
+import net.sourceforge.subsonic.androidapp.util.ShareUtil;
 import net.sourceforge.subsonic.androidapp.util.SilentBackgroundTask;
 import net.sourceforge.subsonic.androidapp.util.SongView;
+import net.sourceforge.subsonic.androidapp.util.StarUtil;
 import net.sourceforge.subsonic.androidapp.util.Util;
 import net.sourceforge.subsonic.androidapp.view.VisualizerView;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import static net.sourceforge.subsonic.androidapp.domain.PlayerState.*;
 
@@ -105,6 +107,8 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
     private Button equalizerButton;
     private Button visualizerButton;
     private Button jukeboxButton;
+    private ImageView shareButton;
+    private ImageView starButton;
     private ImageButton toggleListButton;
     private ScheduledExecutorService executorService;
     private DownloadFile currentPlaying;
@@ -151,6 +155,8 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         equalizerButton = (Button) findViewById(R.id.download_equalizer);
         visualizerButton = (Button) findViewById(R.id.download_visualizer);
         jukeboxButton = (Button) findViewById(R.id.download_jukebox);
+        shareButton = (ImageView) findViewById(R.id.download_share);
+        starButton = (ImageView) findViewById(R.id.download_star);
         LinearLayout visualizerViewLayout = (LinearLayout) findViewById(R.id.download_visualizer_view_layout);
         toggleListButton = (ImageButton) findViewById(R.id.download_toggle_list);
 
@@ -168,6 +174,8 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         equalizerButton.setOnTouchListener(touchListener);
         visualizerButton.setOnTouchListener(touchListener);
         jukeboxButton.setOnTouchListener(touchListener);
+        shareButton.setOnTouchListener(touchListener);
+        starButton.setOnTouchListener(touchListener);
         emptyTextView.setOnTouchListener(touchListener);
         albumArtImageView.setOnTouchListener(touchListener);
 
@@ -280,6 +288,28 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
                 getDownloadService().setJukeboxEnabled(jukeboxEnabled);
                 updateButtons();
                 Util.toast(DownloadActivity.this, jukeboxEnabled ? R.string.download_jukebox_on : R.string.download_jukebox_off, false);
+                setControlsVisible(true);
+            }
+        });
+
+        shareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (currentPlaying != null) {
+                    ShareUtil.shareInBackground(DownloadActivity.this, currentPlaying.getSong());
+                }
+                setControlsVisible(true);
+            }
+        });
+
+        starButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (currentPlaying != null) {
+                    MusicDirectory.Entry song = currentPlaying.getSong();
+                    StarUtil.starInBackground(DownloadActivity.this, song, !song.isStarred());
+                    starButton.setImageResource(song.isStarred() ? R.drawable.starred : R.drawable.unstarred);
+                }
                 setControlsVisible(true);
             }
         });
@@ -397,6 +427,10 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         if (visualizerView != null) {
             visualizerView.setActive(downloadService != null && downloadService.getShowVisualization());
         }
+
+        boolean offline = Util.isOffline(this);
+        shareButton.setVisibility(offline ? View.GONE : View.VISIBLE);
+        starButton.setVisibility(offline ? View.GONE : View.VISIBLE);
 
         updateButtons();
     }
@@ -545,6 +579,9 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         } else {
         	screenOption.setTitle(R.string.download_menu_screen_on);
         }
+        MenuItem searchOption = menu.findItem(R.id.menu_search);
+        searchOption.setVisible(!Util.isOffline(this));
+
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -554,15 +591,19 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         if (view == playlistView) {
             AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
             DownloadFile downloadFile = (DownloadFile) playlistView.getItemAtPosition(info.position);
+            boolean offline = Util.isOffline(this);
 
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.nowplaying_context, menu);
 
-            menu.findItem(R.id.menu_pin).setVisible(!downloadFile.isSaved());
-            menu.findItem(R.id.menu_unpin).setVisible(downloadFile.isSaved());
-            menu.findItem(R.id.menu_remove).setVisible(true);
-            menu.findItem(R.id.menu_show_album).setVisible(downloadFile.getSong().getParent() != null);
-            menu.findItem(R.id.menu_lyrics).setVisible(!Util.isOffline(this));
+            menu.findItem(R.id.menu_pin).setVisible(!offline && !downloadFile.isSaved());
+            menu.findItem(R.id.menu_unpin).setVisible(!offline && downloadFile.isSaved());
+            menu.findItem(R.id.download_menu_star).setVisible(!offline && !downloadFile.getSong().isStarred());
+            menu.findItem(R.id.download_menu_unstar).setVisible(!offline && downloadFile.getSong().isStarred());
+            menu.findItem(R.id.download_menu_share).setVisible(!offline);
+            menu.findItem(R.id.download_menu_remove).setVisible(true);
+            menu.findItem(R.id.download_menu_show_album).setVisible(downloadFile.getSong().getParent() != null);
+            menu.findItem(R.id.download_menu_lyrics).setVisible(!Util.isOffline(this));
         }
     }
 
@@ -586,17 +627,28 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
             case R.id.menu_unpin:
                 getDownloadService().unpin(Arrays.asList(song.getSong()));
                 return true;
-            case R.id.menu_remove:
+            case R.id.download_menu_star:
+                StarUtil.starInBackground(this, song.getSong(), true);
+                starButton.setImageResource(R.drawable.starred);
+                return true;
+            case R.id.download_menu_unstar:
+                StarUtil.starInBackground(this, song.getSong(), false);
+                starButton.setImageResource(R.drawable.unstarred);
+                return true;
+            case R.id.download_menu_share:
+                ShareUtil.shareInBackground(this, song.getSong());
+                return true;
+            case R.id.download_menu_remove:
                 getDownloadService().remove(song);
                 onDownloadListChanged();
                 return true;
-            case R.id.menu_show_album:
+            case R.id.download_menu_show_album:
                 Intent intent = new Intent(this, SelectAlbumActivity.class);
                 intent.putExtra(Constants.INTENT_EXTRA_NAME_ID, song.getSong().getParent());
                 intent.putExtra(Constants.INTENT_EXTRA_NAME_NAME, song.getSong().getAlbum());
                 Util.startActivityWithoutTransition(this, intent);
                 return true;
-            case R.id.menu_lyrics:
+            case R.id.download_menu_lyrics:
                 intent = new Intent(this, LyricsActivity.class);
                 intent.putExtra(Constants.INTENT_EXTRA_NAME_ARTIST, song.getSong().getArtist());
                 intent.putExtra(Constants.INTENT_EXTRA_NAME_TITLE, song.getSong().getTitle());
@@ -706,7 +758,6 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         } else if (state == STOPPED || state == IDLE) {
             warnIfNetworkOrStorageUnavailable();
             int current = service.getCurrentPlayingIndex();
-            // TODO: Use play() method.
             if (current == -1) {
                 service.play(0);
             } else {
@@ -751,6 +802,9 @@ public class DownloadActivity extends SubsonicTabActivity implements OnGestureLi
         MusicDirectory.Entry song = currentPlaying == null ? null : currentPlaying.getSong();
         songTitleTextView.setText(song == null ? null : song.getTitle());
         artistTextView.setText(song == null ? null : song.getArtist());
+        starButton.setEnabled(song != null);
+        shareButton.setEnabled(song != null);
+        starButton.setImageResource(song != null && song.isStarred() ? R.drawable.starred : R.drawable.unstarred);
         getImageLoader().loadImage(albumArtImageView, song, true, true);
         if (playlistFlipper.getDisplayedChild() == 1) {
             getImageLoader().loadImage(toggleListButton, song, false, true);

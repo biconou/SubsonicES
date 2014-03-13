@@ -2,7 +2,6 @@
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-<%! String current = "getting-started"; %>
 <%@ include file="header.jsp" %>
 
 <body>
@@ -10,7 +9,9 @@
 <a name="top"/>
 
 <div id="container">
-    <%@ include file="menu.jsp" %>
+    <jsp:include page="menu.jsp">
+        <jsp:param name="current" value="documentation"/>
+    </jsp:include>
 
     <div id="content">
         <div id="main-col">
@@ -101,9 +102,9 @@
                     in turn forwards the traffic on to your Subsonic server).  You can do this by configuring port forwarding on the
                     outer router (forward traffic to the inner router), or setting it in <em>bridge mode</em>. Your ISP should
                     be able to help you if you have problems with this. </li>
-                <li><b>Port blocked by ISP.</b> Many ISPs (Internet Service Providers) block incoming traffic on port 80, which is
-                    used by most web servers. Subsonic uses port 80 by default on Windows. You can avoid this by configuring
-                    Subsonic to use a different port. Open the Subsonic Control Panel by clicking on the Subsonic tray icon.
+                <li><b>Port blocked by ISP.</b> Many ISPs (Internet Service Providers) block incoming traffic on certain ports.
+                    Subsonic uses port 4040 by default, which is normally not blocked. It could still be worth trying to run
+                    Subsonic on a different port. Open the Subsonic Control Panel by clicking on the Subsonic tray icon.
                     Change the port number to any random number between 1025 and 65,000.  If you set up manual port forwarding
                     (see above), remember to update that as well.</li>
                 <li><b>Firewall.</b> You might be running firewall software (on the Subsonic server) which blocks incoming traffic.

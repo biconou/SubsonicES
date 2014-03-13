@@ -4,7 +4,6 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value="/script/scripts.js"/>"></script>
-    <script type="text/javascript" src="<c:url value="/script/smooth-scroll.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/interface/playlistService.js"/>"></script>
     <script type="text/javascript" language="javascript">
@@ -21,6 +20,7 @@
         }
 
         function createEmptyPlaylist() {
+            showAllPlaylists();
             playlistService.createEmptyPlaylist(playlistCallback);
         }
 
@@ -82,9 +82,9 @@
 </c:if>
 
 <c:if test="${not empty model.shortcuts}">
-    <h2 class="bgcolor1"><fmt:message key="left.shortcut"/></h2>
+    <h2 class="bgcolor1" style="padding-left: 2px"><fmt:message key="left.shortcut"/></h2>
     <c:forEach items="${model.shortcuts}" var="shortcut">
-        <p class="dense" style="padding-left:0.5em">
+        <p class="dense" style="padding-left:2px">
             <sub:url value="main.view" var="mainUrl">
                 <sub:param name="id" value="${shortcut.id}"/>
             </sub:url>
@@ -93,30 +93,32 @@
     </c:forEach>
 </c:if>
 
-<h2 class="bgcolor1"><fmt:message key="left.playlists"/></h2>
-<div id="playlistWrapper" style='padding-left:0.5em'>
+<h2 class="bgcolor1" style="padding-left: 2px"><fmt:message key="left.playlists"/></h2>
+<div id="playlistWrapper" style='padding-left:2px'>
     <div id="playlists"></div>
     <div id="playlistOverflow" style="display:none"></div>
-    <div style="padding-top: 0.3em"/>
-    <div id="showAllPlaylists" style="display: none"><a href="javascript:noop()" onclick="showAllPlaylists()"><fmt:message key="left.showallplaylists"/></a></div>
-    <div><a href="javascript:noop()" onclick="createEmptyPlaylist()"><fmt:message key="left.createplaylist"/></a></div>
-    <div><a href="importPlaylist.view" target="main"><fmt:message key="left.importplaylist"/></a></div>
+    <div style="padding-top: 0.3em"></div>
+    <div class="forward" id="showAllPlaylists" style="display: none"><a href="javascript:noop()" onclick="showAllPlaylists()"><fmt:message key="left.showallplaylists"/></a></div>
+    <div class="forward"><a href="javascript:noop()" onclick="createEmptyPlaylist()"><fmt:message key="left.createplaylist"/></a></div>
+    <div class="forward"><a href="importPlaylist.view" target="main"><fmt:message key="left.importplaylist"/></a></div>
 </div>
 
 <c:if test="${not empty model.radios}">
-    <h2 class="bgcolor1"><fmt:message key="left.radio"/></h2>
+    <h2 class="bgcolor1" style="padding-left: 2px"><fmt:message key="left.radio"/></h2>
     <c:forEach items="${model.radios}" var="radio">
-        <p class="dense">
+        <p class="dense" style="padding-left: 2px">
             <a target="hidden" href="${radio.streamUrl}">
                 <img src="<spring:theme code="playImage"/>" alt="<fmt:message key="common.play"/>" title="<fmt:message key="common.play"/>"></a>
-            <c:choose>
+            <span style="vertical-align: middle">
+                <c:choose>
                 <c:when test="${empty radio.homepageUrl}">
-                    ${radio.name}
-                </c:when>
-                <c:otherwise>
+                        ${radio.name}
+                    </c:when>
+                    <c:otherwise>
                     <a target="main" href="${radio.homepageUrl}">${radio.name}</a>
-                </c:otherwise>
-            </c:choose>
+                    </c:otherwise>
+                    </c:choose>
+            </span>
         </p>
     </c:forEach>
 </c:if>
@@ -134,7 +136,7 @@
     </table>
 
     <c:forEach items="${entry.value}" var="artist">
-        <p class="dense" style="padding-left:0.5em">
+        <p class="dense" style="padding-left:2px">
             <span title="${artist.name}">
                 <sub:url value="main.view" var="mainUrl">
                     <c:forEach items="${artist.mediaFiles}" var="mediaFile">
@@ -150,9 +152,9 @@
 <div style="padding-top:1em"></div>
 
 <c:forEach items="${model.singleSongs}" var="song">
-    <p class="dense" style="padding-left:0.5em">
-        <span title="${song.title}">
-            <c:import url="playAddDownload.jsp">
+    <p class="dense" style="padding-left:2px">
+        <span class="songTitle" title="${song.title}">
+            <c:import url="playButtons.jsp">
                 <c:param name="id" value="${song.id}"/>
                 <c:param name="playEnabled" value="${model.user.streamRole and not model.partyMode}"/>
                 <c:param name="addEnabled" value="${model.user.streamRole}"/>
@@ -165,7 +167,7 @@
 </c:forEach>
 
 <c:if test="${model.statistics.songCount gt 0}">
-    <div class="detail" style="padding-top: 0.1em; padding-left: 0.7em">
+    <div class="detail" style="padding-top: 0.6em; padding-left: 2px">
         <fmt:message key="left.statistics">
             <fmt:param value="${model.statistics.artistCount}"/>
             <fmt:param value="${model.statistics.albumCount}"/>

@@ -40,6 +40,7 @@ import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
 import net.sourceforge.subsonic.dao.MediaFileDao;
 import net.sourceforge.subsonic.domain.Album;
+import net.sourceforge.subsonic.domain.Genre;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MediaFileComparator;
 import net.sourceforge.subsonic.domain.MusicFolder;
@@ -61,12 +62,12 @@ public class MediaFileService {
     private static final Logger LOG = Logger.getLogger(MediaFileService.class);
 
     private Ehcache mediaFileMemoryCache;
-
     private SecurityService securityService;
     private SettingsService settingsService;
     private MediaFileDao mediaFileDao;
     private AlbumDao albumDao;
     private MetaDataParserFactory metaDataParserFactory;
+    private boolean memoryCacheEnabled = true;
 
     /**
      * Returns a media file instance for the given file.  If possible, a cached value is returned.
@@ -89,8 +90,7 @@ public class MediaFileService {
     public MediaFile getMediaFile(File file, boolean useFastCache) {
 
         // Look in fast memory cache first.
-        Element element = mediaFileMemoryCache.get(file);
-        MediaFile result = element == null ? null : (MediaFile) element.getObjectValue();
+        MediaFile result = getFromMemoryCache(file);
         if (result != null) {
             return result;
         }
@@ -103,7 +103,7 @@ public class MediaFileService {
         result = mediaFileDao.getMediaFile(file.getPath());
         if (result != null) {
             result = checkLastModified(result, useFastCache);
-            mediaFileMemoryCache.put(new Element(file, result));
+            putInMemoryCache(file, result);
             return result;
         }
 
@@ -114,7 +114,7 @@ public class MediaFileService {
         result = createMediaFile(file);
 
         // Put in cache and database.
-        mediaFileMemoryCache.put(new Element(file, result));
+        putInMemoryCache(file, result);
         mediaFileDao.createOrUpdateMediaFile(result);
 
         return result;
@@ -233,9 +233,10 @@ public class MediaFileService {
      * Returns all genres in the music collection.
      *
      * @return Sorted list of genres.
+     * @param sortByAlbum Whether to sort by album count, rather than song count.
      */
-    public List<String> getGenres() {
-        return mediaFileDao.getGenres();
+    public List<Genre> getGenres(boolean sortByAlbum) {
+        return mediaFileDao.getGenres(sortByAlbum);
     }
 
     /**
@@ -284,16 +285,40 @@ public class MediaFileService {
     }
 
     /**
-     * Returns albums in alphabetial order.
-     *
+     * Returns albums in alphabetical order.
      *
      * @param offset Number of albums to skip.
      * @param count  Maximum number of albums to return.
      * @param byArtist Whether to sort by artist name
      * @return Albums in alphabetical order.
      */
-    public List<MediaFile> getAlphabetialAlbums(int offset, int count, boolean byArtist) {
-        return mediaFileDao.getAlphabetialAlbums(offset, count, byArtist);
+    public List<MediaFile> getAlphabeticalAlbums(int offset, int count, boolean byArtist) {
+        return mediaFileDao.getAlphabeticalAlbums(offset, count, byArtist);
+    }
+
+    /**
+     * Returns albums within a year range.
+     *
+     * @param offset Number of albums to skip.
+     * @param count  Maximum number of albums to return.
+     * @param fromYear The first year in the range.
+     * @param toYear The last year in the range.
+     * @return Albums in the year range.
+     */
+    public List<MediaFile> getAlbumsByYear(int offset, int count, int fromYear, int toYear) {
+        return mediaFileDao.getAlbumsByYear(offset, count, fromYear, toYear);
+    }
+
+    /**
+     * Returns albums in a genre.
+     *
+     * @param offset Number of albums to skip.
+     * @param count  Maximum number of albums to return.
+     * @param genre The genre name.
+     * @return Albums in the genre.
+     */
+    public List<MediaFile> getAlbumsByGenre(int offset, int count, String genre) {
+        return mediaFileDao.getAlbumsByGenre(offset, count, genre);
     }
 
     public Date getMediaFileStarredDate(int id, String username) {
@@ -410,7 +435,7 @@ public class MediaFileService {
             if (parser != null) {
                 MetaData metaData = parser.getMetaData(file);
                 mediaFile.setArtist(metaData.getArtist());
-                mediaFile.setAlbumArtist(metaData.getArtist());
+                mediaFile.setAlbumArtist(metaData.getAlbumArtist());
                 mediaFile.setAlbumName(metaData.getAlbumName());
                 mediaFile.setTitle(metaData.getTitle());
                 mediaFile.setDiscNumber(metaData.getDiscNumber());
@@ -444,13 +469,14 @@ public class MediaFileService {
                 if (firstChild != null) {
                     mediaFile.setMediaType(ALBUM);
 
-                    // Guess artist/album name and year.
+                    // Guess artist/album name, year and genre.
                     MetaDataParser parser = metaDataParserFactory.getParser(firstChild);
                     if (parser != null) {
                         MetaData metaData = parser.getMetaData(firstChild);
-                        mediaFile.setArtist(metaData.getArtist());
+                        mediaFile.setArtist(metaData.getAlbumArtist());
                         mediaFile.setAlbumName(metaData.getAlbumName());
                         mediaFile.setYear(metaData.getYear());
+                        mediaFile.setGenre(metaData.getGenre());
                     }
 
                     // Look for cover art.
@@ -491,6 +517,27 @@ public class MediaFileService {
         mediaFile = createMediaFile(mediaFile.getFile());
         mediaFileDao.createOrUpdateMediaFile(mediaFile);
         mediaFileMemoryCache.remove(mediaFile.getFile());
+    }
+
+    private void putInMemoryCache(File file, MediaFile mediaFile) {
+        if (memoryCacheEnabled) {
+            mediaFileMemoryCache.put(new Element(file, mediaFile));
+        }
+    }
+
+    private MediaFile getFromMemoryCache(File file) {
+        if (!memoryCacheEnabled) {
+            return null;
+        }
+        Element element = mediaFileMemoryCache.get(file);
+        return element == null ? null : (MediaFile) element.getObjectValue();
+    }
+
+    public void setMemoryCacheEnabled(boolean memoryCacheEnabled) {
+        this.memoryCacheEnabled = memoryCacheEnabled;
+        if (!memoryCacheEnabled) {
+            mediaFileMemoryCache.removeAll();
+        }
     }
 
     /**
@@ -604,8 +651,11 @@ public class MediaFileService {
         }
     }
 
+    public void clearMemoryCache() {
+        mediaFileMemoryCache.removeAll();
+    }
+
     public void setAlbumDao(AlbumDao albumDao) {
         this.albumDao = albumDao;
     }
-
 }

@@ -1,8 +1,6 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-<%! String current = "apps"; %>
 <%@ include file="header.jsp" %>
 
 <body>
@@ -10,7 +8,9 @@
 <a name="top"/>
 
 <div id="container">
-    <%@ include file="menu.jsp" %>
+    <jsp:include page="menu.jsp">
+        <jsp:param name="current" value="apps"/>
+    </jsp:include>
 
     <div id="content">
         <div id="main-col">
@@ -24,8 +24,10 @@
             <div class="floatcontainer margin10-t margin10-b">
                 <ul class="stars column-left">
                     <li><a href="#android">Subsonic</a> for Android</li>
+                    <li><a href="#dsub">DSub</a> for Android</li>
                     <li><a href="#winphone">Subsonic</a> for Windows Phone</li>
                     <li><a href="#silversonic">SilverSonic</a> for Windows Phone</li>
+                    <li><a href="#subhub">SubHub</a> for iPhone/iPad</li>
                 </ul>
                 <ul class="stars column-right">
                     <li><a href="#isub">iSub</a> for iPhone/iPad</li>
@@ -58,9 +60,9 @@
                     <li><a href="#submariner">Submariner</a> for Mac</li>
                     <li><a href="#thumper">Thumper</a> for Mac</li>
                     <li><a href="#subclient">Subclient</a> for Windows</li>
+                    <li><a href="#subgadget">SubGadget</a> for Windows</li>
                 </ul>
                 <ul class="stars column-right"> 
-                    <li><a href="#subgadget">SubGadget</a> for Windows</li>
                     <li><a href="#periscope">Periscope</a> for Windows</li>
                     <li><a href="#subwiji">SubWiji</a> for Windows</li>
                     <li><a href="#supersonic">Supersonic</a> for Windows 8</li>
@@ -91,12 +93,14 @@
             </p>
 
             <%@ include file="apps-android.jsp" %>
+            <%@ include file="apps-dsub.jsp" %>
             <%@ include file="apps-isub.jsp" %>
             <%@ include file="apps-zsubsonic.jsp" %>
             <%@ include file="apps-substream.jsp" %>
             <%@ include file="apps-hypersonic.jsp" %>
             <%@ include file="apps-winphone.jsp" %>
             <%@ include file="apps-silversonic.jsp" %>
+            <%@ include file="apps-subhub.jsp" %>
             <%@ include file="apps-subair.jsp" %>
             <%@ include file="apps-sonicair.jsp" %>
             <%@ include file="apps-mmtm.jsp" %>
