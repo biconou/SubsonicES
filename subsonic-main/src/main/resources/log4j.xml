@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+  <appender name="console" class="org.apache.log4j.ConsoleAppender"> 
+    <param name="Target" value="System.out"/> 
+    <layout class="org.apache.log4j.PatternLayout"> 
+      <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/> 
+    </layout> 
+  </appender> 
+
+  <appender name="mediaScannerLogFile" class="org.apache.log4j.FileAppender"> 
+		<param name="File" value="${subsonic.home}/mediaScanner.log" />
+        <param name="Append" value="true" /> 
+    <layout class="org.apache.log4j.PatternLayout"> 
+      <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/> 
+    </layout> 
+  </appender> 
+
+  <appender name="jukeboxLogFile" class="org.apache.log4j.FileAppender"> 
+		<param name="File" value="${subsonic.home}/jukebox.log" />
+        <param name="Append" value="true" /> 
+    <layout class="org.apache.log4j.PatternLayout"> 
+      <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/> 
+    </layout> 
+  </appender> 
+
+	<logger name="net.sourceforge.subsonic.MEDIA_SCANNER_LOGGER">
+	   <level value="debug"/>
+	   <appender-ref ref="mediaScannerLogFile"/>
+	</logger>
+
+
+	<logger name="com.github.biconou.subsonic.service">
+	   <level value="debug"/>
+	   <appender-ref ref="jukeboxLogFile"/>
+	</logger>
+  
+	<logger name="com.github.biconou.AudioPlayer">
+	   <level value="trace"/>
+	   <appender-ref ref="jukeboxLogFile"/>
+	</logger>
+
+	<logger name="com.github.biconou.cmus">
+	   <level value="trace"/>
+	   <appender-ref ref="jukeboxLogFile"/>
+	</logger>
+  
+  
+  <root> 
+    <level value="warn" /> 
+    <appender-ref ref="console" /> 
+  </root>
+
+
+
+</log4j:configuration>

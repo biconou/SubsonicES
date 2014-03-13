@@ -169,7 +169,8 @@
         <property name="adInterval" value="4"/>
     </bean>
 
-    <bean id="jukeboxService" class="net.sourceforge.subsonic.service.JukeboxService">
+    <!-- <bean id="jukeboxService" class="net.sourceforge.subsonic.service.JukeboxService">  -->
+    <bean id="jukeboxService" class="com.github.biconou.subsonic.service.CMusJukeboxService">
         <property name="statusService" ref="statusService"/>
         <property name="transcodingService" ref="transcodingService"/>
         <property name="audioScrobblerService" ref="audioScrobblerService"/>
