@@ -73,6 +73,7 @@ import net.sourceforge.subsonic.domain.TransferStatus;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.AudioScrobblerService;
+import net.sourceforge.subsonic.service.IJukeboxService;
 import net.sourceforge.subsonic.service.JukeboxService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.MusicIndexService;
@@ -128,7 +129,7 @@ public class RESTController extends MultiActionController {
     private ChatService chatService;
     private LyricsService lyricsService;
     private PlayQueueService playQueueService;
-    private JukeboxService jukeboxService;
+    private IJukeboxService jukeboxService;
     private AudioScrobblerService audioScrobblerService;
     private PodcastService podcastService;
     private RatingService ratingService;
@@ -2095,7 +2096,7 @@ public class RESTController extends MultiActionController {
         this.playQueueService = playQueueService;
     }
 
-    public void setJukeboxService(JukeboxService jukeboxService) {
+    public void setJukeboxService(IJukeboxService jukeboxService) {
         this.jukeboxService = jukeboxService;
     }
 

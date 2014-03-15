@@ -22,6 +22,7 @@ import net.sourceforge.subsonic.dao.MediaFileDao;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.service.IJukeboxService;
 import net.sourceforge.subsonic.service.JukeboxService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlayerService;
@@ -51,7 +52,7 @@ import java.util.Locale;
 public class PlayQueueService {
 
     private PlayerService playerService;
-    private JukeboxService jukeboxService;
+    private IJukeboxService jukeboxService;
     private TranscodingService transcodingService;
     private SettingsService settingsService;
     private MediaFileService mediaFileService;
@@ -442,7 +443,7 @@ public class PlayQueueService {
         this.mediaFileService = mediaFileService;
     }
 
-    public void setJukeboxService(JukeboxService jukeboxService) {
+    public void setJukeboxService(IJukeboxService jukeboxService) {
         this.jukeboxService = jukeboxService;
     }
 
