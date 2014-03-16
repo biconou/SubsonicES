@@ -426,6 +426,7 @@ public class CMusController {
 		stop();
 		clearPlayQueue();
 		addFile(file);
+		Thread.sleep(1000);
 		next();
 	}
 

@@ -107,16 +107,17 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 			synchronized (player.getPlayQueue()) {
 				result = player.getPlayQueue().getCurrentFile();
 			}
+			LOG.debug("Play file {}",result.getName());
 			play(result, offset);
 
 
 			// load the other songs in cmus play queue starting with the second file in queue
+			LOG.debug("load the other songs in cmus play queue starting with the second file in queue");
 			List<MediaFile> files = player.getPlayQueue().getFiles();
 			for (int i=1;i<files.size();i++) {
 				String fileName = files.get(i).getFile().getAbsolutePath();
-				while (fileName != null) {
-					getCMusController().addFile(fileName);
-				}
+				// fileName can not be null as it comes from a file name in queue.
+				getCMusController().addFile(fileName);
 			}
 			
 		} else {
