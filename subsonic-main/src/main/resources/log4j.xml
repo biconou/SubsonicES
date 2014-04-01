@@ -26,23 +26,23 @@
   </appender> 
 
 	<logger name="net.sourceforge.subsonic.MEDIA_SCANNER_LOGGER">
-	   <level value="debug"/>
+	   <level value="warn"/>
 	   <appender-ref ref="mediaScannerLogFile"/>
 	</logger>
 
 
 	<logger name="com.github.biconou.subsonic.service">
-	   <level value="debug"/>
+	   <level value="warn"/>
 	   <appender-ref ref="jukeboxLogFile"/>
 	</logger>
   
 	<logger name="com.github.biconou.AudioPlayer">
-	   <level value="trace"/>
+	   <level value="warn"/>
 	   <appender-ref ref="jukeboxLogFile"/>
 	</logger>
 
 	<logger name="com.github.biconou.cmus">
-	   <level value="trace"/>
+	   <level value="warn"/>
 	   <appender-ref ref="jukeboxLogFile"/>
 	</logger>
   
