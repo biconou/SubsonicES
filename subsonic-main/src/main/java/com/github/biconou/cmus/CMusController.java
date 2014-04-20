@@ -266,7 +266,7 @@ public class CMusController {
 		LOG.debug("Set softvolume on in cmus");
 		sendCommandToCMus("set softvol=true",noAnswerExpectedCMusCommandHandler);
 		LOG.debug("Set status display program in cmus");
-		sendCommandToCMus("set status_display_program=/subsonic/4.8/cmus-status-display",noAnswerExpectedCMusCommandHandler);
+		sendCommandToCMus("set status_display_program=/biconou/cmus-status-display",noAnswerExpectedCMusCommandHandler);
 	}
 
 
