@@ -15,6 +15,7 @@ public class TestServer {
         baseDir = baseDir.substring(0,baseDir.indexOf("/target"));
         webapp.setWar(baseDir + "/src/main/webapp");
         server.setHandler(webapp);
+        server.setAttribute("reload", "automatic");
         server.start();
         server.join();
     }
