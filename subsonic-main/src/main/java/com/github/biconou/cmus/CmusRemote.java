@@ -415,6 +415,6 @@ public class CmusRemote  {
 	 */
 	public static void main(String[] args) {
 		CmusRemote controller = new CmusRemote();
-		controller.sendCommand("localhost", 4041, "subsonic", CmusCommand.PLAY);
+		controller.sendCommand("192.168.0.7", 4041, "subsonic", CmusCommand.PLAY);
 	}
 }

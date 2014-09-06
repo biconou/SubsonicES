@@ -18,23 +18,13 @@
  */
 package com.github.biconou.subsonic.service;
 
-import java.io.InputStream;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
-import org.slf4j.LoggerFactory;
-
-import com.github.biconou.cmus.CMusController;
-import com.github.biconou.cmus.CMusController.CMusStatus;
-
-import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
-import net.sourceforge.subsonic.domain.Transcoding;
 import net.sourceforge.subsonic.domain.TransferStatus;
 import net.sourceforge.subsonic.domain.User;
-import net.sourceforge.subsonic.domain.VideoTranscodingSettings;
 import net.sourceforge.subsonic.service.AudioScrobblerService;
 import net.sourceforge.subsonic.service.IJukeboxService;
 import net.sourceforge.subsonic.service.MediaFileService;
@@ -43,9 +33,13 @@ import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.StatusService;
 import net.sourceforge.subsonic.service.TranscodingService;
 import net.sourceforge.subsonic.service.jukebox.AudioPlayer;
+import net.sourceforge.subsonic.service.jukebox.AudioPlayer.State;
 import net.sourceforge.subsonic.util.FileUtil;
 
-import static net.sourceforge.subsonic.service.jukebox.AudioPlayer.State.EOM;
+import org.slf4j.LoggerFactory;
+
+import com.github.biconou.cmus.CMusController;
+import com.github.biconou.cmus.CMusController.CMusStatus;
 
 /**
  * Plays music on the local audio device.
@@ -56,7 +50,6 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 
 	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CMusJukeboxService.class);
 
-	private TranscodingService transcodingService;
 	private AudioScrobblerService audioScrobblerService;
 	private StatusService statusService;
 	private SettingsService settingsService;
@@ -80,7 +73,8 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 	private CMusController getCMusController() throws Exception  {
 		if (cmusControler == null) {
 			try {
-				cmusControler = new CMusController("localhost",4041,"subsonic");
+				//cmusControler = new CMusController("localhost",4041,"subsonic");
+				cmusControler = new CMusController("192.168.0.7",4041,"subsonic");
 			} catch (Exception e) {
 				LOG.error("Error trying to create the cmus controller",e);
 				throw e;
@@ -93,60 +87,33 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 	 * @see net.sourceforge.subsonic.service.IJukeboxService#updateJukebox(net.sourceforge.subsonic.domain.Player, int)
 	 */
 	public synchronized void updateJukebox(Player player, int offset) throws Exception {
+		
+		// Control user authorizations
 		User user = securityService.getUserByName(player.getUsername());
 		if (!user.isJukeboxRole()) {
 			LOG.warn(user.getUsername() + " is not authorized for jukebox playback.");
 			return;
 		}
 
-
+		//
 		if (player.getPlayQueue().getStatus() == PlayQueue.Status.PLAYING) {
 			LOG.debug("Play Queue status : {}",PlayQueue.Status.PLAYING.toString());
 			this.player = player;
-			MediaFile result;
+			MediaFile currentFileInPlayQueue;
 			synchronized (player.getPlayQueue()) {
-				result = player.getPlayQueue().getCurrentFile();
+				currentFileInPlayQueue = player.getPlayQueue().getCurrentFile();
 			}
-			LOG.debug("Play file {}",result.getName());
-			play(result, offset);
-
-
-			// load the other songs in cmus play queue starting with the second file in queue
-			LOG.debug("load the other songs in cmus play queue starting with the second file in queue");
-			List<MediaFile> files = player.getPlayQueue().getFiles();
-			for (int i=1;i<files.size();i++) {
-				String fileName = files.get(i).getFile().getAbsolutePath();
-				// fileName can not be null as it comes from a file name in queue.
-				getCMusController().addFile(fileName);
-			}
+			LOG.debug("Play file {}",currentFileInPlayQueue.getName());
 			
-		} else {
-			try {
-				getCMusController().pause();
-			} catch (Exception e) {
-				LOG.error("Error trying to pause",e);
-				throw e;
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param file
-	 * @param offset
-	 */
-	private synchronized void play(MediaFile file, int offset) {
-		InputStream in = null;
-		try {
-
+			
 			if (LOG.isDebugEnabled()) {
-				LOG.debug("Begin of play : file = {}",file != null?file.getName():"null");
+				LOG.debug("Begin of play : file = {}",currentFileInPlayQueue != null?currentFileInPlayQueue.getName():"null");
 			}
 			
 			// Resume if possible.
-			boolean sameFile = file != null && file.equals(currentPlayingFile);
+			boolean sameFile = currentFileInPlayQueue != null && currentFileInPlayQueue.equals(currentPlayingFile);
 			if (LOG.isDebugEnabled()) {				
-				LOG.debug("sameFile={} (file={} and currentPlayingFile={})",new Object[]{new Boolean(sameFile),file.getName(),
+				LOG.debug("sameFile={} (file={} and currentPlayingFile={})",new Object[]{new Boolean(sameFile),currentFileInPlayQueue.getName(),
 						currentPlayingFile == null?"null":currentPlayingFile.getName()});
 			}
 
@@ -167,45 +134,42 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 					onSongEnd(currentPlayingFile);
 				}
 
-				if (file != null) {
-					//int duration = file.getDurationSeconds() == null ? 0 : file.getDurationSeconds() - offset;
-					//TranscodingService.Parameters parameters = new TranscodingService.Parameters(file, new VideoTranscodingSettings(0, 0, offset, duration, false));
-					//String command = settingsService.getJukeboxCommand();
-					//parameters.setTranscoding(new Transcoding(null, null, null, null, command, null, null, false));
-					//in = transcodingService.getTranscodedInputStream(parameters);
-					//audioPlayer = new AudioPlayer(in, this);
+				if (currentFileInPlayQueue != null) {
 
-					getCMusController().initPlayQueue(file.getFile().getAbsolutePath());
+					getCMusController().initPlayQueue(currentFileInPlayQueue.getFile().getAbsolutePath());
 
 					getCMusController().setGain(gain);
 					getCMusController().play();
 
 
-					onSongStart(file);
+					onSongStart(currentFileInPlayQueue);
 				}
 			}
 
-			currentPlayingFile = file;
+			currentPlayingFile = currentFileInPlayQueue;
 
-		} catch (Exception x) {
-			LOG.error("Error in jukebox: " + x, x);
-			IOUtils.closeQuietly(in);
-		}
-	}
 
-	/* (non-Javadoc)
-	 * @see net.sourceforge.subsonic.service.IJukeboxService#stateChanged(net.sourceforge.subsonic.service.jukebox.AudioPlayer, net.sourceforge.subsonic.service.jukebox.AudioPlayer.State)
-	 */
-	public synchronized void stateChanged(AudioPlayer audioPlayer, AudioPlayer.State state) {
-		if (state == EOM) {
-			player.getPlayQueue().next();
-			MediaFile result;
-			synchronized (player.getPlayQueue()) {
-				result = player.getPlayQueue().getCurrentFile();
+
+			// load the other songs in cmus play queue starting with the second file in queue
+			LOG.debug("load the other songs in cmus play queue starting with the next file in queue");
+			List<MediaFile> files = player.getPlayQueue().getFiles();
+			int nextAfterCurrentInPlayQueue = player.getPlayQueue().getIndex() + 1;
+			for (int i=nextAfterCurrentInPlayQueue; i<files.size(); i++) {
+				String fileName = files.get(i).getFile().getAbsolutePath();
+				// fileName can not be null as it comes from a file name in queue.
+				getCMusController().addFile(fileName);
 			}
-			play(result, 0);
+			
+		} else {
+			try {
+				getCMusController().pause();
+			} catch (Exception e) {
+				LOG.error("Error trying to pause",e);
+				throw e;
+			}
 		}
 	}
+
 	
 	/**
 	 * 
@@ -217,15 +181,25 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 		CMusStatus status = null;
 		try {
 			status = getCMusController().status();
-			if ("playing".equals(status.getStatus())) {
+			if (status.isPlaying()) {
 				String oldCmusPlayingFile = cmusPlayingFile;
 				cmusPlayingFile = status.getFile();
 				if (oldCmusPlayingFile != null && !oldCmusPlayingFile.equals(cmusPlayingFile)) {
 					LOG.debug("Playing file changed in CMus");
 					synchronized (player.getPlayQueue()) {
+						onSongEnd(player.getPlayQueue().getCurrentFile());
 						player.getPlayQueue().next();
-						MediaFile result = player.getPlayQueue().getCurrentFile();
-						onSongStart(result);
+						onSongStart(player.getPlayQueue().getCurrentFile());
+					}
+				}
+			} else {
+				if (!status.isPaused()) {
+					if (cmusPlayingFile != null) {
+						cmusPlayingFile = null;
+						MediaFile currentPlayingInPlayQueue = player.getPlayQueue().getCurrentFile();
+						if (currentPlayingInPlayQueue != null) {
+							onSongEnd(currentPlayingInPlayQueue);
+						}
 					}
 				}
 			}
@@ -307,7 +281,7 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 	 * @see net.sourceforge.subsonic.service.IJukeboxService#setTranscodingService(net.sourceforge.subsonic.service.TranscodingService)
 	 */
 	public void setTranscodingService(TranscodingService transcodingService) {
-		this.transcodingService = transcodingService;
+		//this.transcodingService = transcodingService;
 	}
 
 	/* (non-Javadoc)
@@ -343,5 +317,27 @@ public class CMusJukeboxService implements AudioPlayer.Listener, IJukeboxService
 	 */
 	public void setMediaFileService(MediaFileService mediaFileService) {
 		this.mediaFileService = mediaFileService;
+	}
+
+	@Override
+	public void stateChanged(AudioPlayer player, State state) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * @throws Exception 
+	 * 
+	 */
+	public void updateCMUSPlayQueue() throws Exception {
+		
+		cmusControler.clearPlayQueue();
+		List<MediaFile> files = player.getPlayQueue().getFiles();
+		int nextAfterCurrentInPlayQueue = player.getPlayQueue().getIndex() + 1;
+		for (int i=nextAfterCurrentInPlayQueue; i<files.size(); i++) {
+			String fileName = files.get(i).getFile().getAbsolutePath();
+			// fileName can not be null as it comes from a file name in queue.
+			getCMusController().addFile(fileName);
+		}
 	}
 }

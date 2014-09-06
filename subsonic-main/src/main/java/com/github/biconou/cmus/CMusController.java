@@ -3,8 +3,11 @@ package com.github.biconou.cmus;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -152,6 +155,22 @@ public class CMusController {
 			}
 		}
 
+		public boolean isPlaying() {
+		
+			if ("playing".equals(getStatus())) {
+				return true;
+			}
+			return false;
+		}
+		
+		public boolean isPaused() {
+			
+			if ("paused".equals(getStatus())) {
+				return true;
+			}
+			return false;
+		}
+		
 		public String toSimpleString() {
 			StringBuilder strBuilder = new StringBuilder();
 			strBuilder.append("Artist: ").append(getTag("artist")).append("\n");
@@ -309,19 +328,21 @@ public class CMusController {
 		LOG.debug("sending command to cmus : {}",command);
 		Socket socket = null;
 		BufferedReader in = null;
-		PrintWriter out = null;
+		Writer out = null;
 		try {
 			socket = new Socket(host, port);
 			LOG.trace("Connected to cmus host {}:{}",host,port);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
-			out = new PrintWriter(socket.getOutputStream(), true);
+			out = new OutputStreamWriter(socket.getOutputStream(),"UTF-8");
 
 			LOG.trace("Sinding password to cmus");
-			out.println("passwd " + passwd);
+			out.write("passwd " + passwd + "\n");
+			out.flush();
 
 			validAuth(in);
 
-			out.println(command);
+			out.write(command + "\n");
+			out.flush();
 
 			handler.handleCommandAnswer(readAnswer(in));
 
@@ -405,6 +426,11 @@ public class CMusController {
 	}
 
 	public void addFile(String file) throws Exception {
+		
+		// hack temporaire
+		file = file.replaceAll("Z:", "/mnt/NAS/REMI");
+		file = file.replace('\\', '/');
+		
 		sendCommandToCMus("add -q "+file,noAnswerExpectedCMusCommandHandler);
 	}
 
@@ -426,8 +452,11 @@ public class CMusController {
 		stop();
 		clearPlayQueue();
 		addFile(file);
-		Thread.sleep(1000);
-		next();
+		//Thread.sleep(1000);
+		CMusStatus status = status();
+		if (status.getFile() != null && !status.isPlaying()) {
+			next();
+		}
 	}
 
 	/**
@@ -511,10 +540,13 @@ public class CMusController {
 	 */
 	public boolean isPaused() throws Exception {
 		CMusStatus status = status();
-		if (status.getStatus().equals("paused")) {
-			return true;
-		}
-		return false;
+		return status.isPaused();
 	}
+	
+	public boolean isPlaying() throws Exception {
+		CMusStatus status = status();
+		return status.isPlaying();
+	}
+	
 
 }

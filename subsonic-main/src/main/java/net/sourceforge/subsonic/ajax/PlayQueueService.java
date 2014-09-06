@@ -34,6 +34,8 @@ import net.sourceforge.subsonic.util.StringUtil;
 import org.directwebremoting.WebContextFactory;
 import org.springframework.web.servlet.support.RequestContextUtils;
 
+import com.github.biconou.subsonic.service.CMusJukeboxService;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -373,7 +375,12 @@ public class PlayQueueService {
 
         if (sendM3U && player.isJukebox()) {
             jukeboxService.updateJukebox(player, offset);
-        }
+            
+        } else if (player.isJukebox()) {
+        	if (jukeboxService instanceof CMusJukeboxService) {
+        		((CMusJukeboxService)jukeboxService).updateCMUSPlayQueue();
+            }
+		}
         boolean isCurrentPlayer = player.getIpAddress() != null && player.getIpAddress().equals(request.getRemoteAddr());
 
         boolean m3uSupported = player.isExternal() || player.isExternalWithPlaylist();
