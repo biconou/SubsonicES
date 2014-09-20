@@ -21,37 +21,32 @@ package com.github.biconou.subsonic.service;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import net.sourceforge.subsonic.service.IJukeboxService;
-
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
-
-import com.github.biconou.cmus.CMusController;
 
 /**
  * 
  *
  * @author Rémi Cocula
  */
-public class CMusJukeboxController extends AbstractController {
+public class CMusController extends AbstractController {
 
-	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CMusJukeboxController.class);
+	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CMusController.class);
 	
-    private IJukeboxService jukeboxService;
+    private CMusService cmusService;
 
     @Override
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
     	
     	LOG.debug("Begin handleRequestInternal");
-    	CMusJukeboxService CMUSService = (CMusJukeboxService)jukeboxService;
-    	CMUSService.cmusStatusChanged();
+    	//cmusService.cmusStatusChanged();
     	
     	return null;
     }
 
 
-    public void setJukeboxService(IJukeboxService jukeboxService) {
-        this.jukeboxService = jukeboxService;
+    public void setCmusService(CMusService cmusService) {
+        this.cmusService = cmusService;
     }
 }

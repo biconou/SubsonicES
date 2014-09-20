@@ -34,6 +34,8 @@ import org.apache.commons.lang.StringUtils;
 import org.directwebremoting.WebContext;
 import org.directwebremoting.WebContextFactory;
 
+import com.github.biconou.subsonic.service.CMusService;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.util.ArrayList;
@@ -51,6 +53,7 @@ public class NowPlayingService {
     private static final Logger LOG = Logger.getLogger(NowPlayingService.class);
 
     private PlayerService playerService;
+    private CMusService cmusService;
     private StatusService statusService;
     private SettingsService settingsService;
     private MediaScannerService mediaScannerService;
@@ -64,10 +67,27 @@ public class NowPlayingService {
     public NowPlayingInfo getNowPlayingForCurrentPlayer() throws Exception {
         WebContext webContext = WebContextFactory.get();
         Player player = playerService.getPlayer(webContext.getHttpServletRequest(), webContext.getHttpServletResponse());
-        List<TransferStatus> statuses = statusService.getStreamStatusesForPlayer(player);
-        List<NowPlayingInfo> result = convert(statuses);
+        
+        List<TransferStatus> statuses = null;
+        List<NowPlayingInfo> result = null;
+        
+        if (player.isCmus()) {
+        	statuses = cmusService.checkForNowPlayingService(player);
+        	if (statuses == null) {
+        		// This is a hack !
+        		NowPlayingInfo nullNowPlayingInfo = new NowPlayingInfo("", "", "", "", "<NO_FILE>", "", "", "", "", 0);
+        		result = new ArrayList<NowPlayingInfo>();
+        		result.add(nullNowPlayingInfo);
+        	}
+        } else {
+	        statuses = statusService.getStreamStatusesForPlayer(player);    
+        }
 
-        return result.isEmpty() ? null : result.get(0);
+        if (statuses != null) {
+        	result = convert(statuses);
+        }
+        
+        return (result == null || result.isEmpty()) ? null : result.get(0);
     }
 
     /**
@@ -175,4 +195,9 @@ public class NowPlayingService {
     public void setMediaFileService(MediaFileService mediaFileService) {
         this.mediaFileService = mediaFileService;
     }
+    
+    public void setCmusService(CMusService cmusService) {
+		this.cmusService = cmusService;
+	}
+
 }

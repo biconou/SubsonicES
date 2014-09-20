@@ -4,19 +4,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.Socket;
-import java.nio.charset.Charset;
+import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
-public class CMusController {
+public class CMusRemoteDriver {
 
-	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CMusController.class);
+	private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(CMusRemoteDriver.class);
 
 	/**
 	 * 
@@ -218,24 +218,19 @@ public class CMusController {
 	NoAnswerExpectedCMusCommandHandler noAnswerExpectedCMusCommandHandler = new NoAnswerExpectedCMusCommandHandler();
 
 
-
-
-
-	//	private Process cmusRemoteProcess;
-	//	private  BufferedOutputStream cmdStream = null;
-	//	private BufferedReader cmusIStream = null;
-	//	private BufferedReader cmusErrorStream = null;
-	//	Thread tErrorCMus = null;
-
 	String host = null;
 	int port = 0;
 	String passwd = null;
+	Socket socket = null;
+	BufferedReader in = null;
+	Writer out = null;
+
 
 	/**
 	 * Public constructor.
 	 * @throws Exception 
 	 */
-	public CMusController(final String host, final int port,
+	public CMusRemoteDriver(final String host, final int port,
 			final String password) throws Exception {
 
 		LOG.debug("Creation of a new CMusControler");
@@ -243,44 +238,6 @@ public class CMusController {
 		this.host = host;
 		this.port = port;
 		this.passwd = password;
-
-		//		ProcessBuilder pb = new ProcessBuilder("cmus-remote");
-		//		LOG.debug("Start a new process : {}",pb.command());
-		//		try {
-		//			cmusRemoteProcess = pb.start();
-		//		} catch (IOException e) {
-		//			RuntimeException ex = new RuntimeException(e);
-		//			LOG.error("Can not create a cmus-remote process",ex);
-		//			throw ex;
-		//		}
-		//		LOG.debug("Opening the command pipe");
-		//		OutputStream cmusRemoteOStream = cmusRemoteProcess.getOutputStream();
-		//		cmdStream = new BufferedOutputStream(cmusRemoteOStream);
-		//		
-		//		LOG.debug("Creating a thread to read (and log) cmus-remote standard error stream");
-		//		cmusErrorStream = new BufferedReader(new InputStreamReader(cmusRemoteProcess.getErrorStream()));
-		//		
-		//		tErrorCMus = new Thread(new Runnable() {
-		//
-		//			public void run() {
-		//				String readLine;
-		//				try {
-		//					readLine = cmusErrorStream.readLine();
-		//					while (readLine != null) {	            	  
-		//						LOG.error("CMUS_ERROR | {}",readLine);
-		//						// read next line
-		//						readLine = cmusErrorStream.readLine();
-		//					}
-		//				}
-		//				catch (IOException e) {
-		//					LOG.error("Error while reading cmus-remote stderr",e);
-		//				}
-		//			}
-		//		});
-		//
-		//		tErrorCMus.start();
-		//		
-		//		//
 
 		LOG.debug("Set softvolume on in cmus");
 		sendCommandToCMus("set softvol=true",noAnswerExpectedCMusCommandHandler);
@@ -326,75 +283,98 @@ public class CMusController {
 	public  void sendCommandToCMus(final String command,final CMusCommandHandler handler) throws Exception {
 
 		LOG.debug("sending command to cmus : {}",command);
-		Socket socket = null;
-		BufferedReader in = null;
-		Writer out = null;
 		try {
-			socket = new Socket(host, port);
-			LOG.trace("Connected to cmus host {}:{}",host,port);
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
-			out = new OutputStreamWriter(socket.getOutputStream(),"UTF-8");
-
-			LOG.trace("Sinding password to cmus");
-			out.write("passwd " + passwd + "\n");
-			out.flush();
-
-			validAuth(in);
+			
+			if (socket == null) {
+				try {
+					startCmusSession();
+				} catch (Exception e) {
+					LOG.error("Could not send start a cmus session", e);
+					throw e;
+				}
+			}
 
 			out.write(command + "\n");
 			out.flush();
-
 			handler.handleCommandAnswer(readAnswer(in));
-
 		} catch (final Exception e) {
-			LOG.error("Could not send the command", e);
-			throw new RuntimeException(e);
-		} finally {
-			if (in != null) {
-				try {
-					in.close();
-				} catch (Exception e1) {
+			LOG.error("Could not send the command. Trying again with a new cmus session.");
+			try {
+				if (in != null) {
+					try {
+						in.close();
+					} catch (Exception ignoreEx) {
+					}
+					in = null;
 				}
-				in = null;
-			}
-			if (out != null) {
-				try {
-					out.close();
-				} catch (Exception e1) {
+				if (out != null) {
+					try {
+						out.close();
+					} catch (Exception ignoreEx) {
+					}
+					out = null;
 				}
-				out = null;
-			}
-			if (socket != null) {
-				try {
-					socket.close();
-				} catch (Exception e) {
+				if (socket != null) {
+					try {
+						socket.close();
+					} catch (Exception ignoreEx) {
+					}
+					socket = null;
 				}
-				socket = null;
+				startCmusSession();
+				out.write(command + "\n");
+				out.flush();
+				handler.handleCommandAnswer(readAnswer(in));				
+			} catch (Exception eAgain) {
+				LOG.error("Could not send command to cmus", eAgain);
+				if (in != null) {
+					try {
+						in.close();
+					} catch (Exception ignoreEx) {
+					}
+					in = null;
+				}
+				if (out != null) {
+					try {
+						out.close();
+					} catch (Exception ignoreEx) {
+					}
+					out = null;
+				}
+				if (socket != null) {
+					try {
+						socket.close();
+					} catch (Exception ignoreEx) {
+					}
+					socket = null;
+				}
+				throw eAgain;
 			}
-		}
+		} 
 
 	}
 
 
-	//	/**
-	//	 * Send a command to cmus via cmus-remote.
-	//	 * 
-	//	 * @param command
-	//	 * @throws Exception
-	//	 */
-	//	private void sendCommandToCMus(String command) throws Exception {
-	//		LOG.debug("Sending command to cmus : {}",command);
-	//		try {
-	//		if (!command.endsWith("\n")) {
-	//			command = command + "\n";
-	//		}
-	//		cmdStream.write(command.getBytes("UTF-8"));
-	//		cmdStream.flush();
-	//		} catch (Exception e) {
-	//			LOG.error("Error sending command to cmus",e);
-	//			throw e;
-	//		}
-	//	}
+	/**
+	 * 
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 * @throws UnsupportedEncodingException
+	 * @throws Exception
+	 */
+	private void startCmusSession() throws UnknownHostException, IOException,
+			UnsupportedEncodingException, Exception {
+		socket = new Socket(host, port);
+		LOG.trace("Connected to cmus host {}:{}",host,port);
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
+		out = new OutputStreamWriter(socket.getOutputStream(),"UTF-8");
+
+		LOG.trace("Sinding password to cmus");
+		out.write("passwd " + passwd + "\n");
+		out.flush();
+
+		validAuth(in);
+	}
 
 
 	/**
@@ -425,12 +405,7 @@ public class CMusController {
 		sendCommandToCMus("clear -q",noAnswerExpectedCMusCommandHandler);
 	}
 
-	public void addFile(String file) throws Exception {
-		
-		// hack temporaire
-		file = file.replaceAll("Z:", "/mnt/NAS/REMI");
-		file = file.replace('\\', '/');
-		
+	public void addFile(String file) throws Exception {		
 		sendCommandToCMus("add -q "+file,noAnswerExpectedCMusCommandHandler);
 	}
 
@@ -443,9 +418,9 @@ public class CMusController {
 	}
 
 	/**
-	 * Clear play queue and init a new play queue with the given file name ready to be played.
+	 * Clear the cmus play queue and init a new play queue with the given file name ready to be played.
 	 * 
-	 * @param file The given file name  (mus be an absolute file path and name).
+	 * @param file The given file name  (must be an absolute file path and name).
 	 * @throws Exception 
 	 */
 	public void initPlayQueue(String file) throws Exception {

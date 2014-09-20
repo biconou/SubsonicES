@@ -19,6 +19,7 @@
 package net.sourceforge.subsonic.dao;
 
 import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.dao.schema.BiconouSchema;
 import net.sourceforge.subsonic.dao.schema.Schema;
 import net.sourceforge.subsonic.dao.schema.Schema25;
 import net.sourceforge.subsonic.dao.schema.Schema26;
@@ -59,7 +60,8 @@ public class DaoHelper {
     private Schema[] schemas = {new Schema25(), new Schema26(), new Schema27(), new Schema28(), new Schema29(),
                                 new Schema30(), new Schema31(), new Schema32(), new Schema33(), new Schema34(),
                                 new Schema35(), new Schema36(), new Schema37(), new Schema38(), new Schema40(),
-                                new Schema43(), new Schema45(), new Schema46(), new Schema47(), new Schema49()};
+                                new Schema43(), new Schema45(), new Schema46(), new Schema47(), new Schema49(),
+                                new BiconouSchema()};
     private DataSource dataSource;
     private static boolean shutdownHookAdded;
 
@@ -96,13 +98,27 @@ public class DaoHelper {
     private DataSource createDataSource() {
         File subsonicHome = SettingsService.getSubsonicHome();
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setDriverClassName("org.hsqldb.jdbcDriver");
-        //ds.setUrl("jdbc:hsqldb:file:" + subsonicHome.getPath() + "/db/subsonic");
-        // URL for using a server HSQLDB
-        ds.setUrl("jdbc:hsqldb:hsql://localhost/subsonic");
 
-        ds.setUsername("sa");
-        ds.setPassword("");
+        ds.setDriverClassName("org.hsqldb.jdbcDriver");
+
+        String serverDBUrl = System.getProperty("com.github.biconou.serverDB.url");
+        if (serverDBUrl == null) {
+        	LOG.info("No server DataBase configured in system properties. Using default local file database");
+            ds.setUrl("jdbc:hsqldb:file:" + subsonicHome.getPath() + "/db/subsonic");
+            ds.setUsername("sa");
+            ds.setPassword("");        	
+        } else {
+        	LOG.info("Server DataBase configured in system properties.");
+        	// URL for using a server HSQLDB
+        	ds.setUrl(serverDBUrl);
+        	String serverDBUserName=System.getProperty("com.github.biconou.serverDB.username");
+        	ds.setUsername(serverDBUserName);
+        	String serverDBPassword=System.getProperty("com.github.biconou.serverDB.password");
+        	if (serverDBPassword == null) {
+        		serverDBPassword = "";
+        	}
+        	ds.setPassword(serverDBPassword);
+        }
 
         return ds;
     }

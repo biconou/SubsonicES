@@ -483,7 +483,7 @@
                 <td style="white-space:nowrap;" id="start"><span class="header"><b><a href="javascript:void(0)" onclick="onStart()"><fmt:message key="playlist.start"/></a></b></span>  | </td>
             </c:if>
 
-            <c:if test="${model.player.jukebox}">
+            <c:if test="${(model.player.jukebox) or (model.player.cmus)}">
                 <td style="white-space:nowrap;">
                     <img src="<spring:theme code="volumeImage"/>" alt="">
                 </td>

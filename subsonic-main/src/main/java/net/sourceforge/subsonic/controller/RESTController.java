@@ -18,6 +18,19 @@
  */
 package net.sourceforge.subsonic.controller;
 
+import static net.sourceforge.subsonic.security.RESTRequestParameterProcessingFilter.decrypt;
+import static org.springframework.web.bind.ServletRequestUtils.getBooleanParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getIntParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getIntParameters;
+import static org.springframework.web.bind.ServletRequestUtils.getLongParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getLongParameters;
+import static org.springframework.web.bind.ServletRequestUtils.getRequiredFloatParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getRequiredIntParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getRequiredIntParameters;
+import static org.springframework.web.bind.ServletRequestUtils.getRequiredLongParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getRequiredStringParameter;
+import static org.springframework.web.bind.ServletRequestUtils.getStringParameter;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,10 +48,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.lang.StringUtils;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.ajax.ChatService;
@@ -73,7 +82,6 @@ import net.sourceforge.subsonic.domain.TransferStatus;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.AudioScrobblerService;
-import net.sourceforge.subsonic.service.IJukeboxService;
 import net.sourceforge.subsonic.service.JukeboxService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.MusicIndexService;
@@ -90,11 +98,12 @@ import net.sourceforge.subsonic.service.TranscodingService;
 import net.sourceforge.subsonic.util.Pair;
 import net.sourceforge.subsonic.util.StringUtil;
 import net.sourceforge.subsonic.util.XMLBuilder;
+import net.sourceforge.subsonic.util.XMLBuilder.Attribute;
+import net.sourceforge.subsonic.util.XMLBuilder.AttributeSet;
 
-import static net.sourceforge.subsonic.security.RESTRequestParameterProcessingFilter.decrypt;
-import static net.sourceforge.subsonic.util.XMLBuilder.Attribute;
-import static net.sourceforge.subsonic.util.XMLBuilder.AttributeSet;
-import static org.springframework.web.bind.ServletRequestUtils.*;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 
 /**
  * Multi-controller used for the REST API.
@@ -129,7 +138,7 @@ public class RESTController extends MultiActionController {
     private ChatService chatService;
     private LyricsService lyricsService;
     private PlayQueueService playQueueService;
-    private IJukeboxService jukeboxService;
+    private JukeboxService jukeboxService;
     private AudioScrobblerService audioScrobblerService;
     private PodcastService podcastService;
     private RatingService ratingService;
@@ -2096,7 +2105,7 @@ public class RESTController extends MultiActionController {
         this.playQueueService = playQueueService;
     }
 
-    public void setJukeboxService(IJukeboxService jukeboxService) {
+    public void setJukeboxService(JukeboxService jukeboxService) {
         this.jukeboxService = jukeboxService;
     }
 

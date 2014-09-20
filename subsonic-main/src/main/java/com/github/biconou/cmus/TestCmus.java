@@ -1,6 +1,6 @@
 package com.github.biconou.cmus;
 
-import com.github.biconou.cmus.CMusController.CMusStatus;
+import com.github.biconou.cmus.CMusRemoteDriver.CMusStatus;
 
 public class TestCmus {
 
@@ -11,7 +11,7 @@ public class TestCmus {
 		
 		try {
 			//CMusController cmus = new CMusController("localhost",4041 , "subsonic");
-			CMusController cmus = new CMusController("192.168.0.7",4041 , "subsonic");
+			CMusRemoteDriver cmus = new CMusRemoteDriver("192.168.0.7",4041 , "subsonic");
 			//cmus.initPlayQueue("/mnt/NAS/REMI/tmp/concertContemporain1905.wav");
 			cmus.initPlayQueue("/mnt/NAS/REMI/Ma musique/16 Horsepower/16 horsepower ep/01 haw.mp3");
 			cmus.play();

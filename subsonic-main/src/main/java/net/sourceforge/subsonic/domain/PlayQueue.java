@@ -76,7 +76,7 @@ public class PlayQueue {
      * @return The current song in the playlist, or <code>null</code> if no current song exists.
      */
     public synchronized MediaFile getCurrentFile() {
-        if (index == -1 || index == 0 && size() == 0) {
+      if (index == -1 || index == 0 && size() == 0) {
             setStatus(Status.STOPPED);
             return null;
         } else {

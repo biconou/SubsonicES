@@ -19,15 +19,16 @@
 package net.sourceforge.subsonic.controller;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.StringUtils;
-import org.springframework.web.servlet.mvc.SimpleFormController;
-
 import net.sourceforge.subsonic.command.PlayerSettingsCommand;
+import net.sourceforge.subsonic.command.PlayerSettingsCommand.MusicFolderRef;
 import net.sourceforge.subsonic.domain.CoverArtScheme;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
 import net.sourceforge.subsonic.domain.TranscodeScheme;
@@ -35,7 +36,11 @@ import net.sourceforge.subsonic.domain.Transcoding;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.SecurityService;
+import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.TranscodingService;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.web.servlet.mvc.SimpleFormController;
 
 /**
  * Controller for the player settings page.
@@ -47,6 +52,8 @@ public class PlayerSettingsController extends SimpleFormController {
     private PlayerService playerService;
     private SecurityService securityService;
     private TranscodingService transcodingService;
+    private SettingsService settingsService;
+
 
     @Override
     protected Object formBackingObject(HttpServletRequest request) throws Exception {
@@ -63,6 +70,8 @@ public class PlayerSettingsController extends SimpleFormController {
         } else if (!players.isEmpty()) {
             player = players.get(0);
         }
+
+        command.setMusicFolders(wrap(settingsService.getAllMusicFolders(true, true)));
 
         if (player != null) {
             command.setPlayerId(player.getId());
@@ -82,6 +91,21 @@ public class PlayerSettingsController extends SimpleFormController {
                 activeTranscodingIds[i] = activeTranscodings.get(i).getId();
             }
             command.setActiveTranscodingIds(activeTranscodingIds);
+            
+            if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
+                command.setCmusIP(player.getCmusHost());
+                command.setCmusPort("" + player.getCmusPort());
+                command.setCmusPassword(player.getCmusPassword());            
+                
+                if (player.getCmusMusicFoldersPath() != null) {
+	                for (MusicFolderRef folderRef : command.getMusicFolders()) {
+						String cmusPathForThisPlayer = player.getCmusMusicFolderPath(folderRef.getId());
+	                	if (cmusPathForThisPlayer != null) {
+	                		folderRef.setPathInCmus(cmusPathForThisPlayer);
+	                	}
+					}
+                }
+            }
         }
 
         command.setTranscodingSupported(transcodingService.isDownsamplingSupported(null));
@@ -91,9 +115,26 @@ public class PlayerSettingsController extends SimpleFormController {
         command.setTechnologies(PlayerTechnology.values());
         command.setPlayers(players.toArray(new Player[players.size()]));
         command.setAdmin(user.isAdminRole());
+        
+        ///
 
         return command;
     }
+    
+    
+    /**
+     * 
+     * @param musicFolders
+     * @return
+     */
+    private List<PlayerSettingsCommand.MusicFolderRef> wrap(List<MusicFolder> musicFolders) {
+        ArrayList<PlayerSettingsCommand.MusicFolderRef> result = new ArrayList<PlayerSettingsCommand.MusicFolderRef>();
+        for (MusicFolder musicFolder : musicFolders) {
+            result.add(new PlayerSettingsCommand.MusicFolderRef(musicFolder));
+        }
+        return result;
+    }
+    
 
     @Override
     protected void doSubmitAction(Object comm) throws Exception {
@@ -106,6 +147,20 @@ public class PlayerSettingsController extends SimpleFormController {
         player.setName(StringUtils.trimToNull(command.getName()));
         player.setTranscodeScheme(TranscodeScheme.valueOf(command.getTranscodeSchemeName()));
         player.setTechnology(PlayerTechnology.valueOf(command.getTechnologyName()));
+        
+        if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
+        	player.setCmusHost(command.getCmusIP());
+        	// TODO conversion must not be done here
+        	player.setCmusPort(Integer.valueOf(command.getCmusPort()));
+        	player.setCmusPassword(command.getCmusPassword());
+        	//
+        	Map<Integer, String> folders = new Hashtable<Integer, String>();
+        	for (MusicFolderRef folder : command.getMusicFolders()) {
+				folders.put(folder.getId(), folder.getPathInCmus());
+			}
+        	player.setCmusMusicFoldersPath(folders);
+        	
+        }
 
         playerService.updatePlayer(player);
         transcodingService.setTranscodingsForPlayer(player, command.getActiveTranscodingIds());
@@ -147,4 +202,10 @@ public class PlayerSettingsController extends SimpleFormController {
     public void setTranscodingService(TranscodingService transcodingService) {
         this.transcodingService = transcodingService;
     }
+    
+    public void setSettingsService(SettingsService settingsService) {
+        this.settingsService = settingsService;
+    }
+
+    
 }
