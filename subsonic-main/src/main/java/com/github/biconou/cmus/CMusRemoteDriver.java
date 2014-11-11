@@ -191,18 +191,27 @@ public class CMusRemoteDriver {
 		public void handleCommandAnswer(String answer) throws Exception;
 	}
 
+	/**
+	 * 
+	 * @author remi
+	 *
+	 */
 	private class LogOnlyCMusCommandHandler implements CMusCommandHandler {
 
 		public void handleCommandAnswer(String answer) throws Exception {
 
 			LOG.debug("Command answer is : {}",answer);
-
 		}
 
 	}
 
 	LogOnlyCMusCommandHandler logOnlyCMusCommandHandler = new LogOnlyCMusCommandHandler();
 
+	/**
+	 * 
+	 * @author remi
+	 *
+	 */
 	private class NoAnswerExpectedCMusCommandHandler implements CMusCommandHandler {
 
 		public void handleCommandAnswer(String answer) throws Exception {
@@ -210,6 +219,8 @@ public class CMusRemoteDriver {
 			if (answer != null && answer.trim().length() != 0) {
 				LOG.error("Command answer is : {}",answer);
 				throw new Exception("Command answer is : "+answer);
+			} else {
+				LOG.debug("Command answer is : {}",answer);
 			}
 
 		}		
@@ -224,6 +235,8 @@ public class CMusRemoteDriver {
 	Socket socket = null;
 	BufferedReader in = null;
 	Writer out = null;
+	
+	private float gain = 0.5f;
 
 
 	/**
@@ -241,8 +254,8 @@ public class CMusRemoteDriver {
 
 		LOG.debug("Set softvolume on in cmus");
 		sendCommandToCMus("set softvol=true",noAnswerExpectedCMusCommandHandler);
-		LOG.debug("Set status display program in cmus");
-		sendCommandToCMus("set status_display_program=/biconou/cmus-status-display",noAnswerExpectedCMusCommandHandler);
+		//LOG.debug("Set status display program in cmus");
+		//sendCommandToCMus("set status_display_program=/biconou/cmus-status-display",noAnswerExpectedCMusCommandHandler);
 	}
 
 
@@ -283,13 +296,14 @@ public class CMusRemoteDriver {
 	public  void sendCommandToCMus(final String command,final CMusCommandHandler handler) throws Exception {
 
 		LOG.debug("sending command to cmus : {}",command);
+
 		try {
 			
 			if (socket == null) {
 				try {
 					startCmusSession();
 				} catch (Exception e) {
-					LOG.error("Could not send start a cmus session", e);
+					LOG.error("Could not start a cmus session", e);
 					throw e;
 				}
 			}
@@ -364,12 +378,13 @@ public class CMusRemoteDriver {
 	 */
 	private void startCmusSession() throws UnknownHostException, IOException,
 			UnsupportedEncodingException, Exception {
+		LOG.trace("begin startCmusSession()");
 		socket = new Socket(host, port);
-		LOG.trace("Connected to cmus host {}:{}",host,port);
+		LOG.debug("Connected to cmus host {}:{}",host,port);
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
 		out = new OutputStreamWriter(socket.getOutputStream(),"UTF-8");
 
-		LOG.trace("Sinding password to cmus");
+		LOG.debug("Sinding password to cmus");
 		out.write("passwd " + passwd + "\n");
 		out.flush();
 
@@ -384,6 +399,7 @@ public class CMusRemoteDriver {
 	 * 
 	 */
 	public void stop() throws Exception {
+		LOG.trace("begin stop()");
 		sendCommandToCMus("player-stop",noAnswerExpectedCMusCommandHandler);
 	}
 
@@ -394,6 +410,7 @@ public class CMusRemoteDriver {
 	 * 
 	 */
 	public void pause() throws Exception {
+		LOG.trace("begin pause()");
 		sendCommandToCMus("player-pause",noAnswerExpectedCMusCommandHandler);
 	}
 
@@ -402,6 +419,7 @@ public class CMusRemoteDriver {
 	 * 
 	 */
 	public void clearPlayQueue() throws Exception {
+		LOG.trace("begin clearPlayQueue()");
 		sendCommandToCMus("clear -q",noAnswerExpectedCMusCommandHandler);
 	}
 
@@ -424,14 +442,27 @@ public class CMusRemoteDriver {
 	 * @throws Exception 
 	 */
 	public void initPlayQueue(String file) throws Exception {
-		stop();
+		LOG.trace("begin initPlayQueue(String file[{}])", file);
+//		stop();
+//		clearPlayQueue();
+//		addFile(file);		
+//		Thread.sleep(1000); // This is a hack !!!! (don't remove).
+//		CMusStatus status = status();
+//		if (status.getFile() != null && !status.isPlaying()) {
+//			next();
+//		}
+		//CMusStatus status = status();
 		clearPlayQueue();
-		addFile(file);
-		//Thread.sleep(1000);
-		CMusStatus status = status();
-		if (status.getFile() != null && !status.isPlaying()) {
-			next();
-		}
+		addFile(file);		
+//		if (file.equals(status.getFile())) {
+//			next();
+//		} else {
+//			while (!file.equals(status.getFile())) {
+//				next();
+//				status = status();
+//			}
+//		}
+		//next();
 	}
 
 	/**
@@ -447,9 +478,23 @@ public class CMusRemoteDriver {
 	 * @throws Exception 
 	 */
 	public void setGain(float gain) throws Exception {
+		LOG.trace("begin setGain(float gain[{}])", gain);
 		int vol = (int)(gain*100);
 		sendCommandToCMus("set softvol_state="+vol+" "+vol,noAnswerExpectedCMusCommandHandler);
+		// Store current gain
+		this.gain = gain;  
 	}
+	
+	
+	/**
+	 * Returns the current gain of that player.
+	 * 
+	 * @return
+	 */
+	public float getGain() {
+		return this.gain;
+	}
+
 
 	/**
 	 * 

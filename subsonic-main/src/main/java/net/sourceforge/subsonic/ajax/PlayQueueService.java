@@ -384,11 +384,15 @@ public class PlayQueueService {
     private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean sendM3U, int offset) throws Exception {
         String url = request.getRequestURL().toString();
 
+        float gain = 0.5f;
+        
         if (sendM3U) {
         	if (player.isJukebox()) {
         		jukeboxService.updateJukebox(player, offset);
+        		gain = jukeboxService.getGain();
         	} else if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
         		cmusService.updateJukebox(player, offset);
+        		gain = cmusService.getGain(player);
         	}
             
         } else if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
@@ -422,7 +426,7 @@ public class PlayQueueService {
                     formatFileSize(file.getFileSize(), locale), starred, albumUrl, streamUrl));
         }
         boolean isStopEnabled = playQueue.getStatus() == PlayQueue.Status.PLAYING && !player.isExternalWithPlaylist();
-        float gain = jukeboxService.getGain();
+        
         return new PlayQueueInfo(entries, playQueue.getIndex(), isStopEnabled, playQueue.isRepeatEnabled(), sendM3U, gain);
     }
 

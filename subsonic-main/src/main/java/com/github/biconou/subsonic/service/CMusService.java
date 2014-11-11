@@ -94,6 +94,7 @@ public class CMusService  {
 						driver = new CMusRemoteDriver(player.getCmusHost()
 								,player.getCmusPort()
 								,player.getCmusPassword());
+						driver.setGain(gain);
 					} catch (Exception e) {
 						LOG.error("Error trying to create the cmus controller",e);
 						throw e;
@@ -146,6 +147,19 @@ public class CMusService  {
 		
 		return transformedFilePathAndName;
 	}
+	
+	/**
+	 * Returns the current gain value for a player. 
+	 * 
+	 * @param player
+	 * @return
+	 * @throws Exception If any problem occurs with CMUS remote control.
+	 */
+	public float getGain(Player player) throws Exception {
+		// Find the correct cmus driver
+		CMusRemoteDriver cmusDriver = getCMusRemoteDriver(player);
+		return cmusDriver.getGain();
+	}
 
 	/* (non-Javadoc)
 	 * @see net.sourceforge.subsonic.service.IJukeboxService#updateJukebox(net.sourceforge.subsonic.domain.Player, int)
@@ -192,7 +206,7 @@ public class CMusService  {
 				cmusDriver.play();
 			} else {
 				this.offset = offset;
-				cmusDriver.stop();
+				//cmusDriver.stop();
 				
 				cmusPlayingFile = null;
 
@@ -204,9 +218,21 @@ public class CMusService  {
 
 					
 					cmusDriver.initPlayQueue(computeFilePathForCmus(player, currentFileInPlayQueue.getFile().getAbsolutePath()));
-
-					cmusDriver.setGain(gain);
-					cmusDriver.play();
+					
+					String fileBeforeNext = cmusDriver.status().getFile();
+					cmusDriver.next();
+					String fileAfterNext = cmusDriver.status().getFile();
+					// Hack to force the next if it didn't work at first time.
+					int countLoop = 0;
+					while (countLoop <= 20 && (fileAfterNext == null || "".equals(fileAfterNext) || fileAfterNext.equals(fileBeforeNext))) {
+						Thread.sleep(500);
+						cmusDriver.next();
+						fileAfterNext = cmusDriver.status().getFile();
+						countLoop++;
+					}
+					if (!cmusDriver.isPlaying()) {
+						cmusDriver.play();
+					}
 
 
 					onSongStart(player,currentFileInPlayQueue);

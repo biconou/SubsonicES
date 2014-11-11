@@ -17,9 +17,10 @@
     </layout> 
   </appender> 
 
-  <appender name="jukeboxLogFile" class="org.apache.log4j.FileAppender"> 
-		<param name="File" value="${subsonic.home}/jukebox.log" />
-        <param name="Append" value="true" /> 
+  <appender name="cmusLogFile" class="org.apache.log4j.RollingFileAppender"> 
+		<param name="File" value="${subsonic.home}/cmus.log" />
+		<param name="MaxFileSize" value="50MB"/>
+		<param name="MaxBackupIndex" value="1"/>
     <layout class="org.apache.log4j.PatternLayout"> 
       <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/> 
     </layout> 
@@ -33,17 +34,12 @@
 
 	<logger name="com.github.biconou.subsonic.service">
 	   <level value="warn"/>
-	   <appender-ref ref="jukeboxLogFile"/>
+	   <appender-ref ref="cmusLogFile"/>
 	</logger>
   
-	<logger name="com.github.biconou.AudioPlayer">
-	   <level value="warn"/>
-	   <appender-ref ref="jukeboxLogFile"/>
-	</logger>
-
 	<logger name="com.github.biconou.cmus">
 	   <level value="warn"/>
-	   <appender-ref ref="jukeboxLogFile"/>
+	   <appender-ref ref="cmusLogFile"/>
 	</logger>
   
   
