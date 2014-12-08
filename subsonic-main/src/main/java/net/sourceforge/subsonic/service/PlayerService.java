@@ -192,12 +192,23 @@ public class PlayerService {
      * @return The player with the given ID, or <code>null</code> if no such player exists.
      */
     public Player getPlayerByIdFromCache(String id) {
-    	Player player = localPlayersCache.get(Integer.valueOf(id));
+    	
+    	Player player = null;
+    	Integer idTransformedToInteger = null;
+    	
+    	try {
+    		idTransformedToInteger = Integer.valueOf(id);    	
+        	player = localPlayersCache.get(idTransformedToInteger);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+    	
+    	
 		if (player == null) {
 			player = getPlayerById(id);
 			if (player != null) {
 				synchronized (localPlayersCache) {
-					localPlayersCache.put(Integer.valueOf(id), player);
+					localPlayersCache.put(idTransformedToInteger, player);
 				}
 			}
 		}

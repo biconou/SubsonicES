@@ -41,6 +41,10 @@
 	   <level value="warn"/>
 	   <appender-ref ref="cmusLogFile"/>
 	</logger>
+
+	<logger name="com.github.biconou.subsonic.service.CMusService">
+	   <level value="warn"/>
+	</logger>
   
   
   <root> 

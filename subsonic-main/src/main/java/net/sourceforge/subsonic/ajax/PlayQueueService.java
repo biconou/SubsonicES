@@ -385,6 +385,13 @@ public class PlayQueueService {
         String url = request.getRequestURL().toString();
 
         float gain = 0.5f;
+        // what is the current gain ?
+        if (player.getTechnology().equals(PlayerTechnology.CMUS)) {        	
+        	gain = cmusService.getGain(player);
+		} else if (player.isJukebox()) {
+			gain = jukeboxService.getGain();
+		}
+
         
         if (sendM3U) {
         	if (player.isJukebox()) {
@@ -398,6 +405,7 @@ public class PlayQueueService {
         } else if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
         	cmusService.updateCMUSPlayQueue(player);
 		}
+        
         boolean isCurrentPlayer = player.getIpAddress() != null && player.getIpAddress().equals(request.getRemoteAddr());
 
         boolean m3uSupported = player.isExternal() || player.isExternalWithPlaylist();

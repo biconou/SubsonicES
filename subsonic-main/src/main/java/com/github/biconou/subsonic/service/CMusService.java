@@ -18,7 +18,6 @@
  */
 package com.github.biconou.subsonic.service;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +25,11 @@ import java.util.Map;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.PlayQueue;
+import net.sourceforge.subsonic.domain.PlayQueue.Status;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
 import net.sourceforge.subsonic.domain.TransferStatus;
 import net.sourceforge.subsonic.domain.User;
-import net.sourceforge.subsonic.domain.PlayQueue.Status;
 import net.sourceforge.subsonic.service.AudioScrobblerService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.SecurityService;
@@ -60,18 +59,18 @@ public class CMusService  {
 	private SecurityService securityService;
 
 	// TODO not safe if multiple players
-	private TransferStatus status;
+	// TODO currentPlayingFile is perhaps non necessary !!!! try to remove it.
 	private MediaFile currentPlayingFile;
 	private float gain = 0.5f;
 	private int offset;
 	private MediaFileService mediaFileService;
-	private String cmusPlayingFile = null; 
 	
 	private List<MusicFolder> allMusicFolders = null;
 
-	Map<Integer, CMusRemoteDriver> cmusDriversForPlayers = new Hashtable<Integer, CMusRemoteDriver>();
+	private Map<Integer, CMusRemoteDriver> cmusDriversForPlayers = new Hashtable<Integer, CMusRemoteDriver>();
+	private Map<Integer, String> cmusPlayingFileForPlayers = new Hashtable<Integer, String>();
 	
-
+	
 	/**
 	 * 
 	 * @return
@@ -109,6 +108,33 @@ public class CMusService  {
 		}
 		return driver;
 	}
+	
+	
+	/**
+	 * 
+	 * @param player
+	 */
+	private String getCmusPlayingFile(Player player) {
+		return cmusPlayingFileForPlayers.get(Integer.valueOf(player.getId()));
+	}
+	
+	/**
+	 * 
+	 * @param player
+	 * @param file
+	 */
+	private void setCmusPlayingFile(Player player,String file) {
+		cmusPlayingFileForPlayers.put(Integer.valueOf(player.getId()),file);
+	}
+	
+	/**
+	 * 
+	 * @param player
+	 */
+	private void deleteCmusPlayingFile(Player player) {
+		cmusPlayingFileForPlayers.remove(Integer.valueOf(player.getId()));
+	}
+	
 	
 	/**
 	 * Returns the list of all music folders, get the list just one time from the settings service.
@@ -208,7 +234,7 @@ public class CMusService  {
 				this.offset = offset;
 				//cmusDriver.stop();
 				
-				cmusPlayingFile = null;
+				deleteCmusPlayingFile(player);
 
 				if (currentPlayingFile != null) {
 					onSongEnd(player,currentPlayingFile);
@@ -271,19 +297,19 @@ public class CMusService  {
 	 */
 	public List<TransferStatus> checkForNowPlayingService(Player player) {
 		
-		List<TransferStatus> statuses = null;
+		//List<TransferStatus> statuses = null;
 		checkCmusStatus(player);
-		if (player.getPlayQueue().getStatus().equals(Status.PLAYING)) {
-		MediaFile currentPlayingInPlayQueue = player.getPlayQueue().getCurrentFile();
-			if (currentPlayingInPlayQueue != null) {
-				TransferStatus status = statusService.createStreamStatus(player);
-				status.setFile(currentPlayingInPlayQueue.getFile());
-				status.addBytesTransfered(currentPlayingInPlayQueue.getFileSize());
-				statuses = new ArrayList<TransferStatus>();
-				statuses.add(status);
-			} 
-		}
-		return statuses;
+	//	if (player.getPlayQueue().getStatus().equals(Status.PLAYING)) {			
+//		MediaFile currentPlayingInPlayQueue = player.getPlayQueue().getCurrentFile();
+//			if (currentPlayingInPlayQueue != null) {
+//				TransferStatus status = statusService.createStreamStatus(player);
+//				status.setFile(currentPlayingInPlayQueue.getFile());
+//				status.addBytesTransfered(currentPlayingInPlayQueue.getFileSize());
+//				statuses = new ArrayList<TransferStatus>();
+//				statuses.add(status);
+//			} 
+//		}
+		return statusService.getStreamStatusesForPlayer(player);
 	}
 	/**
 	 * 
@@ -297,9 +323,9 @@ public class CMusService  {
 		try {
 			cmusStatus = getCMusRemoteDriver(player).status();
 			if (cmusStatus.isPlaying()) {
-				String oldCmusPlayingFile = cmusPlayingFile;
-				cmusPlayingFile = cmusStatus.getFile();
-				if (oldCmusPlayingFile != null && !oldCmusPlayingFile.equals(cmusPlayingFile)) {
+				String oldCmusPlayingFile = getCmusPlayingFile(player);
+				setCmusPlayingFile(player,cmusStatus.getFile());
+				if (oldCmusPlayingFile != null && !oldCmusPlayingFile.equals(getCmusPlayingFile(player))) {
 					LOG.debug("Playing file changed in CMus");
 					synchronized (player.getPlayQueue()) {
 						onSongEnd(player,player.getPlayQueue().getCurrentFile());
@@ -309,8 +335,8 @@ public class CMusService  {
 				}
 			} else {
 				if (!cmusStatus.isPaused()) {
-					if (cmusPlayingFile != null) {
-						cmusPlayingFile = null;
+					if (getCmusPlayingFile(player) != null) {
+						deleteCmusPlayingFile(player);
 						MediaFile currentPlayingInPlayQueue = player.getPlayQueue().getCurrentFile();
 						if (currentPlayingInPlayQueue != null) {
 							onSongEnd(player,currentPlayingInPlayQueue);
@@ -344,12 +370,22 @@ public class CMusService  {
 	/**
 	 * 
 	 * @param file
+	 * @throws Exception 
 	 */
-	private void onSongStart(Player player,MediaFile file) {
-		LOG.info(player.getUsername() + " starting jukebox for \"" + FileUtil.getShortPath(file.getFile()) + "\"");
-		//status = statusService.createStreamStatus(player);
-		//status.setFile(file.getFile());
-		//status.addBytesTransfered(file.getFileSize());
+	private void onSongStart(Player player,MediaFile file) throws Exception {
+		LOG.info("onSongStart : " + player.getUsername() + " start playing in CMUS file : \"" + FileUtil.getShortPath(file.getFile()) + "\"");
+		
+		CMusStatus cmusStatus = getCMusRemoteDriver(player).status();
+		setCmusPlayingFile(player,cmusStatus.getFile());
+		
+		
+		TransferStatus status = statusService.createStreamStatus(player);
+		status.setFile(file.getFile());
+		status.addBytesTransfered(file.getFileSize());
+		//streamStatusesForPlayers.put(Integer.valueOf(player.getId()), status);
+		//LOG.trace("streamStatusesForPlayers has {} element(s)",streamStatusesForPlayers.size());
+		//statusService.getStreamStatusesForPlayer(player);
+		
 		mediaFileService.incrementPlayCount(file);
 		scrobble(player,file, false);
 	}
@@ -360,9 +396,11 @@ public class CMusService  {
 	 */
 	private void onSongEnd(Player player,MediaFile file) {
 		LOG.info(player.getUsername() + " stopping cmus for \"" + FileUtil.getShortPath(file.getFile()) + "\"");
-		//if (status != null) {
-		//	statusService.removeStreamStatus(status);
-		//}
+		//TransferStatus status = streamStatusesForPlayers.get(Integer.valueOf(player.getId()));
+		TransferStatus status = statusService.getStreamStatusesForPlayer(player).get(0);
+		if (status != null) {
+			statusService.removeStreamStatus(status);
+		}
 		scrobble(player,file, true);
 	}
 
