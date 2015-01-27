@@ -18,7 +18,8 @@
  */
 package net.sourceforge.subsonic.domain;
 
-import java.util.*;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Represent user-specific settings.
@@ -32,8 +33,12 @@ public class UserSettings {
     private String themeId;
     private boolean showNowPlayingEnabled;
     private boolean showChatEnabled;
+    private boolean showArtistInfoEnabled;
     private boolean finalVersionNotificationEnabled;
     private boolean betaVersionNotificationEnabled;
+    private boolean songNotificationEnabled;
+    private boolean autoHidePlayQueue;
+    private boolean viewAsList;
     private Visibility mainVisibility = new Visibility();
     private Visibility playlistVisibility = new Visibility();
     private boolean lastFmEnabled;
@@ -91,6 +96,14 @@ public class UserSettings {
         this.showChatEnabled = showChatEnabled;
     }
 
+    public boolean isShowArtistInfoEnabled() {
+        return showArtistInfoEnabled;
+    }
+
+    public void setShowArtistInfoEnabled(boolean showArtistInfoEnabled) {
+        this.showArtistInfoEnabled = showArtistInfoEnabled;
+    }
+
     public boolean isFinalVersionNotificationEnabled() {
         return finalVersionNotificationEnabled;
     }
@@ -105,6 +118,14 @@ public class UserSettings {
 
     public void setBetaVersionNotificationEnabled(boolean betaVersionNotificationEnabled) {
         this.betaVersionNotificationEnabled = betaVersionNotificationEnabled;
+    }
+
+    public boolean isSongNotificationEnabled() {
+        return songNotificationEnabled;
+    }
+
+    public void setSongNotificationEnabled(boolean songNotificationEnabled) {
+        this.songNotificationEnabled = songNotificationEnabled;
     }
 
     public Visibility getMainVisibility() {
@@ -179,6 +200,22 @@ public class UserSettings {
         this.nowPlayingAllowed = nowPlayingAllowed;
     }
 
+    public boolean isAutoHidePlayQueue() {
+        return autoHidePlayQueue;
+    }
+
+    public void setAutoHidePlayQueue(boolean autoHidePlayQueue) {
+        this.autoHidePlayQueue = autoHidePlayQueue;
+    }
+
+    public boolean isViewAsList() {
+        return viewAsList;
+    }
+
+    public void setViewAsList(boolean viewAsList) {
+        this.viewAsList = viewAsList;
+    }
+
     public AvatarScheme getAvatarScheme() {
         return avatarScheme;
     }
@@ -217,7 +254,6 @@ public class UserSettings {
      * Configuration of what information to display about a song.
      */
     public static class Visibility {
-        private int captionCutoff;
         private boolean isTrackNumberVisible;
         private boolean isArtistVisible;
         private boolean isAlbumVisible;
@@ -230,10 +266,9 @@ public class UserSettings {
 
         public Visibility() {}
 
-        public Visibility(int captionCutoff, boolean trackNumberVisible, boolean artistVisible, boolean albumVisible,
+        public Visibility(boolean trackNumberVisible, boolean artistVisible, boolean albumVisible,
                           boolean genreVisible, boolean yearVisible, boolean bitRateVisible,
                           boolean durationVisible, boolean formatVisible, boolean fileSizeVisible) {
-            this.captionCutoff = captionCutoff;
             isTrackNumberVisible = trackNumberVisible;
             isArtistVisible = artistVisible;
             isAlbumVisible = albumVisible;
@@ -243,14 +278,6 @@ public class UserSettings {
             isDurationVisible = durationVisible;
             isFormatVisible = formatVisible;
             isFileSizeVisible = fileSizeVisible;
-        }
-
-        public int getCaptionCutoff() {
-            return captionCutoff;
-        }
-
-        public void setCaptionCutoff(int captionCutoff) {
-            this.captionCutoff = captionCutoff;
         }
 
         public boolean isTrackNumberVisible() {

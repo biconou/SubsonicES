@@ -117,15 +117,17 @@ public class SubsonicDeployer implements SubsonicDeployerService {
             context.setTempDirectory(getJettyDirectory());
             context.setContextPath(getContextPath());
             context.setWar(getWar());
+            context.setOverrideDescriptor("/web-jetty.xml");
 
             if (isHttpsEnabled()) {
-                ConstraintMapping constraintMapping = new ConstraintMapping();
-                Constraint constraint = new Constraint();
-                constraint.setDataConstraint(Constraint.DC_CONFIDENTIAL);
-                constraintMapping.setPathSpec("/");
-                constraintMapping.setConstraint(constraint);
-                context.getSecurityHandler().setConstraintMappings(new ConstraintMapping[]{constraintMapping});
-            } 
+
+                // Allow non-https for streaming and cover art (for Chromecast, UPnP etc)
+                context.getSecurityHandler().setConstraintMappings(new ConstraintMapping[]{
+                        createConstraintMapping("/stream", Constraint.DC_NONE),
+                        createConstraintMapping("/coverArt.view", Constraint.DC_NONE),
+                        createConstraintMapping("/", Constraint.DC_CONFIDENTIAL)
+                });
+            }
 
             server.addHandler(context);
             server.start();
@@ -139,6 +141,15 @@ public class SubsonicDeployer implements SubsonicDeployerService {
             x.printStackTrace();
             exception = x;
         }
+    }
+
+    private ConstraintMapping createConstraintMapping(String pathSpec, int dataConstraint) {
+        ConstraintMapping constraintMapping = new ConstraintMapping();
+        Constraint constraint = new Constraint();
+        constraint.setDataConstraint(dataConstraint);
+        constraintMapping.setPathSpec(pathSpec);
+        constraintMapping.setConstraint(constraint);
+        return constraintMapping;
     }
 
     private File getJettyDirectory() {
@@ -257,7 +268,7 @@ public class SubsonicDeployer implements SubsonicDeployerService {
 
     private String getUrl() {
         String host = DEFAULT_HOST.equals(getHost()) ? "localhost" : getHost();
-        StringBuffer url = new StringBuffer("http://").append(host);
+        StringBuilder url = new StringBuilder("http://").append(host);
         if (getPort() != 80) {
             url.append(":").append(getPort());
         }
@@ -271,7 +282,7 @@ public class SubsonicDeployer implements SubsonicDeployerService {
         }
 
         String host = DEFAULT_HOST.equals(getHost()) ? "localhost" : getHost();
-        StringBuffer url = new StringBuffer("https://").append(host);
+        StringBuilder url = new StringBuilder("https://").append(host);
         if (getHttpsPort() != 443) {
             url.append(":").append(getHttpsPort());
         }

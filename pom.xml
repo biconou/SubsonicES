@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.sourceforge.subsonic</groupId>
     <artifactId>subsonic</artifactId>
-    <version>4.9</version>
+    <version>5.1</version>
     <name>Subsonic</name>
     <packaging>pom</packaging>
     <organization>
@@ -43,6 +43,16 @@
 
     <pluginRepositories>
         <pluginRepository>
+            <id>local1</id>
+            <name>Local Repository 1</name>
+            <url>file:repo</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>local2</id>
+            <name>Local Repository 2</name>
+            <url>file:../repo</url>
+        </pluginRepository>
+        <pluginRepository>
             <id>Codehaus Repository</id>
             <url>http://repository.codehaus.org/</url>
         </pluginRepository>
@@ -74,6 +84,7 @@
     </developers>
 
     <modules>
+        <module>subsonic-rest-api</module>
         <module>subsonic-main</module>
     </modules>
 
@@ -122,8 +133,13 @@
                     <artifactId>buildnumber-maven-plugin</artifactId>
                     <version>1.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.jvnet.jaxb2.maven2</groupId>
+                    <artifactId>maven-jaxb2-plugin</artifactId>
+                    <version>0.8.3</version>
+                </plugin>
             </plugins>
-    </pluginManagement>
+        </pluginManagement>
 
         <plugins>
 

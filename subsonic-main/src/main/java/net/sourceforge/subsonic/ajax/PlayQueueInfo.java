@@ -20,6 +20,8 @@ package net.sourceforge.subsonic.ajax;
 
 import java.util.List;
 
+import net.sourceforge.subsonic.util.StringUtil;
+
 /**
  * The playlist of a player.
  *
@@ -46,6 +48,16 @@ public class PlayQueueInfo {
 
     public List<Entry> getEntries() {
         return entries;
+    }
+
+    public String getDurationAsString() {
+        int durationSeconds = 0;
+        for (Entry entry : entries) {
+            if (entry.getDuration() != null) {
+                durationSeconds += entry.getDuration();
+            }
+        }
+        return StringUtil.formatDuration(durationSeconds);
     }
 
     public int getIndex() {
@@ -94,10 +106,13 @@ public class PlayQueueInfo {
         private final boolean starred;
         private final String albumUrl;
         private final String streamUrl;
+        private final String remoteStreamUrl;
+        private final String coverArtUrl;
+        private final String remoteCoverArtUrl;
 
         public Entry(int id, Integer trackNumber, String title, String artist, String album, String genre, Integer year,
-                     String bitRate, Integer duration, String durationAsString, String format, String contentType, String fileSize,
-                     boolean starred, String albumUrl, String streamUrl) {
+                String bitRate, Integer duration, String durationAsString, String format, String contentType, String fileSize,
+                boolean starred, String albumUrl, String streamUrl, String remoteStreamUrl, String coverArtUrl, String remoteCoverArtUrl) {
             this.id = id;
             this.trackNumber = trackNumber;
             this.title = title;
@@ -114,6 +129,9 @@ public class PlayQueueInfo {
             this.starred = starred;
             this.albumUrl = albumUrl;
             this.streamUrl = streamUrl;
+            this.remoteStreamUrl = remoteStreamUrl;
+            this.coverArtUrl = coverArtUrl;
+            this.remoteCoverArtUrl = remoteCoverArtUrl;
         }
 
         public int getId() {
@@ -179,6 +197,17 @@ public class PlayQueueInfo {
         public String getStreamUrl() {
             return streamUrl;
         }
-    }
 
+        public String getRemoteStreamUrl() {
+            return remoteStreamUrl;
+        }
+
+        public String getCoverArtUrl() {
+            return coverArtUrl;
+        }
+
+        public String getRemoteCoverArtUrl() {
+            return remoteCoverArtUrl;
+        }
+    }
 }

@@ -106,9 +106,10 @@ public class SettingsService {
     private static final String KEY_LICENSE_EMAIL = "LicenseEmail";
     private static final String KEY_LICENSE_CODE = "LicenseCode";
     private static final String KEY_LICENSE_DATE = "LicenseDate";
-    private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand3";
-    private static final String KEY_HLS_COMMAND = "HlsCommand2";
-    private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand";
+    private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
+    private static final String KEY_HLS_COMMAND = "HlsCommand3";
+    private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
+    private static final String KEY_VIDEO_IMAGE_COMMAND = "VideoImageCommand";
     private static final String KEY_REWRITE_URL = "RewriteUrl";
     private static final String KEY_LDAP_ENABLED = "LdapEnabled";
     private static final String KEY_LDAP_URL = "LdapUrl";
@@ -131,6 +132,7 @@ public class SettingsService {
     private static final String KEY_MEDIA_LIBRARY_STATISTICS = "MediaLibraryStatistics";
     private static final String KEY_TRIAL_EXPIRES = "TrialExpires";
     private static final String KEY_DLNA_ENABLED = "DlnaEnabled";
+    private static final String KEY_DLNA_SERVER_NAME = "DlnaServerName";
 
     // Default values.
     private static final String DEFAULT_INDEX_STRING = "A B C D E F G H I J K L M N O P Q R S T U V W X-Z(XYZ)";
@@ -169,9 +171,10 @@ public class SettingsService {
     private static final String DEFAULT_LICENSE_EMAIL = null;
     private static final String DEFAULT_LICENSE_CODE = null;
     private static final String DEFAULT_LICENSE_DATE = null;
-    private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -ab %bk -v 0 -f mp3 -";
-    private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -t %d -i %s -async 1 -b %bk -s %wx%h -ar 44100 -ac 2 -v 0 -f mpegts -vcodec libx264 -preset superfast -acodec libmp3lame -threads 0 -";
-    private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -v 0 -f au -";
+    private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
+    private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -t %d -i %s -async 1 -b:v %bk -s %wx%h -ar 44100 -ac 2 -v 0 -f mpegts -c:v libx264 -preset superfast -c:a libmp3lame -threads 0 -";
+    private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -f au -";
+    private static final String DEFAULT_VIDEO_IMAGE_COMMAND = "ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -";
     private static final boolean DEFAULT_REWRITE_URL = true;
     private static final boolean DEFAULT_LDAP_ENABLED = false;
     private static final String DEFAULT_LDAP_URL = "ldap://host.domain.com:389/cn=Users,dc=domain,dc=com";
@@ -193,11 +196,12 @@ public class SettingsService {
     private static final String DEFAULT_MEDIA_LIBRARY_STATISTICS = "0 0 0 0 0";
     private static final String DEFAULT_TRIAL_EXPIRES = null;
     private static final boolean DEFAULT_DLNA_ENABLED = true;
+    private static final String DEFAULT_DLNA_SERVER_NAME = "Subsonic";
 
     // Array of obsolete keys.  Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
-            "DownsamplingCommand", "DownsamplingCommand2", "AutoCoverBatch", "MusicMask", "VideoMask", "CoverArtMask, HlsCommand",
-            "UrlRedirectTrialExpires", "VideoTrialExpires");
+            "DownsamplingCommand", "DownsamplingCommand2", "DownsamplingCommand3", "AutoCoverBatch", "MusicMask",
+            "VideoMask", "CoverArtMask, HlsCommand", "HlsCommand2", "JukeboxCommand", "UrlRedirectTrialExpires", "VideoTrialExpires");
 
     private static final String LOCALES_FILE = "/net/sourceforge/subsonic/i18n/locales.txt";
     private static final String THEMES_FILE = "/net/sourceforge/subsonic/theme/themes.txt";
@@ -224,7 +228,10 @@ public class SettingsService {
     private Date licenseExpires;
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> licenseValidationFuture;
+
     private static final long LICENSE_VALIDATION_DELAY_HOURS = 12;
+    private static final long LOCAL_IP_LOOKUP_DELAY_SECONDS = 60;
+    private String localIpAddress;
 
     public SettingsService() {
         File propertyFile = getPropertyFile();
@@ -265,6 +272,7 @@ public class SettingsService {
      */
     public void init() {
         ServiceLocator.setSettingsService(this);
+        scheduleLocalIpAddressLookup();
         scheduleLicenseValidation();
     }
 
@@ -678,6 +686,9 @@ public class SettingsService {
 
     public String getJukeboxCommand() {
         return properties.getProperty(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND);
+    }
+    public String getVideoImageCommand() {
+        return properties.getProperty(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND);
     }
 
     public boolean isRewriteUrlEnabled() {
@@ -1140,17 +1151,19 @@ public class SettingsService {
         UserSettings settings = new UserSettings(username);
         settings.setFinalVersionNotificationEnabled(true);
         settings.setBetaVersionNotificationEnabled(false);
+        settings.setSongNotificationEnabled(true);
         settings.setShowNowPlayingEnabled(true);
         settings.setShowChatEnabled(true);
         settings.setPartyModeEnabled(false);
         settings.setNowPlayingAllowed(true);
+        settings.setAutoHidePlayQueue(true);
+        settings.setViewAsList(false);
         settings.setLastFmEnabled(false);
         settings.setLastFmUsername(null);
         settings.setLastFmPassword(null);
         settings.setChanged(new Date());
 
         UserSettings.Visibility playlist = settings.getPlaylistVisibility();
-        playlist.setCaptionCutoff(35);
         playlist.setArtistVisible(true);
         playlist.setAlbumVisible(true);
         playlist.setYearVisible(true);
@@ -1160,7 +1173,6 @@ public class SettingsService {
         playlist.setFileSizeVisible(true);
 
         UserSettings.Visibility main = settings.getMainVisibility();
-        main.setCaptionCutoff(35);
         main.setTrackNumberVisible(true);
         main.setArtistVisible(true);
         main.setDurationVisible(true);
@@ -1224,6 +1236,18 @@ public class SettingsService {
         setBoolean(KEY_DLNA_ENABLED, dlnaEnabled);
     }
 
+    public String getDlnaServerName() {
+        return getString(KEY_DLNA_SERVER_NAME, DEFAULT_DLNA_SERVER_NAME);
+    }
+
+    public void setDlnaServerName(String dlnaServerName) {
+        setString(KEY_DLNA_SERVER_NAME, dlnaServerName);
+    }
+
+    public String getLocalIpAddress() {
+        return localIpAddress;
+    }
+
     private void setProperty(String key, String value) {
         if (value == null) {
             properties.remove(key);
@@ -1261,7 +1285,7 @@ public class SettingsService {
         try {
             ResponseHandler<String> responseHandler = new BasicResponseHandler();
             String content = client.execute(method, responseHandler);
-            licenseValidated = content != null && content.contains("true");
+            licenseValidated = content != null && !content.contains("false");
             if (!licenseValidated) {
                 LOG.warn("License key is not valid.");
             }
@@ -1287,6 +1311,15 @@ public class SettingsService {
             }
         };
         licenseValidationFuture = executor.scheduleWithFixedDelay(task, 0L, LICENSE_VALIDATION_DELAY_HOURS, TimeUnit.HOURS);
+    }
+
+    private void scheduleLocalIpAddressLookup() {
+        Runnable task = new Runnable() {
+            public void run() {
+                localIpAddress = Util.getLocalIpAddress();
+            }
+        };
+        executor.scheduleWithFixedDelay(task, 0L, LOCAL_IP_LOOKUP_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     public void setInternetRadioDao(InternetRadioDao internetRadioDao) {

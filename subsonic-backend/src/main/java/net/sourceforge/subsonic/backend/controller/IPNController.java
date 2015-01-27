@@ -18,17 +18,13 @@
  */
 package net.sourceforge.subsonic.backend.controller;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import net.sourceforge.subsonic.backend.dao.PaymentDao;
+import net.sourceforge.subsonic.backend.dao.SubscriptionDao;
+import net.sourceforge.subsonic.backend.domain.Payment;
+import net.sourceforge.subsonic.backend.domain.ProcessingStatus;
+import net.sourceforge.subsonic.backend.domain.Subscription;
+import net.sourceforge.subsonic.backend.domain.SubscriptionNotification;
+import net.sourceforge.subsonic.backend.domain.SubscriptionPayment;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
@@ -41,13 +37,15 @@ import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.Controller;
 
-import net.sourceforge.subsonic.backend.dao.PaymentDao;
-import net.sourceforge.subsonic.backend.dao.SubscriptionDao;
-import net.sourceforge.subsonic.backend.domain.Payment;
-import net.sourceforge.subsonic.backend.domain.ProcessingStatus;
-import net.sourceforge.subsonic.backend.domain.Subscription;
-import net.sourceforge.subsonic.backend.domain.SubscriptionNotification;
-import net.sourceforge.subsonic.backend.domain.SubscriptionPayment;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Processes IPNs (Instant Payment Notifications) from PayPal.
@@ -156,6 +154,7 @@ public class IPNController implements Controller {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.YEAR, 1);
         subscription.setValidTo(cal.getTime());
+        subscription.setUpdated(new Date());
         subscriptionDao.updateSubscription(subscription);
     }
 
@@ -199,7 +198,7 @@ public class IPNController implements Controller {
         }
         else {
             Payment paymentForEmail = paymentDao.getPaymentByEmail(payerEmail);
-            Date validTo = computeValidTo(paymentForEmail, request);
+            Date validTo = computeValidTo(paymentForEmail, request, item);
 
             Payment newPayment = new Payment(null, txnId, txnType, item, paymentType, paymentStatus,
                     paymentAmount, paymentCurrency, payerEmail, payerFirstName, payerLastName,
@@ -208,9 +207,14 @@ public class IPNController implements Controller {
         }
     }
 
-    private Date computeValidTo(Payment existingPayment, HttpServletRequest request) {
+    private Date computeValidTo(Payment existingPayment, HttpServletRequest request, String item) {
+        if ("sub-pre-lifetime".equals(item)) {
+            return null;
+        }
+
         String duration = request.getParameter("option_selection1");
         if (duration == null) {
+            // TODO: Consider amount
             return null; // Old-school donation. Use no end date.
         }
         Matcher matcher = SUBSCRIPTION_DURATION_PATTERN.matcher(duration);

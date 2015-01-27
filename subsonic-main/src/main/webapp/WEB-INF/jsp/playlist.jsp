@@ -14,7 +14,7 @@
 
         function init() {
             dwr.engine.setErrorHandler(null);
-            $("#dialog-edit").dialog({resizable: true, width:400, position: 'top', modal: true, autoOpen: false,
+            $("#dialog-edit").dialog({resizable: true, width:400, autoOpen: false,
                 buttons: {
                     "<fmt:message key="common.save"/>": function() {
                         $(this).dialog("close");
@@ -30,16 +30,45 @@
                     }
                 }});
 
-            $("#dialog-delete").dialog({resizable: false, height: 170, position: 'top', modal: true, autoOpen: false,
+            $("#dialog-delete").dialog({resizable: false, height: 170, autoOpen: false,
                 buttons: {
                     "<fmt:message key="common.delete"/>": function() {
                         $(this).dialog("close");
-                        playlistService.deletePlaylist(playlist.id, function (){top.left.updatePlaylists(); location = "home.view";});
+                        playlistService.deletePlaylist(playlist.id, function (){top.left.updatePlaylists(); location = "playlists.view";});
                     },
                     "<fmt:message key="common.cancel"/>": function() {
                         $(this).dialog("close");
                     } 
                 }});
+
+            $("#playlistBody").sortable({
+                stop: function(event, ui) {
+                    var indexes = [];
+                    $("#playlistBody").children().each(function() {
+                        var id = $(this).attr("id").replace("pattern", "");
+                        if (id.length > 0) {
+                            indexes.push(parseInt(id) - 1);
+                        }
+                    });
+                    onRearrange(indexes);
+                },
+                cursor: "move",
+                axis: "y",
+                containment: "parent",
+                helper: function(e, tr) {
+                    var originals = tr.children();
+                    var trclone = tr.clone();
+                    trclone.children().each(function(index) {
+                        // Set cloned cell sizes to match the original sizes
+                        $(this).width(originals.eq(index).width());
+                        $(this).css("maxWidth", originals.eq(index).width());
+                        $(this).css("border-top", "1px solid black");
+                        $(this).css("border-bottom", "1px solid black");
+                    });
+                    return trclone;
+                }
+            });
+
             getPlaylist();
         }
 
@@ -56,7 +85,6 @@
             } else {
                 $("#empty").hide();
             }
-
 
             $("#songCount").html(playlist.fileCount);
             $("#duration").html(playlist.durationAsString);
@@ -82,40 +110,21 @@
                 } else {
                     $("#starSong" + id).attr("src", "<spring:theme code='ratingOffImage'/>");
                 }
-                if ($("#title" + id)) {
-                    $("#title" + id).html(truncate(song.title));
-                    $("#title" + id).attr("title", song.title);
+                if (!song.present) {
+                    $("#missing" + id).show();
                 }
-                if ($("#album" + id)) {
-                    $("#album" + id).html(truncate(song.album));
-                    $("#album" + id).attr("title", song.album);
-                    $("#albumUrl" + id).attr("href", "main.view?id=" + song.id);
-                }
-                if ($("#artist" + id)) {
-                    $("#artist" + id).html(truncate(song.artist));
-                    $("#artist" + id).attr("title", song.artist);
-                }
-                if ($("#songDuration" + id)) {
-                    $("#songDuration" + id).html(song.durationAsString);
-                }
-
-                $("#pattern" + id).addClass((i % 2 == 0) ? "bgcolor2" : "bgcolor1");
+                $("#title" + id).html(song.title);
+                $("#title" + id).attr("title", song.title);
+                $("#album" + id).html(song.album);
+                $("#album" + id).attr("title", song.album);
+                $("#albumUrl" + id).attr("href", "main.view?id=" + song.id);
+                $("#artist" + id).html(song.artist);
+                $("#artist" + id).attr("title", song.artist);
+                $("#songDuration" + id).html(song.durationAsString);
 
                 // Note: show() method causes page to scroll to top.
                 $("#pattern" + id).css("display", "table-row");
             }
-        }
-
-        function truncate(s) {
-            if (s == null) {
-                return s;
-            }
-            var cutoff = 30;
-
-            if (s.length > cutoff) {
-                return s.substring(0, cutoff) + "...";
-            }
-            return s;
         }
 
         function onPlay(index) {
@@ -136,11 +145,8 @@
         function onRemove(index) {
             playlistService.remove(playlist.id, index, function (playlistInfo){playlistCallback(playlistInfo); top.left.updatePlaylists()});
         }
-        function onUp(index) {
-            playlistService.up(playlist.id, index, playlistCallback);
-        }
-        function onDown(index) {
-            playlistService.down(playlist.id, index, playlistCallback);
+        function onRearrange(indexes) {
+            playlistService.rearrange(playlist.id, indexes, playlistCallback);
         }
         function onEditPlaylist() {
             $("#dialog-edit").dialog("open");
@@ -150,10 +156,30 @@
         }
 
     </script>
+
+    <style type="text/css">
+        .playlist-missing {
+            color: red;
+            border: 1px solid red;
+            display: none;
+            font-size: 90%;
+            padding-left: 5px;
+            padding-right: 5px;
+            margin-right: 5px;
+        }
+    </style>
+
 </head>
 <body class="mainframe bgcolor1" onload="init()">
 
-<h1 id="name">${model.playlist.name}</h1>
+<div style="float:left;margin-right:1.5em;margin-bottom:1.5em">
+<c:import url="coverArt.jsp">
+    <c:param name="playlistId" value="${model.playlist.id}"/>
+    <c:param name="coverArtSize" value="200"/>
+</c:import>
+</div>
+
+<h1 id="name"><a href="playlists.view"><fmt:message key="left.playlists"/></a> &raquo; ${fn:escapeXml(model.playlist.name)}</h1>
 <h2>
     <span class="header"><a href="javascript:void(0)" onclick="onPlayAll();"><fmt:message key="common.play"/></a></span>
 
@@ -174,54 +200,52 @@
 
 </h2>
 
-<div id="comment" class="detail" style="padding-top:0.2em">${model.playlist.comment}</div>
+<div id="comment" class="detail" style="padding-top:0.2em">${fn:escapeXml(model.playlist.comment)}</div>
 
+<div class="detail" style="padding-top:0.2em">
+    <span id="songCount"></span> <fmt:message key="playlist2.songs"/> &ndash; <span id="duration"></span>
+</div>
 <div class="detail" style="padding-top:0.2em">
     <fmt:message key="playlist2.created">
         <fmt:param>${model.playlist.username}</fmt:param>
         <fmt:param><fmt:formatDate type="date" dateStyle="long" value="${model.playlist.created}"/></fmt:param>
     </fmt:message>.
+</div>
+<div class="detail" style="padding-top:0.2em">
     <span id="shared"></span>.
-    <span id="songCount"></span> <fmt:message key="playlist2.songs"/> (<span id="duration"></span>)
 </div>
 
-<div style="height:0.7em"></div>
+<div style="height:0.7em;clear:both"></div>
 
 <p id="empty" style="display: none;"><em><fmt:message key="playlist2.empty"/></em></p>
 
-<table style="border-collapse:collapse;white-space:nowrap">
+<table class="music" style="cursor:pointer">
     <tbody id="playlistBody">
     <tr id="pattern" style="display:none;margin:0;padding:0;border:0">
-        <td class="bgcolor1"><a href="javascript:void(0)">
-            <img id="starSong" onclick="onStar(this.id.substring(8) - 1)" src="<spring:theme code="ratingOffImage"/>" alt="" title=""></a></td>
-        <td class="bgcolor1"><a href="javascript:void(0)">
+        <td class="fit">
+            <img id="starSong" onclick="onStar(this.id.substring(8) - 1)" src="<spring:theme code="ratingOffImage"/>"
+                 style="cursor:pointer" alt="" title=""></td>
+        <td class="fit">
             <img id="play" src="<spring:theme code="playImage"/>" alt="<fmt:message key="common.play"/>" title="<fmt:message key="common.play"/>"
-                 onclick="onPlay(this.id.substring(4) - 1)"></a></td>
-        <td class="bgcolor1"><a href="javascript:void(0)">
+                 style="padding-right:0.1em;cursor:pointer" onclick="onPlay(this.id.substring(4) - 1)"></td>
+        <td class="fit">
             <img id="add" src="<spring:theme code="addImage"/>" alt="<fmt:message key="common.add"/>" title="<fmt:message key="common.add"/>"
-                 onclick="onAdd(this.id.substring(3) - 1)"></a></td>
-        <td class="bgcolor1"><a href="javascript:void(0)">
+                 style="padding-right:0.1em;cursor:pointer" onclick="onAdd(this.id.substring(3) - 1)"></td>
+        <td class="fit" style="padding-right:30px">
             <img id="addNext" src="<spring:theme code="addNextImage"/>" alt="<fmt:message key="main.addnext"/>" title="<fmt:message key="main.addnext"/>"
-                 onclick="onAddNext(this.id.substring(7) - 1)"></a></td>
+                 style="padding-right:0.1em;cursor:pointer" onclick="onAddNext(this.id.substring(7) - 1)"></td>
 
-        <td style="padding-right:0.25em"></td>
-        <td style="padding-right:1.25em"><span id="title" class="songTitle">Title</span></td>
-        <td style="padding-right:1.25em"><a id="albumUrl" target="main"><span id="album" class="detail">Album</span></a></td>
-        <td style="padding-right:1.25em"><span id="artist" class="detail">Artist</span></td>
-        <td style="padding-right:1.25em;text-align:right;"><span id="songDuration" class="detail">Duration</span></td>
+        <td class="fit"><span id="missing" class="playlist-missing"><fmt:message key="playlist.missing"/></span></td>
+        <td class="truncate"><span id="title" class="songTitle">Title</span></td>
+        <td class="truncate"><a id="albumUrl" target="main"><span id="album" class="detail">Album</span></a></td>
+        <td class="truncate"><span id="artist" class="detail">Artist</span></td>
+        <td class="fit rightalign"><span id="songDuration" class="detail">Duration</span></td>
 
         <c:if test="${model.editAllowed}">
-            <td class="bgcolor1"><a href="javascript:void(0)">
+            <td class="fit">
                 <img id="removeSong" onclick="onRemove(this.id.substring(10) - 1)" src="<spring:theme code="removeImage"/>"
-                     alt="<fmt:message key="playlist.remove"/>" title="<fmt:message key="playlist.remove"/>"></a></td>
-            <td class="bgcolor1"><a href="javascript:void(0)">
-                <img id="up" onclick="onUp(this.id.substring(2) - 1)" src="<spring:theme code="upImage"/>"
-                     alt="<fmt:message key="playlist.up"/>" title="<fmt:message key="playlist.up"/>"></a></td>
-            <td class="bgcolor1"><a href="javascript:void(0)">
-                <img id="down" onclick="onDown(this.id.substring(4) - 1)" src="<spring:theme code="downImage"/>"
-                     alt="<fmt:message key="playlist.down"/>" title="<fmt:message key="playlist.down"/>"></a></td>
+                     style="cursor:pointer" alt="<fmt:message key="playlist.remove"/>" title="<fmt:message key="playlist.remove"/>"></td>
         </c:if>
-
     </tr>
     </tbody>
 </table>
@@ -234,10 +258,10 @@
 <div id="dialog-edit" title="<fmt:message key="common.edit"/>" style="display: none;">
     <form>
         <label for="newName" style="display:block;"><fmt:message key="playlist2.name"/></label>
-        <input type="text" name="newName" id="newName" value="${model.playlist.name}" class="ui-widget-content"
+        <input type="text" name="newName" id="newName" value="${fn:escapeXml(model.playlist.name)}" class="ui-widget-content"
                style="display:block;width:95%;"/>
         <label for="newComment" style="display:block;margin-top:1em"><fmt:message key="playlist2.comment"/></label>
-        <input type="text" name="newComment" id="newComment" value="${model.playlist.comment}" class="ui-widget-content"
+        <input type="text" name="newComment" id="newComment" value="${fn:escapeXml(model.playlist.comment)}" class="ui-widget-content"
                style="display:block;width:95%;"/>
         <input type="checkbox" name="newShared" id="newShared" ${model.playlist.shared ? "checked='checked'" : ""} style="margin-top:1.5em" class="ui-widget-content"/>
         <label for="newShared"><fmt:message key="playlist2.public"/></label>

@@ -18,8 +18,27 @@
  */
 package net.sourceforge.subsonic.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.web.bind.ServletRequestUtils;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.AbstractController;
+import org.springframework.web.servlet.view.RedirectView;
+
 import net.sourceforge.subsonic.domain.CoverArtScheme;
 import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MediaFileComparator;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.AdService;
@@ -28,26 +47,13 @@ import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.RatingService;
 import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.ParameterizableViewController;
-import org.springframework.web.servlet.view.RedirectView;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Controller for the main page.
  *
  * @author Sindre Mehus
  */
-public class MainController extends ParameterizableViewController {
+public class MainController extends AbstractController {
 
     private SecurityService securityService;
     private PlayerService playerService;
@@ -78,6 +84,16 @@ public class MainController extends ParameterizableViewController {
         }
 
         List<MediaFile> children = mediaFiles.size() == 1 ? mediaFileService.getChildrenOf(dir, true, true, true) : getMultiFolderChildren(mediaFiles);
+        List<MediaFile> files = new ArrayList<MediaFile>();
+        List<MediaFile> subDirs = new ArrayList<MediaFile>();
+        for (MediaFile child : children) {
+            if (child.isFile()) {
+                files.add(child);
+            } else {
+                subDirs.add(child);
+            }
+        }
+
         String username = securityService.getCurrentUsername(request);
         UserSettings userSettings = settingsService.getUserSettings(username);
 
@@ -85,20 +101,24 @@ public class MainController extends ParameterizableViewController {
         mediaFileService.populateStarredDate(children, username);
 
         map.put("dir", dir);
+        map.put("files", files);
+        map.put("subDirs", subDirs);
         map.put("ancestors", getAncestors(dir));
-        map.put("children", children);
-        map.put("artist", guessArtist(children));
-        map.put("album", guessAlbum(children));
+        map.put("coverArtSizeMedium", CoverArtScheme.MEDIUM.getSize());
+        map.put("coverArtSizeLarge", CoverArtScheme.LARGE.getSize());
         map.put("player", player);
-        map.put("sieblingCoverArtScheme", CoverArtScheme.SMALL);
         map.put("user", securityService.getCurrentUser(request));
         map.put("visibility", userSettings.getMainVisibility());
         map.put("showAlbumYear", settingsService.isSortAlbumsByYear());
-        map.put("updateNowPlaying", request.getParameter("updateNowPlaying") != null);
+        map.put("showArtistInfo", userSettings.isShowArtistInfoEnabled());
         map.put("partyMode", userSettings.isPartyModeEnabled());
         map.put("brand", settingsService.getBrand());
-        if (!settingsService.isLicenseValid()) {
-            map.put("ad", adService.getAd());
+        map.put("showAd", !settingsService.isLicenseValid() && adService.showAd());
+        map.put("viewAsList", isViewAsList(request, userSettings));
+        if (dir.isAlbum()) {
+            map.put("sieblingAlbums", getSieblingAlbums(dir));
+            map.put("artist", guessArtist(children));
+            map.put("album", guessAlbum(children));
         }
 
         try {
@@ -124,16 +144,41 @@ public class MainController extends ParameterizableViewController {
         map.put("averageRating", Math.round(10.0D * averageRating));
         map.put("starred", mediaFileService.getMediaFileStarredDate(dir.getId(), username) != null);
 
-        CoverArtScheme scheme = player.getCoverArtScheme();
-        if (scheme != CoverArtScheme.OFF) {
-            List<MediaFile> coverArts = getCoverArts(dir, children);
-            map.put("coverArts", coverArts);
-            setSieblingAlbums(dir, map);
+        String view;
+        if (isVideoOnly(children)) {
+            view = "videoMain";
+        } else if (dir.isAlbum()) {
+            view = "albumMain";
+        } else {
+            view = "artistMain";
         }
 
-        ModelAndView result = super.handleRequestInternal(request, response);
+        ModelAndView result = new ModelAndView(view);
         result.addObject("model", map);
         return result;
+    }
+
+    private boolean isViewAsList(HttpServletRequest request, UserSettings userSettings) {
+        boolean viewAsList = ServletRequestUtils.getBooleanParameter(request, "viewAsList", userSettings.isViewAsList());
+        if (viewAsList != userSettings.isViewAsList()) {
+            userSettings.setViewAsList(viewAsList);
+            userSettings.setChanged(new Date());
+            settingsService.updateUserSettings(userSettings);
+        }
+        return viewAsList;
+    }
+
+    private boolean isVideoOnly(List<MediaFile> children) {
+        boolean videoFound = false;
+        for (MediaFile child : children) {
+            if (child.isAudio()) {
+                return false;
+            }
+            if (child.isVideo()) {
+                videoFound = true;
+            }
+        }
+        return videoFound;
     }
 
     private List<MediaFile> getMediaFiles(HttpServletRequest request) {
@@ -171,37 +216,15 @@ public class MainController extends ParameterizableViewController {
         return null;
     }
 
-    private List<MediaFile> getCoverArts(MediaFile dir, List<MediaFile> children) throws IOException {
-        int limit = settingsService.getCoverArtLimit();
-        if (limit == 0) {
-            limit = Integer.MAX_VALUE;
-        }
-
-        List<MediaFile> coverArts = new ArrayList<MediaFile>();
-        if (dir.isAlbum()) {
-            coverArts.add(dir);
-        } else {
-            for (MediaFile child : children) {
-                if (child.isAlbum()) {
-                    coverArts.add(child);
-                    if (coverArts.size() >= limit) {
-                        break;
-                    }
-                }
-            }
-        }
-        return coverArts;
-    }
-
     private List<MediaFile> getMultiFolderChildren(List<MediaFile> mediaFiles) throws IOException {
-        List<MediaFile> result = new ArrayList<MediaFile>();
+        SortedSet<MediaFile> result = new TreeSet<MediaFile>(new MediaFileComparator(settingsService.isSortAlbumsByYear()));
         for (MediaFile mediaFile : mediaFiles) {
             if (mediaFile.isFile()) {
                 mediaFile = mediaFileService.getParentOf(mediaFile);
             }
             result.addAll(mediaFileService.getChildrenOf(mediaFile, true, true, true));
         }
-        return result;
+        return new ArrayList<MediaFile>(result);
     }
 
     private List<MediaFile> getAncestors(MediaFile dir) throws IOException {
@@ -219,22 +242,19 @@ public class MainController extends ParameterizableViewController {
         return result;
     }
 
-    private void setSieblingAlbums(MediaFile dir, Map<String, Object> map) throws IOException {
+    private List<MediaFile> getSieblingAlbums(MediaFile dir) {
+        List<MediaFile> result = new ArrayList<MediaFile>();
+
         MediaFile parent = mediaFileService.getParentOf(dir);
-
-        if (dir.isAlbum() && !mediaFileService.isRoot(parent)) {
+        if (!mediaFileService.isRoot(parent)) {
             List<MediaFile> sieblings = mediaFileService.getChildrenOf(parent, false, true, true);
-            sieblings.remove(dir);
-
-            int limit = settingsService.getCoverArtLimit();
-            if (limit == 0) {
-                limit = Integer.MAX_VALUE;
+            for (MediaFile siebling : sieblings) {
+                if (siebling.isAlbum() && !siebling.equals(dir)) {
+                    result.add(siebling);
+                }
             }
-            if (sieblings.size() > limit) {
-                sieblings = sieblings.subList(0, limit);
-            }
-            map.put("sieblingAlbums", sieblings);
         }
+        return result;
     }
 
     public void setSecurityService(SecurityService securityService) {

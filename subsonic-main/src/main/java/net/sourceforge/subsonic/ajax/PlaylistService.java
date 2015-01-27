@@ -33,6 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -70,7 +71,7 @@ public class PlaylistService {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
 
         Playlist playlist = playlistService.getPlaylist(id);
-        List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
 
         String username = securityService.getCurrentUsername(request);
         mediaFileService.populateStarredDate(files, username);
@@ -94,7 +95,7 @@ public class PlaylistService {
         return getReadablePlaylists();
     }
 
-    public void createPlaylistForPlayQueue() {
+    public int createPlaylistForPlayQueue() {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
         Player player = playerService.getPlayer(request, response);
@@ -111,9 +112,11 @@ public class PlaylistService {
 
         playlistService.createPlaylist(playlist);
         playlistService.setFilesInPlaylist(playlist.getId(), player.getPlayQueue().getFiles());
+
+        return playlist.getId();
     }
 
-    public void createPlaylistForStarredSongs() {
+    public int createPlaylistForStarredSongs() {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         Locale locale = localeResolver.resolveLocale(request);
         DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale);
@@ -132,10 +135,12 @@ public class PlaylistService {
         playlistService.createPlaylist(playlist);
         List<MediaFile> songs = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username);
         playlistService.setFilesInPlaylist(playlist.getId(), songs);
+
+        return playlist.getId();
     }
 
     public void appendToPlaylist(int playlistId, List<Integer> mediaFileIds) {
-        List<MediaFile> files = playlistService.getFilesInPlaylist(playlistId);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(playlistId, true);
         for (Integer mediaFileId : mediaFileIds) {
             MediaFile file = mediaFileService.getMediaFile(mediaFileId);
             if (file != null) {
@@ -149,7 +154,7 @@ public class PlaylistService {
         List<PlaylistInfo.Entry> result = new ArrayList<PlaylistInfo.Entry>();
         for (MediaFile file : files) {
             result.add(new PlaylistInfo.Entry(file.getId(), file.getTitle(), file.getArtist(), file.getAlbumName(),
-                    file.getDurationString(), file.getStarredDate() != null));
+                    file.getDurationString(), file.getStarredDate() != null, file.isPresent()));
         }
 
         return result;
@@ -158,7 +163,7 @@ public class PlaylistService {
     public PlaylistInfo toggleStar(int id, int index) {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         String username = securityService.getCurrentUsername(request);
-        List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
         MediaFile file = files.get(index);
 
         boolean starred = mediaFileDao.getMediaFileStarredDate(file.getId(), username) != null;
@@ -171,14 +176,14 @@ public class PlaylistService {
     }
 
     public PlaylistInfo remove(int id, int index) {
-        List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
         files.remove(index);
         playlistService.setFilesInPlaylist(id, files);
         return getPlaylist(id);
     }
 
     public PlaylistInfo up(int id, int index) {
-        List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
         if (index > 0) {
             MediaFile file = files.remove(index);
             files.add(index - 1, file);
@@ -187,8 +192,18 @@ public class PlaylistService {
         return getPlaylist(id);
     }
 
+    public PlaylistInfo rearrange(int id, int[] indexes) {
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
+        MediaFile[] newFiles = new MediaFile[files.size()];
+        for (int i = 0; i < indexes.length; i++) {
+            newFiles[i] = files.get(indexes[i]);
+        }
+        playlistService.setFilesInPlaylist(id, Arrays.asList(newFiles));
+        return getPlaylist(id);
+    }
+
     public PlaylistInfo down(int id, int index) {
-        List<MediaFile> files = playlistService.getFilesInPlaylist(id);
+        List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
         if (index < files.size() - 1) {
             MediaFile file = files.remove(index);
             files.add(index + 1, file);

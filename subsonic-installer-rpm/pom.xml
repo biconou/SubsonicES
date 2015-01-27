@@ -10,17 +10,17 @@
     <parent>
         <groupId>net.sourceforge.subsonic</groupId>
         <artifactId>subsonic</artifactId>
-        <version>4.9</version>
+        <version>5.1</version>
     </parent>
 
     <profiles>
 
         <profile>
-            <id>linux</id>
+            <id>rpm</id>
             <activation>
-                <os>
-                    <family>linux</family>
-                </os>
+                <property>
+                    <name>rpm</name>
+                </property>
             </activation>
 
             <build>
@@ -67,6 +67,8 @@
                                             <replacetoken>.beta3</replacetoken>
                                             <replacetoken>.beta4</replacetoken>
                                         </replace>
+
+                                        <mkdir dir="${project.build.directory}/rpm/RPMS/i386"/>
 
                                         <copy file="${basedir}/src/etc/init.d/subsonic"
                                               todir="${project.build.directory}/rpm/buildroot/etc/init.d"/>

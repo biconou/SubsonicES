@@ -3,8 +3,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <link href="<c:url value="/style/shadow.css"/>" rel="stylesheet">
-    <script type="text/javascript" src="<c:url value="/script/scripts.js"/>"></script>
+    <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
     <script type="text/javascript" src="<c:url value='/dwr/util.js'/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/interface/starService.js"/>"></script>
@@ -23,9 +22,10 @@
         }
 
         function onSavePlaylist() {
-            playlistService.createPlaylistForStarredSongs(function () {
+            playlistService.createPlaylistForStarredSongs(function (playlistId) {
                 top.left.updatePlaylists();
                 top.left.showAllPlaylists();
+                top.main.location.href = "playlist.view?id=" + playlistId;
                 $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveasplaylist"/>");
             });
         }
@@ -40,7 +40,7 @@
 
 <h1>
     <img src="<spring:theme code="starredImage"/>" alt="">
-    <fmt:message key="starred.title"/>
+    <span style="vertical-align: middle"><fmt:message key="starred.title"/></span>
 </h1>
 
 <c:if test="${empty model.artists and empty model.albums and empty model.songs}">
@@ -50,28 +50,30 @@
 <c:if test="${not empty model.albums}">
     <h2><fmt:message key="search.hits.albums"/></h2>
 
-<div>
+<div style="padding-top:0.5em">
     <c:forEach items="${model.albums}" var="album" varStatus="loopStatus">
+
+        <c:set var="albumTitle">
+            <c:choose>
+                <c:when test="${empty album.name}">
+                    <fmt:message key="common.unknown"/>
+                </c:when>
+                <c:otherwise>
+                    ${fn:escapeXml(album.name)}
+                </c:otherwise>
+            </c:choose>
+        </c:set>
 
         <div class="albumThumb">
             <c:import url="coverArt.jsp">
                 <c:param name="albumId" value="${album.id}"/>
-                <c:param name="albumName" value="${album.title}"/>
+                <c:param name="caption1" value="${albumTitle}"/>
+                <c:param name="caption2" value="${fn:escapeXml(album.artist)}"/>
+                <c:param name="captionCount" value="2"/>
                 <c:param name="coverArtSize" value="${model.coverArtSize}"/>
                 <c:param name="showLink" value="true"/>
-                <c:param name="showZoom" value="false"/>
-                <c:param name="showChange" value="false"/>
                 <c:param name="appearAfter" value="${loopStatus.count * 30}"/>
             </c:import>
-            <c:choose>
-                <c:when test="${empty album.artist and empty album.title}">
-                    <div class="detail"><fmt:message key="common.unknown"/></div>
-                </c:when>
-                <c:otherwise>
-                    <div class="detail"><b><str:truncateNicely lower="22" upper="22">${album.artist}</str:truncateNicely></b></div>
-                    <div class="detail"><str:truncateNicely lower="22" upper="22">${album.name}</str:truncateNicely></div>
-                </c:otherwise>
-            </c:choose>
         </div>
     </c:forEach>
     </c:if>
@@ -79,12 +81,12 @@
 
 <c:if test="${not empty model.artists}">
     <h2><fmt:message key="search.hits.artists"/></h2>
-    <table style="border-collapse:collapse">
-        <c:forEach items="${model.artists}" var="artist" varStatus="loopStatus">
+    <table class="music indent">
+        <c:forEach items="${model.artists}" var="artist">
 
-            <sub:url value="/main.view" var="mainUrl">
-                <sub:param name="path" value="${artist.path}"/>
-            </sub:url>
+            <c:url value="/main.view" var="mainUrl">
+                <c:param name="id" value="${artist.id}"/>
+            </c:url>
 
             <tr>
                 <c:import url="playButtons.jsp">
@@ -95,8 +97,8 @@
                     <c:param name="starred" value="${not empty artist.starredDate}"/>
                     <c:param name="asTable" value="true"/>
                 </c:import>
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-left:0.25em;padding-right:1.25em">
-                    <a href="${mainUrl}">${artist.name}</a>
+                <td class="truncate">
+                    <a href="${mainUrl}">${fn:escapeXml(artist.name)}</a>
                 </td>
             </tr>
         </c:forEach>
@@ -105,8 +107,8 @@
 
 <c:if test="${not empty model.songs}">
     <h2><fmt:message key="search.hits.songs"/></h2>
-    <table style="border-collapse:collapse">
-        <c:forEach items="${model.songs}" var="song" varStatus="loopStatus">
+    <table class="music indent">
+        <c:forEach items="${model.songs}" var="song">
 
             <sub:url value="/main.view" var="mainUrl">
                 <sub:param name="path" value="${song.parentPath}"/>
@@ -116,23 +118,23 @@
                 <c:import url="playButtons.jsp">
                     <c:param name="id" value="${song.id}"/>
                     <c:param name="playEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="addEnabled" value="${model.user.streamRole and (not model.partyModeEnabled or not song.directory)}"/>
+                    <c:param name="addEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
                     <c:param name="starEnabled" value="true"/>
                     <c:param name="starred" value="${not empty song.starredDate}"/>
-                    <c:param name="video" value="${song.video and model.player.web}"/>
+                    <c:param name="video" value="false"/>
                     <c:param name="asTable" value="true"/>
                 </c:import>
 
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-left:0.25em;padding-right:1.25em">
-                        ${song.title}
+                <td class="truncate">
+                        ${fn:escapeXml(song.title)}
                 </td>
 
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-right:1.25em">
-                    <a href="${mainUrl}"><span class="detail">${song.albumName}</span></a>
+                <td class="truncate">
+                    <a href="${mainUrl}"><span class="detail">${fn:escapeXml(song.albumName)}</span></a>
                 </td>
 
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-right:0.25em">
-                    <span class="detail">${song.artist}</span>
+                <td class="truncate">
+                    <span class="detail">${fn:escapeXml(song.artist)}</span>
                 </td>
             </tr>
 
@@ -147,6 +149,33 @@
     </div>
     <div style="clear: both"></div>
 
+</c:if>
+
+<c:if test="${not empty model.videos}">
+    <h2><fmt:message key="search.hits.videos"/></h2>
+    <table class="music indent">
+        <c:forEach items="${model.videos}" var="video">
+
+            <c:url value="/videoPlayer.view" var="videoUrl">
+                <c:param name="id" value="${video.id}"/>
+            </c:url>
+
+            <tr>
+                <c:import url="playButtons.jsp">
+                    <c:param name="id" value="${video.id}"/>
+                    <c:param name="playEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
+                    <c:param name="addEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
+                    <c:param name="starEnabled" value="true"/>
+                    <c:param name="starred" value="${not empty video.starredDate}"/>
+                    <c:param name="video" value="${model.player.web}"/>
+                    <c:param name="asTable" value="true"/>
+                </c:import>
+                <td class="truncate">
+                    <a href="${videoUrl}">${fn:escapeXml(video.name)}</a>
+                </td>
+            </tr>
+        </c:forEach>
+    </table>
 </c:if>
 
 </body></html>

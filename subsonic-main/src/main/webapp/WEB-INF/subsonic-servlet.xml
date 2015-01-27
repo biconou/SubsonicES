@@ -17,17 +17,17 @@
         <property name="viewName" value="right"/>
         <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
+        <property name="versionService" ref="versionService"/>
     </bean>
     <bean id="statusController" class="net.sourceforge.subsonic.controller.StatusController">
         <property name="viewName" value="status"/>
         <property name="statusService" ref="statusService"/>
     </bean>
     <bean id="mainController" class="net.sourceforge.subsonic.controller.MainController">
-        <property name="viewName" value="main"/>
         <property name="securityService" ref="securityService"/>
         <property name="playerService" ref="playerService"/>
         <property name="settingsService" ref="settingsService"/>
-        <property name="ratingService" ref="musicInfoService"/>
+        <property name="ratingService" ref="ratingService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="adService" ref="adService"/>
     </bean>
@@ -36,6 +36,12 @@
         <property name="securityService" ref="securityService"/>
         <property name="playlistService" ref="playlistService"/>
         <property name="settingsService" ref="settingsService"/>
+        <property name="playerService" ref="playerService"/>
+    </bean>
+    <bean id="playlistsController" class="net.sourceforge.subsonic.controller.PlaylistsController">
+        <property name="viewName" value="playlists"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="playlistService" ref="playlistService"/>
     </bean>
     <bean id="importPlaylistController" class="net.sourceforge.subsonic.controller.ImportPlaylistController">
         <property name="viewName" value="importPlaylist"/>
@@ -45,7 +51,6 @@
     <bean id="topController" class="net.sourceforge.subsonic.controller.TopController">
         <property name="viewName" value="top"/>
         <property name="settingsService" ref="settingsService"/>
-        <property name="versionService" ref="versionService"/>
         <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="helpController" class="net.sourceforge.subsonic.controller.HelpController">
@@ -101,7 +106,7 @@
         <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="setRatingController" class="net.sourceforge.subsonic.controller.SetRatingController">
-        <property name="ratingService" ref="musicInfoService"/>
+        <property name="ratingService" ref="ratingService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="securityService" ref="securityService"/>
     </bean>
@@ -249,7 +254,7 @@
     </bean>
     <bean id="homeController" class="net.sourceforge.subsonic.controller.HomeController">
         <property name="viewName" value="home"/>
-        <property name="ratingService" ref="musicInfoService"/>
+        <property name="ratingService" ref="ratingService"/>
         <property name="mediaScannerService" ref="mediaScannerService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
@@ -269,6 +274,9 @@
     </bean>
     <bean id="coverArtController" class="net.sourceforge.subsonic.controller.CoverArtController">
         <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="playlistService" ref="playlistService"/>
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
     </bean>
@@ -307,6 +315,7 @@
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="playerService" ref="playerService"/>
+        <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="externalPlayerController" class="net.sourceforge.subsonic.controller.ExternalPlayerController">
         <property name="viewName" value="externalPlayer"/>
@@ -350,6 +359,7 @@
         <property name="securityService" ref="securityService"/>
         <property name="playerService" ref="playerService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="lastFmService" ref="lastFmService"/>
         <property name="musicIndexService" ref="musicIndexService"/>
         <property name="transcodingService" ref="transcodingService"/>
         <property name="statusService" ref="statusService"/>
@@ -358,7 +368,7 @@
         <property name="audioScrobblerService" ref="audioScrobblerService"/>
         <property name="playlistService" ref="playlistService"/>
         <property name="playQueueService" ref="ajaxPlayQueueService"/>
-        <property name="ratingService" ref="musicInfoService"/>
+        <property name="ratingService" ref="ratingService"/>
         <property name="chatService" ref="ajaxChatService"/>
         <property name="lyricsService" ref="ajaxLyricsService"/>
         <property name="podcastService" ref="podcastService"/>
@@ -374,7 +384,6 @@
         <property name="avatarController" ref="avatarController"/>
         <property name="userSettingsController" ref="userSettingsController"/>
         <property name="leftController" ref="leftController"/>
-        <property name="homeController" ref="homeController"/>
     </bean>
     <bean id="dbController" class="net.sourceforge.subsonic.controller.DBController">
         <property name="viewName" value="db"/>
@@ -395,6 +404,7 @@
             <props>
                 <prop key="/main.view">mainController</prop>
                 <prop key="/playlist.view">playlistController</prop>
+                <prop key="/playlists.view">playlistsController</prop>
                 <prop key="/help.view">helpController</prop>
                 <prop key="/lyrics.view">lyricsController</prop>
                 <prop key="/left.view">leftController</prop>

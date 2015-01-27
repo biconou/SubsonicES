@@ -25,9 +25,9 @@
                 screencolor:"000000",
                 frontcolor:"<spring:theme code="textColor"/>",
                 backcolor:"<spring:theme code="backgroundColor"/>",
-                stretching: "fill",
                 "playlist.position": "bottom",
-                "playlist.size": 200
+                "playlist.size": 300,
+                repeat: "list"
             };
             var params = {
                 allowfullscreen:"true",
@@ -37,7 +37,7 @@
                 id:"player1",
                 name:"player1"
             };
-            swfobject.embedSWF("<c:url value="/flash/jw-player-5.10.swf"/>", "placeholder", "500", "500", "9.0.0", false, flashvars, params, attributes);
+            swfobject.embedSWF("<c:url value="/flash/jw-player-5.10.swf"/>", "placeholder", "500", "600", "9.0.0", false, flashvars, params, attributes);
         }
 
         function playerReady(thePlayer) {
@@ -49,13 +49,14 @@
         <sub:url value="/stream" var="streamUrl">
             <sub:param name="id" value="${song.id}"/>
             <sub:param name="player" value="${model.player}"/>
+            <sub:param name="maxBitRate" value="1200"/>
         </sub:url>
         <sub:url value="/coverArt.view" var="coverUrl">
             <sub:param name="id" value="${song.id}"/>
             <sub:param name="size" value="500"/>
         </sub:url>
 
-           <!-- TODO: Use video provider for aac, m4a -->
+            // TODO: Use video provider for aac, m4a
             list[${loopStatus.count - 1}] = {
                 file: "${streamUrl}",
                 image: "${coverUrl}",

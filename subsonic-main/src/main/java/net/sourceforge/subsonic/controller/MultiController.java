@@ -96,7 +96,7 @@ public class MultiController extends MultiActionController {
 
         Map<String, Object> map = new HashMap<String, Object>();
         String usernameOrEmail = StringUtils.trimToNull(request.getParameter("usernameOrEmail"));
-        ReCaptcha captcha = ReCaptchaFactory.newReCaptcha("6LcZ3OMSAAAAANkKMdFdaNopWu9iS03V-nLOuoiH",
+        ReCaptcha captcha = ReCaptchaFactory.newSecureReCaptcha("6LcZ3OMSAAAAANkKMdFdaNopWu9iS03V-nLOuoiH",
                 "6LcZ3OMSAAAAAPaFg89mEzs-Ft0fIu7wxfKtkwmQ", false);
         boolean showCaptcha = true;
 
@@ -204,6 +204,7 @@ public class MultiController extends MultiActionController {
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("showRight", userSettings.isShowNowPlayingEnabled() || userSettings.isShowChatEnabled());
+        map.put("autoHide", userSettings.isAutoHidePlayQueue());
         map.put("brand", settingsService.getBrand());
         return new ModelAndView("index", "model", map);
     }

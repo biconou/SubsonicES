@@ -1,11 +1,18 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <table>
     <tr>
+        <c:if test="${not empty model.mediaFolder}">
+            <td style="padding-right: 2em">
+                <div style="border:1px solid #<spring:theme code="detailColor"/>; padding-left: 0.5em;padding-right: 0.5em">
+                        ${fn:escapeXml(model.mediaFolder.name)}
+                </div>
+            </td>
+        </c:if>
         <c:choose>
             <c:when test="${model.listType eq 'random'}">
                 <td><div class="forward"><a href="home.view?listType=random"><fmt:message key="common.more"/></a></div></td>
             </c:when>
-            <c:when test="${model.listType ne 'users'}">
+            <c:otherwise>
                 <sub:url value="home.view" var="previousUrl">
                     <sub:param name="listType" value="${model.listType}"/>
                     <sub:param name="listOffset" value="${model.listOffset - model.listSize}"/>
@@ -61,7 +68,12 @@
                         </select>
                     </td>
                 </c:if>
-            </c:when>
+            </c:otherwise>
         </c:choose>
+
+        <c:if test="${not empty model.albums}">
+            <td style="padding-left: 2em">
+                <a href="javascript:playShuffle()"><img src="<spring:theme code="shuffleImage"/>" alt="">&nbsp;<fmt:message key="home.shuffle"/></a></td>
+        </c:if>
     </tr>
 </table>
