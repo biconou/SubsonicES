@@ -44,3 +44,4 @@
 /subsonic-installer-debian/.project
 /subsonic-installer-debian/.classpath
 /subsonic-installer-debian/target
+/subsonic-rest-api/target/
