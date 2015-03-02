@@ -245,17 +245,6 @@ public class CMusService  {
 					
 					cmusDriver.initPlayQueue(computeFilePathForCmus(player, currentFileInPlayQueue.getFile().getAbsolutePath()));
 					
-					String fileBeforeNext = cmusDriver.status().getFile();
-					cmusDriver.next();
-					String fileAfterNext = cmusDriver.status().getFile();
-					// Hack to force the next if it didn't work at first time.
-					int countLoop = 0;
-					while (countLoop <= 20 && (fileAfterNext == null || "".equals(fileAfterNext) || fileAfterNext.equals(fileBeforeNext))) {
-						Thread.sleep(500);
-						cmusDriver.next();
-						fileAfterNext = cmusDriver.status().getFile();
-						countLoop++;
-					}
 					if (!cmusDriver.isPlaying()) {
 						cmusDriver.play();
 					}
@@ -328,9 +317,13 @@ public class CMusService  {
 				if (oldCmusPlayingFile != null && !oldCmusPlayingFile.equals(getCmusPlayingFile(player))) {
 					LOG.debug("Playing file changed in CMus");
 					synchronized (player.getPlayQueue()) {
+                                            if (player.getPlayQueue().getCurrentFile() != null) {
 						onSongEnd(player,player.getPlayQueue().getCurrentFile());
 						player.getPlayQueue().next();
-						onSongStart(player,player.getPlayQueue().getCurrentFile());
+                                                if (player.getPlayQueue().getCurrentFile() != null) {
+                                                    onSongStart(player,player.getPlayQueue().getCurrentFile());
+                                                }
+                                            }
 					}
 				}
 			} else {
