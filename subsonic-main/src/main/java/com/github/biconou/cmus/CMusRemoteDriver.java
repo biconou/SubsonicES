@@ -188,7 +188,7 @@ public class CMusRemoteDriver {
 	 */
 	private interface CMusCommandHandler {
 
-		public void handleCommandAnswer(String answer) throws Exception;
+		public void handleCommandAnswer(String answer) throws InvalidCMusResponseException;
 	}
 
 	/**
@@ -198,7 +198,7 @@ public class CMusRemoteDriver {
 	 */
 	private class LogOnlyCMusCommandHandler implements CMusCommandHandler {
 
-		public void handleCommandAnswer(String answer) throws Exception {
+		public void handleCommandAnswer(String answer) throws InvalidCMusResponseException {
 
 			LOG.debug("Command answer is : {}",answer);
 		}
@@ -214,11 +214,10 @@ public class CMusRemoteDriver {
 	 */
 	private class NoAnswerExpectedCMusCommandHandler implements CMusCommandHandler {
 
-		public void handleCommandAnswer(String answer) throws Exception {
+		public void handleCommandAnswer(String answer) throws InvalidCMusResponseException {
 
 			if (answer != null && answer.trim().length() != 0) {
-				LOG.error("Command answer is : {}",answer);
-				throw new Exception("Command answer is : "+answer);
+				throw new InvalidCMusResponseException("No answer was expected from CMUS. Command answer is : "+answer);
 			} else {
 				LOG.debug("Command answer is : {}",answer);
 			}
@@ -276,24 +275,12 @@ public class CMusRemoteDriver {
 		return answerBuilder.toString();
 	}
 
-	/**
-	 * 
-	 * @param in
-	 * @throws Exception
-	 */
-	private void validAuth(BufferedReader in) throws Exception {
-		String passAnswer = readAnswer(in);
-		if (passAnswer != null && passAnswer.trim().length() != 0) {
-			throw new Exception("Could not login: " + passAnswer);
-		}
-	}
-
 
 	/**
 	 * 
 	 * @param command
 	 */
-	public  void sendCommandToCMus(final String command,final CMusCommandHandler handler) throws Exception {
+	public synchronized void sendCommandToCMus(final String command,final CMusCommandHandler handler) throws Exception {
 
 		LOG.debug("sending command to cmus : {}",command);
 
@@ -311,8 +298,10 @@ public class CMusRemoteDriver {
 			out.write(command + "\n");
 			out.flush();
 			handler.handleCommandAnswer(readAnswer(in));
+                } catch (final InvalidCMusResponseException e) {
+                    LOG.error("Invalid Response from CMUS",e);
 		} catch (final Exception e) {
-			LOG.error("Could not send the command. Trying again with a new cmus session.");
+			LOG.error("Could not send the command ("+e.getMessage()+"). Trying again with a new cmus session.");
 			try {
 				if (in != null) {
 					try {
@@ -381,16 +370,35 @@ public class CMusRemoteDriver {
 		LOG.trace("begin startCmusSession()");
 		socket = new Socket(host, port);
 		LOG.debug("Connected to cmus host {}:{}",host,port);
+                
+                if (in != null) {
+                    try {
+                        in.close();
+                        in = null;
+                    } catch (Exception e) {
+                        // 
+                    }
+                }
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
+                if (out != null) {
+                    try {
+                        out.close();
+                        out = null;
+                    } catch (Exception e) {
+                        // 
+                    }
+                }
 		out = new OutputStreamWriter(socket.getOutputStream(),"UTF-8");
 
 		LOG.debug("Sinding password to cmus");
 		out.write("passwd " + passwd + "\n");
 		out.flush();
 
-		validAuth(in);
+                String passAnswer = readAnswer(in);
+		if (passAnswer != null && passAnswer.trim().length() != 0) {
+			throw new Exception("Could not login: " + passAnswer);
+		}
 	}
-
 
 	/**
 	 * Stop playing in cmus
@@ -451,9 +459,26 @@ public class CMusRemoteDriver {
 //		if (status.getFile() != null && !status.isPlaying()) {
 //			next();
 //		}
-		//CMusStatus status = status();
+		//CMusStatus status = status();                
+                
 		clearPlayQueue();
-		addFile(file);		
+                
+                String currentFile = status().getFile();                                
+                if (!file.equals(currentFile)) {
+                    
+                    addFile(file);
+                    next();
+                    String fileAfterNext = status().getFile();
+                    // Hack to force the next if it didn't work at first time.
+                    int countLoop = 0;
+                    while (countLoop <= 20 && (fileAfterNext == null || "".equals(fileAfterNext) || fileAfterNext.equals(currentFile))) {
+                        Thread.sleep(500);
+                        next();
+                        fileAfterNext = status().getFile();
+                        countLoop++;
+                    }
+                }
+
 //		if (file.equals(status.getFile())) {
 //			next();
 //		} else {
@@ -524,7 +549,7 @@ public class CMusRemoteDriver {
 			}
 
 			
-			public void handleCommandAnswer(String answer) throws Exception {
+			public void handleCommandAnswer(String answer) throws InvalidCMusResponseException {
 
 				String[] strs = answer.split("\n");
 
