@@ -109,6 +109,7 @@
                 /script/**=IS_AUTHENTICATED_ANONYMOUSLY
                 /sonos/**=IS_AUTHENTICATED_ANONYMOUSLY
                 /crossdomain.xml=IS_AUTHENTICATED_ANONYMOUSLY
+                /CMusJukebox.view=IS_AUTHENTICATED_ANONYMOUSLY
 
                 /personalSettings.view=ROLE_SETTINGS
                 /passwordSettings.view=ROLE_SETTINGS

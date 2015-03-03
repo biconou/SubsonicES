@@ -40,6 +40,17 @@ import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.StatusService;
 import net.sourceforge.subsonic.util.StringUtil;
+import org.apache.commons.lang.StringUtils;
+import org.directwebremoting.WebContext;
+import org.directwebremoting.WebContextFactory;
+
+import com.github.biconou.subsonic.service.CMusService;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Provides AJAX-enabled services for retrieving the currently playing file and directory.
@@ -52,6 +63,7 @@ public class NowPlayingService {
     private static final Logger LOG = Logger.getLogger(NowPlayingService.class);
 
     private PlayerService playerService;
+    private CMusService cmusService;
     private StatusService statusService;
     private SettingsService settingsService;
     private MediaScannerService mediaScannerService;
@@ -64,6 +76,10 @@ public class NowPlayingService {
     public NowPlayingInfo getNowPlayingForCurrentPlayer() throws Exception {
         WebContext webContext = WebContextFactory.get();
         Player player = playerService.getPlayer(webContext.getHttpServletRequest(), webContext.getHttpServletResponse());
+
+        if (player.isCmus()) {
+            cmusService.checkCmusStatus(player);
+        }
 
         for (NowPlayingInfo info : getNowPlaying()) {
             if (player.getId().equals(info.getPlayerId())) {
@@ -173,4 +189,8 @@ public class NowPlayingService {
     public void setMediaScannerService(MediaScannerService mediaScannerService) {
         this.mediaScannerService = mediaScannerService;
     }
+
+    public void setCmusService(CMusService cmusService) {
+		this.cmusService = cmusService;
+	}
 }

@@ -21,6 +21,8 @@ package net.sourceforge.subsonic.domain;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Date;
+import java.util.Hashtable;
+import java.util.Map;
 
 /**
  * Represens a remote player.  A player has a unique ID, a user-defined name, a logged-on user,
@@ -42,6 +44,10 @@ public class Player {
     private Date lastSeen;
     private TranscodeScheme transcodeScheme = TranscodeScheme.OFF;
     private PlayQueue playQueue;
+    private String cmusHost;
+    private int cmusPort;
+    private String cmusPassword;
+    private Map<Integer, String> cmusMusicFoldersPath;
 
     /**
      * Returns the player ID.
@@ -131,6 +137,10 @@ public class Player {
 
     public boolean isWeb() {
         return technology == PlayerTechnology.WEB;
+    }
+
+    public boolean isCmus() {
+        return technology == PlayerTechnology.CMUS;
     }
 
     /**
@@ -306,7 +316,51 @@ public class Player {
         return "Player " + id;
     }
 
-    /**
+    
+    
+    public String getCmusHost() {
+		return cmusHost;
+	}
+
+	public void setCmusHost(String cmusHost) {
+		this.cmusHost = cmusHost;
+	}
+
+	public int getCmusPort() {
+		return cmusPort;
+	}
+
+	public void setCmusPort(int cmusPort) {
+		this.cmusPort = cmusPort;
+	}
+
+	public String getCmusPassword() {
+		return cmusPassword;
+	}
+
+	public void setCmusPassword(String cmusPassword) {
+		this.cmusPassword = cmusPassword;
+	}
+
+
+	
+	public Map<Integer, String> getCmusMusicFoldersPath() {
+		return cmusMusicFoldersPath;
+	}
+
+	public void setCmusMusicFoldersPath(Map<Integer, String> cmusMusicFoldersPath) {
+		this.cmusMusicFoldersPath = cmusMusicFoldersPath;
+	}
+
+	public String getCmusMusicFolderPath(int musicFolderId) {
+		if (cmusMusicFoldersPath != null) {
+			return cmusMusicFoldersPath.get(new Integer(musicFolderId));
+		} else {
+			return null;
+		}
+	}
+	
+	/**
      * Returns a string representation of the player.
      *
      * @return A string representation of the player.

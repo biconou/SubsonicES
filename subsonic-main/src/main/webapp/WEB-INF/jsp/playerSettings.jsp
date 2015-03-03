@@ -10,6 +10,29 @@
 <script type="text/javascript" src="<c:url value="/script/wz_tooltip.js"/>"></script>
 <script type="text/javascript" src="<c:url value="/script/tip_balloon.js"/>"></script>
 
+<script type="text/javascript">
+
+	$(document).ready(function(){
+		
+		showHideProperOptions($("[name='technologyName'][checked='checked']").prop("value"));
+	
+	});
+
+	function showHideProperOptions(technologyHolderName) {
+		switch(technologyHolderName) {
+	    case 'CMUS':
+	    	$(".transcodingOption").hide();
+	    	$(".cmusOption").show();
+	        break;
+	    default:
+	    	$(".cmusOption").hide();
+	    	$(".transcodingOption").show();
+		}	
+	}
+
+</script>
+
+
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="player"/>
     <c:param name="toast" value="${command.reloadNeeded}"/>
@@ -60,7 +83,7 @@
 
                     <tr>
                         <td class="ruleTableHeader">
-                            <form:radiobutton id="radio-${technologyName}" path="technologyName" value="${technologyHolder.name}"/>
+                            <form:radiobutton id="radio-${technologyName}" path="technologyName" value="${technologyHolder.name}" onclick="showHideProperOptions('${technologyHolder.name}');"/>
                             <b><label for="radio-${technologyName}">${technologyName}</label></b>
                         </td>
                         <td class="ruleTableCell" style="width:40em">
@@ -94,7 +117,7 @@
                     <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="playername"/></c:import></td>
                 </tr>
 
-                <tr>
+                <tr class="transcodingOption">
                     <td><fmt:message key="playersettings.maxbitrate"/></td>
                     <td>
                         <form:select path="transcodeSchemeName" cssStyle="width:8em">
@@ -112,6 +135,37 @@
                         </c:if>
                     </td>
                 </tr>
+                
+                <tr class="cmusOption">
+                	<td><fmt:message key="playersettings.cmus.ip"/></td>
+                	<td><form:input path="cmusIP" size="16"/></td>
+                    <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="cmusIP"/></c:import></td>
+                </tr>
+                <tr class="cmusOption">
+                	<td><fmt:message key="playersettings.cmus.port"/></td>
+                	<td><form:input path="cmusPort" size="16"/></td>
+                    <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="cmusPort"/></c:import></td>
+                </tr>
+                <tr class="cmusOption">
+                	<td><fmt:message key="playersettings.cmus.password"/></td>
+                	<td><form:input path="cmusPassword" size="16"/></td>
+                    <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="cmusPassword"/></c:import></td>
+                </tr>
+
+			    <c:forEach items="${command.musicFolders}" var="folder" varStatus="loopStatus">
+			        <tr  class="cmusOption">
+			            <td>
+			            	<fmt:message key="playersettings.cmus.musicfolder.pathincmus">
+			            		<fmt:param value="${command.musicFolders[loopStatus.index].name}"/>
+			            	</fmt:message>
+			            	<form:hidden path="musicFolders[${loopStatus.count-1}].id"/>
+			            	<form:hidden path="musicFolders[${loopStatus.count-1}].name"/>
+			            	<form:hidden path="musicFolders[${loopStatus.count-1}].path"/>
+			            </td>
+			            <td><form:input path="musicFolders[${loopStatus.count-1}].pathInCmus" size="40"/></td>
+			            <td>[<c:out value="${command.musicFolders[loopStatus.index].path}"></c:out>]</td>
+			        </tr>
+			    </c:forEach>
 
             </table>
 
@@ -135,6 +189,7 @@
     </table>
 
     <c:if test="${not empty command.allTranscodings}">
+        <div class="transcodingOption">
         <table class="indent">
             <tr><td><b><fmt:message key="playersettings.transcodings"/></b></td></tr>
             <c:forEach items="${command.allTranscodings}" var="transcoding" varStatus="loopStatus">
@@ -146,6 +201,7 @@
                 <c:if test="${loopStatus.count % 3 == 0 or loopStatus.count eq fn:length(command.allTranscodings)}"></tr></c:if>
             </c:forEach>
         </table>
+        </div>
     </c:if>
 
     <input type="submit" value="<fmt:message key="common.save"/>" style="margin-top:1em;margin-right:0.3em">

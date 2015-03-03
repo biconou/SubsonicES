@@ -598,7 +598,7 @@
                 </td>
             </c:if>
 
-            <c:if test="${model.player.jukebox}">
+            <c:if test="${(model.player.jukebox) or (model.player.cmus)}">
                 <td style="white-space:nowrap;">
                     <img src="<spring:theme code="volumeImage"/>" alt="">
                 </td>

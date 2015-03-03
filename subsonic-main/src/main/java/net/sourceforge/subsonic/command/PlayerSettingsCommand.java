@@ -18,10 +18,13 @@
  */
 package net.sourceforge.subsonic.command;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 
+
 import net.sourceforge.subsonic.controller.PlayerSettingsController;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
 import net.sourceforge.subsonic.domain.TranscodeScheme;
@@ -51,6 +54,65 @@ public class PlayerSettingsCommand {
     private Player[] players;
     private boolean isAdmin;
     private boolean isReloadNeeded;
+    
+    private String cmusIP;
+    private String cmusPort;
+    private String cmusPassword;
+    
+    private List<MusicFolderRef> musicFolders;
+    
+    /**
+     * 
+     * @author remi
+     *
+     */
+    public static class MusicFolderRef {
+
+        private Integer id;
+        private String path;
+        private String name;
+        private String pathInCmus;
+
+        public MusicFolderRef(MusicFolder musicFolder) {
+            id = musicFolder.getId();
+            path = musicFolder.getPath().getPath();
+            name = musicFolder.getName();
+        }
+
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+		public String getPathInCmus() {
+			return pathInCmus;
+		}
+
+		public void setPathInCmus(String pathInCmus) {
+			this.pathInCmus = pathInCmus;
+		}
+    } ////
+
+
 
     public String getPlayerId() {
         return playerId;
@@ -204,7 +266,46 @@ public class PlayerSettingsCommand {
         isReloadNeeded = reloadNeeded;
     }
 
-    /**
+    
+    public String getCmusIP() {
+		return cmusIP;
+	}
+
+	public void setCmusIP(String cmusIP) {
+		this.cmusIP = cmusIP;
+	}
+
+
+	
+	public String getCmusPort() {
+		return cmusPort;
+	}
+
+	public void setCmusPort(String cmusPort) {
+		this.cmusPort = cmusPort;
+	}
+
+
+
+	public String getCmusPassword() {
+		return cmusPassword;
+	}
+
+	public void setCmusPassword(String cmusPassword) {
+		this.cmusPassword = cmusPassword;
+	}
+
+    public List<MusicFolderRef> getMusicFolders() {
+        return musicFolders;
+    }
+
+    public void setMusicFolders(List<MusicFolderRef> musicFolders) {
+        this.musicFolders = musicFolders;
+    }
+
+
+
+	/**
      * Holds the transcoding and whether it is active for the given player.
      */
     public static class TranscodingHolder {

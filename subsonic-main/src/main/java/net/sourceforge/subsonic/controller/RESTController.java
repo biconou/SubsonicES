@@ -140,6 +140,10 @@ import net.sourceforge.subsonic.util.Util;
 import static net.sourceforge.subsonic.security.RESTRequestParameterProcessingFilter.decrypt;
 import static org.springframework.web.bind.ServletRequestUtils.*;
 
+import org.apache.commons.lang.StringUtils;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
+
 /**
  * Multi-controller used for the REST API.
  * <p/>

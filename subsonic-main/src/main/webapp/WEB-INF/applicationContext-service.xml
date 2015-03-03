@@ -186,6 +186,14 @@
         <property name="securityService" ref="securityService"/>
     </bean>
 
+    <bean id="cmusService" class="com.github.biconou.subsonic.service.CMusService">
+        <property name="statusService" ref="statusService"/>
+        <property name="audioScrobblerService" ref="audioScrobblerService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="securityService" ref="securityService"/>
+    </bean>
+
     <bean id="folderBasedContentDirectory" class="net.sourceforge.subsonic.service.upnp.FolderBasedContentDirectory">
         <property name="settingsService" ref="settingsService"/>
         <property name="playlistService" ref="playlistService"/>
@@ -241,6 +249,7 @@
         <property name="statusService" ref="statusService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="mediaScannerService" ref="mediaScannerService"/>
+        <property name="cmusService" ref="cmusService"/>
     </bean>
 
     <bean id="ajaxPlayQueueService" class="net.sourceforge.subsonic.ajax.PlayQueueService">
@@ -251,6 +260,7 @@
         <property name="mediaFileDao" ref="mediaFileDao"/>
         <property name="playQueueDao" ref="playQueueDao"/>
         <property name="jukeboxService" ref="jukeboxService"/>
+        <property name="cmusService" ref="cmusService"/>
         <property name="transcodingService" ref="transcodingService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="searchService" ref="searchService"/>

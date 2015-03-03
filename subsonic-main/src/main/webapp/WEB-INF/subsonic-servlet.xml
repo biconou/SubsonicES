@@ -164,6 +164,7 @@
         <property name="playerService" ref="playerService"/>
         <property name="securityService" ref="securityService"/>
         <property name="transcodingService" ref="transcodingService"/>
+        <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="dlnaSettingsController" class="net.sourceforge.subsonic.controller.DLNASettingsController">
         <property name="viewName" value="dlnaSettings"/>
@@ -405,6 +406,9 @@
         <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="passwordSettingsValidator" class="net.sourceforge.subsonic.validator.PasswordSettingsValidator"/>
+    <bean id="CMusController" class="com.github.biconou.subsonic.service.CMusController">
+        <property name="cmusService" ref="cmusService"/>
+    </bean>
 
     <bean id="urlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
         <property name="alwaysUseFullPath" value="true"/>
@@ -470,6 +474,7 @@
                 <prop key="/podcastReceiver.view">podcastReceiverController</prop>
                 <prop key="/podcastReceiverAdmin.view">podcastReceiverAdminController</prop>
                 <prop key="/podcast.view">podcastController</prop>
+                <prop key="/CMusJukebox.view">CMusController</prop>
                 <prop key="/podcast/**">podcastController</prop>
                 <prop key="/wap/download.view">downloadController</prop>
                 <prop key="/wap/**">wapController</prop>

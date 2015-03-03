@@ -21,6 +21,8 @@ package net.sourceforge.subsonic.ajax;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -39,6 +41,7 @@ import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.SavedPlayQueue;
 import net.sourceforge.subsonic.domain.UserSettings;
+import net.sourceforge.subsonic.domain.PlayerTechnology;
 import net.sourceforge.subsonic.service.JukeboxService;
 import net.sourceforge.subsonic.service.LastFmService;
 import net.sourceforge.subsonic.service.MediaFileService;
@@ -50,6 +53,11 @@ import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.TranscodingService;
 import net.sourceforge.subsonic.util.StringUtil;
+import org.directwebremoting.WebContext;
+import org.directwebremoting.WebContextFactory;
+import org.springframework.web.servlet.support.RequestContextUtils;
+
+import com.github.biconou.subsonic.service.CMusService;
 
 /**
  * Provides AJAX-enabled services for manipulating the play queue of a player.
@@ -62,6 +70,7 @@ public class PlayQueueService {
 
     private PlayerService playerService;
     private JukeboxService jukeboxService;
+    private CMusService cmusService;
     private TranscodingService transcodingService;
     private SettingsService settingsService;
     private MediaFileService mediaFileService;
@@ -483,7 +492,14 @@ public class PlayQueueService {
     }
 
     public void setGain(float gain) {
-        jukeboxService.setGain(gain);
+        WebContext webContext = WebContextFactory.get();
+        Player player = playerService.getPlayer(webContext.getHttpServletRequest(), webContext.getHttpServletResponse());
+        
+        if (player.isCmus()) {
+        	cmusService.setGain(player, gain);
+        } else {
+        	jukeboxService.setGain(gain);
+        }
     }
 
     private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean serverSidePlaylist) throws Exception {
@@ -493,9 +509,19 @@ public class PlayQueueService {
     private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean serverSidePlaylist, int offset) throws Exception {
         String url = request.getRequestURL().toString();
 
-        if (serverSidePlaylist && player.isJukebox()) {
-            jukeboxService.updateJukebox(player, offset);
-        }
+
+        
+        if (serverSidePlaylist) {
+        	if (player.isJukebox()) {
+        		jukeboxService.updateJukebox(player, offset);
+        	} else if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
+        		cmusService.updateJukebox(player, offset);
+        	}
+            
+        } else if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
+        	cmusService.updateCMUSPlayQueue(player);
+	}
+        
         boolean isCurrentPlayer = player.getIpAddress() != null && player.getIpAddress().equals(request.getRemoteAddr());
 
         boolean m3uSupported = player.isExternal() || player.isExternalWithPlaylist();
@@ -539,7 +565,15 @@ public class PlayQueueService {
                     coverArtUrl, remoteCoverArtUrl));
         }
         boolean isStopEnabled = playQueue.getStatus() == PlayQueue.Status.PLAYING && !player.isExternalWithPlaylist();
-        float gain = jukeboxService.getGain();
+        
+        float gain = 0.5f;
+        // what is the current gain ?
+        if (player.getTechnology().equals(PlayerTechnology.CMUS)) {        	
+            gain = cmusService.getGain(player);
+	} else if (player.isJukebox()) {
+            gain = jukeboxService.getGain();
+	}
+
         return new PlayQueueInfo(entries, isStopEnabled, playQueue.isRepeatEnabled(), serverSidePlaylist, gain);
     }
 
@@ -587,8 +621,13 @@ public class PlayQueueService {
     public void setJukeboxService(JukeboxService jukeboxService) {
         this.jukeboxService = jukeboxService;
     }
+    
 
-    public void setTranscodingService(TranscodingService transcodingService) {
+    public void setCmusService(CMusService cmusService) {
+		this.cmusService = cmusService;
+	}
+
+	public void setTranscodingService(TranscodingService transcodingService) {
         this.transcodingService = transcodingService;
     }
 

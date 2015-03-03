@@ -20,7 +20,9 @@ package net.sourceforge.subsonic.service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -53,6 +55,8 @@ public class PlayerService {
     private SecurityService securityService;
     private TranscodingService transcodingService;
 
+    private Map<Integer, Player> localPlayersCache = new Hashtable<Integer, Player>();
+    
     public void init() {
         playerDao.deleteOldPlayers(60);
     }
@@ -78,20 +82,26 @@ public class PlayerService {
                                          boolean remoteControlEnabled, boolean isStreamRequest) {
 
         // Find by 'player' request parameter.
-        Player player = getPlayerById(request.getParameter("player"));
+    	String playerIdrequested = request.getParameter("player");
+    	
+    	Player player = null;
+    			
+    	if (playerIdrequested != null) {
+    		player = getPlayerByIdFromCache(playerIdrequested);
+    	}
 
         // Find in session context.
         if (player == null && remoteControlEnabled) {
             String playerId = (String) request.getSession().getAttribute("player");
             if (playerId != null) {
-                player = getPlayerById(playerId);
+                player = getPlayerByIdFromCache(playerId);
             }
         }
 
         // Find by cookie.
         String username = securityService.getCurrentUsername(request);
         if (player == null && remoteControlEnabled) {
-            player = getPlayerById(getPlayerIdFromCookie(request, username));
+            player = getPlayerByIdFromCache(getPlayerIdFromCookie(request, username));
         }
 
         // Make sure we're not hijacking the player of another user.
@@ -173,6 +183,36 @@ public class PlayerService {
      */
     public Player getPlayerById(String id) {
         return playerDao.getPlayerById(id);
+    }
+
+    /**
+     * Returns the player with the given ID from the cache.
+     *
+     * @param id The unique player ID.
+     * @return The player with the given ID, or <code>null</code> if no such player exists.
+     */
+    public Player getPlayerByIdFromCache(String id) {
+    	
+    	Player player = null;
+    	Integer idTransformedToInteger = null;
+    	
+    	try {
+    		idTransformedToInteger = Integer.valueOf(id);    	
+        	player = localPlayersCache.get(idTransformedToInteger);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+    	
+    	
+		if (player == null) {
+			player = getPlayerById(id);
+			if (player != null) {
+				synchronized (localPlayersCache) {
+					localPlayersCache.put(idTransformedToInteger, player);
+				}
+			}
+		}
+		return player;
     }
 
     /**

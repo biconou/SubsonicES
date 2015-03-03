@@ -44,6 +44,11 @@ public enum PlayerTechnology {
     /**
      * Plays music directly on the audio device of the Subsonic server.
      */
-    JUKEBOX
+    JUKEBOX,
+    
+    /**
+     * Plays music with a remote cmus player
+     */
+    CMUS
 
 }
