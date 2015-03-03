@@ -4,6 +4,7 @@
 /subsonic-main/.settings
 /subsonic-main/.classpath
 /subsonic-main/.project
+/subsonic-main/nb-configuration.xml
 /subsonic-backend/.settings
 /subsonic-backend/.project
 /subsonic-backend/.classpath
@@ -46,3 +47,4 @@
 /subsonic-installer-debian/target
 /subsonic-rest-api/target/
 /subsonic-sonos-api/target/
+
