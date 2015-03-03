@@ -186,7 +186,10 @@ public class PlayerDao extends AbstractDao {
                      "transcode_scheme = ?, " +
                      "dynamic_ip = ?, " +
                      "technology = ?, " +
-                     "client_id = ? " +
+                     "client_id = ?, " +
+                     "cmushost = ?, " +
+                     "cmusport = ?, " +
+                     "cmuspassword = ? " +                
                      "where id = ?";
         update(sql, player.getName(), player.getType(), player.getUsername(),
                player.getIpAddress(), player.isAutoControlEnabled(),

@@ -493,15 +493,19 @@ public class PlayQueueService {
 
     public void setGain(float gain) {
         WebContext webContext = WebContextFactory.get();
-        Player player = playerService.getPlayer(webContext.getHttpServletRequest(), webContext.getHttpServletResponse());
-        
-        if (player.isCmus()) {
-        	cmusService.setGain(player, gain);
-        } else {
-        	jukeboxService.setGain(gain);
-        }
+        setGain(gain, webContext.getHttpServletRequest(), webContext.getHttpServletResponse());
     }
 
+    public void setGain(float gain, HttpServletRequest request, HttpServletResponse response) {
+        Player player = playerService.getPlayer(request, response);
+
+        if (player.isCmus()) {
+            cmusService.setGain(player, gain);
+        } else {
+            jukeboxService.setGain(gain);
+        }
+    }
+    
     private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean serverSidePlaylist) throws Exception {
         return convert(request, player, serverSidePlaylist, 0);
     }

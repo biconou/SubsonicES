@@ -880,7 +880,7 @@ public class RESTController extends MultiActionController {
             playQueueService.doShuffle(request, response);
         } else if ("setGain".equals(action)) {
             float gain = getRequiredFloatParameter(request, "gain");
-            jukeboxService.setGain(gain);
+            playQueueService.setGain(gain,request, response);
         } else if ("get".equals(action)) {
             returnPlaylist = true;
         } else if ("status".equals(action)) {
