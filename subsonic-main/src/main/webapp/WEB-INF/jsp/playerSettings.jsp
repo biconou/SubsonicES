@@ -4,7 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <script type="text/javascript" src="<c:url value="/script/scripts.js"/>"></script>
+    <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
 </head>
 <body class="mainframe bgcolor1">
 <script type="text/javascript" src="<c:url value="/script/wz_tooltip.js"/>"></script>
@@ -117,21 +117,6 @@
                     <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="playername"/></c:import></td>
                 </tr>
 
-                <tr>
-                    <td><fmt:message key="playersettings.coverartsize"/></td>
-                    <td>
-                        <form:select path="coverArtSchemeName" cssStyle="width:8em">
-                            <c:forEach items="${command.coverArtSchemeHolders}" var="coverArtSchemeHolder">
-                                <c:set var="coverArtSchemeName">
-                                    <fmt:message key="playersettings.coverart.${fn:toLowerCase(coverArtSchemeHolder.name)}"/>
-                                </c:set>
-                                <form:option value="${coverArtSchemeHolder.name}" label="${coverArtSchemeName}"/>
-                            </c:forEach>
-                        </form:select>
-                    </td>
-                    <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="cover"/></c:import></td>
-                </tr>
-				
                 <tr class="transcodingOption">
                     <td><fmt:message key="playersettings.maxbitrate"/></td>
                     <td>
@@ -146,7 +131,7 @@
                     </td>
                     <td class="warning">
                         <c:if test="${not command.transcodingSupported}">
-                            <fmt:message key="playersettings.nolame"/>
+                            <fmt:message key="playersettings.notranscoder"/>
                         </c:if>
                     </td>
                 </tr>

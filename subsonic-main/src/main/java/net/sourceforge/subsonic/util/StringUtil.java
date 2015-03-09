@@ -43,7 +43,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.LongRange;
 
 /**
  * Miscellaneous string utility methods.
@@ -68,6 +67,7 @@ public final class StringUtil {
             {"mp3", "audio/mpeg"},
             {"ogg", "audio/ogg"},
             {"oga", "audio/ogg"},
+            {"opus", "audio/ogg"},
             {"ogx", "application/ogg"},
             {"aac", "audio/mp4"},
             {"m4a", "audio/mp4"},
@@ -91,6 +91,7 @@ public final class StringUtil {
             {"divx", "video/divx"},
             {"m2ts", "video/MP2T"},
             {"ts", "video/MP2T"},
+            {"webm", "video/webm"},
 
             {"gif", "image/gif"},
             {"jpg", "image/jpeg"},
@@ -310,7 +311,7 @@ public final class StringUtil {
      * but not if the given URL is already "http".
      *
      * @param url  The original URL.
-     * @param port The port number to use, for instance 443.
+     * @param port The port number to use, for instance 4040.
      * @return The transformed URL.
      * @throws MalformedURLException If the original URL is invalid.
      */
@@ -474,6 +475,30 @@ public final class StringUtil {
     }
 
     /**
+     * Rewrites an URL to make it accessible from remote clients.
+     */
+    public static String rewriteRemoteUrl(String localUrl, boolean urlRedirectionEnabled, String urlRedirectFrom,
+            String urlRedirectContextPath, String localIp, int localPort) throws MalformedURLException {
+
+        URLBuilder urlBuilder = new URLBuilder(localUrl);
+        if (urlRedirectionEnabled) {
+            String subsonicHost = urlRedirectFrom + ".subsonic.org";
+            urlBuilder.setProtocol(URLBuilder.HTTP);
+            urlBuilder.setHost(subsonicHost);
+            urlBuilder.setPort(80);
+            if (StringUtils.isNotBlank(urlRedirectContextPath)) {
+                urlBuilder.setFile(urlBuilder.getFile().replaceFirst("^/" + urlRedirectContextPath, ""));
+            }
+
+        } else {
+            urlBuilder.setProtocol(URLBuilder.HTTP);
+            urlBuilder.setHost(localIp);
+            urlBuilder.setPort(localPort);
+        }
+        return urlBuilder.getURLAsString();
+    }
+
+    /**
      * Makes a given filename safe by replacing special characters like slashes ("/" and "\")
      * with dashes ("-").
      *
@@ -487,51 +512,10 @@ public final class StringUtil {
         return filename;
     }
 
-    /**
-     * Parses the given string as a HTTP header byte range.  See chapter 14.36.1 in RFC 2068
-     * for details.
-     * <p/>
-     * Only a subset of the allowed syntaxes are supported. Only ranges which specify first-byte-pos
-     * are supported. The last-byte-pos is optional.
-     *
-     * @param range The range from the HTTP header, for instance "bytes=0-499" or "bytes=500-"
-     * @return A range object (using inclusive values). If the last-byte-pos is not given, the end of
-     *         the returned range is {@link Long#MAX_VALUE}. The method returns <code>null</code> if the syntax
-     *         of the given range is not supported.
-     */
-    public static LongRange parseRange(String range) {
-        if (range == null) {
-            return null;
-        }
-
-        Pattern pattern = Pattern.compile("bytes=(\\d+)-(\\d*)");
-        Matcher matcher = pattern.matcher(range);
-
-        if (matcher.matches()) {
-            String firstString = matcher.group(1);
-            String lastString = StringUtils.trimToNull(matcher.group(2));
-
-            long first = Long.parseLong(firstString);
-            long last = lastString == null ? Long.MAX_VALUE : Long.parseLong(lastString);
-
-            if (first > last) {
-                return null;
-            }
-
-            return new LongRange(first, last);
-        }
-        return null;
-    }
-
     public static String removeMarkup(String s) {
         if (s == null) {
             return null;
         }
         return s.replaceAll("<.*?>", "");
-    }
-
-    public static String getRESTProtocolVersion() {
-        // TODO: Read from xsd.
-        return "1.10.2";
     }
 }

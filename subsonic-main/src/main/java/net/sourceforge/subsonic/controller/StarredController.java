@@ -21,6 +21,7 @@ package net.sourceforge.subsonic.controller;
 import net.sourceforge.subsonic.dao.MediaFileDao;
 import net.sourceforge.subsonic.domain.CoverArtScheme;
 import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.MediaFileService;
@@ -32,6 +33,8 @@ import org.springframework.web.servlet.mvc.ParameterizableViewController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,21 +59,29 @@ public class StarredController extends ParameterizableViewController {
         User user = securityService.getCurrentUser(request);
         String username = user.getUsername();
         UserSettings userSettings = settingsService.getUserSettings(username);
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
 
-        List<MediaFile> artists = mediaFileDao.getStarredDirectories(0, Integer.MAX_VALUE, username);
-        List<MediaFile> albums = mediaFileDao.getStarredAlbums(0, Integer.MAX_VALUE, username);
-        List<MediaFile> songs = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username);
+        List<MediaFile> artists = mediaFileDao.getStarredDirectories(0, Integer.MAX_VALUE, username, musicFolders);
+        List<MediaFile> albums = mediaFileDao.getStarredAlbums(0, Integer.MAX_VALUE, username, musicFolders);
+        List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username, musicFolders);
         mediaFileService.populateStarredDate(artists, username);
         mediaFileService.populateStarredDate(albums, username);
-        mediaFileService.populateStarredDate(songs, username);
+        mediaFileService.populateStarredDate(files, username);
+
+        List<MediaFile> songs = new ArrayList<MediaFile>();
+        List<MediaFile> videos = new ArrayList<MediaFile>();
+        for (MediaFile file : files) {
+            (file.isVideo() ? videos : songs).add(file);
+        }
 
         map.put("user", user);
         map.put("partyModeEnabled", userSettings.isPartyModeEnabled());
         map.put("player", playerService.getPlayer(request, response));
+        map.put("coverArtSize", CoverArtScheme.MEDIUM.getSize());
         map.put("artists", artists);
         map.put("albums", albums);
         map.put("songs", songs);
-        map.put("coverArtSize", CoverArtScheme.MEDIUM.getSize());
+        map.put("videos", videos);
         ModelAndView result = super.handleRequestInternal(request, response);
         result.addObject("model", map);
         return result;

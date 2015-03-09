@@ -18,6 +18,8 @@
  */
 package net.sourceforge.subsonic.controller;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -27,14 +29,15 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.SimpleFormController;
 
 import net.sourceforge.subsonic.command.SearchCommand;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.SearchCriteria;
 import net.sourceforge.subsonic.domain.SearchResult;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.PlayerService;
+import net.sourceforge.subsonic.service.SearchService;
 import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
-import net.sourceforge.subsonic.service.SearchService;
 
 /**
  * Controller for the search page.
@@ -65,21 +68,22 @@ public class SearchController extends SimpleFormController {
         command.setUser(user);
         command.setPartyModeEnabled(userSettings.isPartyModeEnabled());
 
-        String any = StringUtils.trimToNull(command.getQuery());
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(user.getUsername());
+        String query = StringUtils.trimToNull(command.getQuery());
 
-        if (any != null) {
+        if (query != null) {
 
             SearchCriteria criteria = new SearchCriteria();
             criteria.setCount(MATCH_COUNT);
-            criteria.setQuery(any);
+            criteria.setQuery(query);
 
-            SearchResult artists = searchService.search(criteria, SearchService.IndexType.ARTIST);
+            SearchResult artists = searchService.search(criteria, musicFolders, SearchService.IndexType.ARTIST);
             command.setArtists(artists.getMediaFiles());
 
-            SearchResult albums = searchService.search(criteria, SearchService.IndexType.ALBUM);
+            SearchResult albums = searchService.search(criteria, musicFolders, SearchService.IndexType.ALBUM);
             command.setAlbums(albums.getMediaFiles());
 
-            SearchResult songs = searchService.search(criteria, SearchService.IndexType.SONG);
+            SearchResult songs = searchService.search(criteria, musicFolders, SearchService.IndexType.SONG);
             command.setSongs(songs.getMediaFiles());
 
             command.setPlayer(playerService.getPlayer(request, response));

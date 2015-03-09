@@ -4,7 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <script type="text/javascript" src="<c:url value="/script/scripts.js"/>"></script>
+    <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
 
     <script type="text/javascript" language="javascript">
         function enableLastFmFields() {
@@ -111,11 +111,6 @@
             <td style="text-align:center"><form:checkbox path="mainVisibility.fileSizeVisible" cssClass="checkbox"/></td>
             <td style="text-align:center"><form:checkbox path="playlistVisibility.fileSizeVisible" cssClass="checkbox"/></td>
         </tr>
-        <tr>
-            <td><fmt:message key="personalsettings.captioncutoff"/></td>
-            <td style="text-align:center"><form:input path="mainVisibility.captionCutoff" size="3"/></td>
-            <td style="text-align:center"><form:input path="playlistVisibility.captionCutoff" size="3"/></td>
-        </tr>
     </table>
 
     <table class="indent">
@@ -124,10 +119,14 @@
             <td><label for="nowPlaying"><fmt:message key="personalsettings.shownowplaying"/></label></td>
             <td style="padding-left:2em"><form:checkbox path="showChatEnabled" id="chat" cssClass="checkbox"/></td>
             <td><label for="chat"><fmt:message key="personalsettings.showchat"/></label></td>
+            <td style="padding-left:2em"><form:checkbox path="showArtistInfoEnabled" id="artistInfo" cssClass="checkbox"/></td>
+            <td><label for="artistInfo"><fmt:message key="personalsettings.showartistinfo"/></label></td>
         </tr>
         <tr>
             <td><form:checkbox path="nowPlayingAllowed" id="nowPlayingAllowed" cssClass="checkbox"/></td>
             <td><label for="nowPlayingAllowed"><fmt:message key="personalsettings.nowplayingallowed"/></label></td>
+            <td style="padding-left:2em"><form:checkbox path="autoHidePlayQueue" id="autoHidePlayQueue" cssClass="checkbox"/></td>
+            <td><label for="autoHidePlayQueue"><fmt:message key="personalsettings.autohideplayqueue"/></label></td>
             <td style="padding-left:2em"><form:checkbox path="partyModeEnabled" id="partyModeEnabled" cssClass="checkbox"/></td>
             <td><label for="partyModeEnabled"><fmt:message key="personalsettings.partymode"/></label>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="partymode"/></c:import>
@@ -143,6 +142,10 @@
         <tr>
             <td><form:checkbox path="betaVersionNotificationEnabled" id="beta" cssClass="checkbox"/></td>
             <td><label for="beta"><fmt:message key="personalsettings.betaversionnotification"/></label></td>
+        </tr>
+        <tr>
+            <td><form:checkbox path="songNotificationEnabled" id="song" cssClass="checkbox"/></td>
+            <td><label for="song"><fmt:message key="personalsettings.songnotification"/></label></td>
         </tr>
     </table>
 
@@ -192,6 +195,7 @@
             <c:if test="${not empty command.customAvatar}">
                 <sub:url value="avatar.view" var="avatarUrl">
                     <sub:param name="username" value="${command.user.username}"/>
+                    <sub:param name="forceCustom" value="true"/>
                 </sub:url>
                 <img src="${avatarUrl}" alt="${command.customAvatar.name}" width="${command.customAvatar.width}" height="${command.customAvatar.height}" style="padding-right:2em"/>
             </c:if>

@@ -18,13 +18,13 @@
  */
 package net.sourceforge.subsonic.command;
 
+import java.util.List;
+
 import net.sourceforge.subsonic.controller.PersonalSettingsController;
 import net.sourceforge.subsonic.domain.Avatar;
 import net.sourceforge.subsonic.domain.Theme;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.domain.UserSettings;
-
-import java.util.List;
 
 /**
  * Command used in {@link PersonalSettingsController}.
@@ -45,9 +45,12 @@ public class PersonalSettingsCommand {
     private boolean partyModeEnabled;
     private boolean showNowPlayingEnabled;
     private boolean showChatEnabled;
+    private boolean showArtistInfoEnabled;
     private boolean nowPlayingAllowed;
+    private boolean autoHidePlayQueue;
     private boolean finalVersionNotificationEnabled;
     private boolean betaVersionNotificationEnabled;
+    private boolean songNotificationEnabled;
     private boolean lastFmEnabled;
     private String lastFmUsername;
     private String lastFmPassword;
@@ -157,6 +160,14 @@ public class PersonalSettingsCommand {
         this.showChatEnabled = showChatEnabled;
     }
 
+    public boolean isShowArtistInfoEnabled() {
+        return showArtistInfoEnabled;
+    }
+
+    public void setShowArtistInfoEnabled(boolean showArtistInfoEnabled) {
+        this.showArtistInfoEnabled = showArtistInfoEnabled;
+    }
+
     public boolean isNowPlayingAllowed() {
         return nowPlayingAllowed;
     }
@@ -179,6 +190,22 @@ public class PersonalSettingsCommand {
 
     public void setBetaVersionNotificationEnabled(boolean betaVersionNotificationEnabled) {
         this.betaVersionNotificationEnabled = betaVersionNotificationEnabled;
+    }
+
+    public void setSongNotificationEnabled(boolean songNotificationEnabled) {
+        this.songNotificationEnabled = songNotificationEnabled;
+    }
+
+    public boolean isSongNotificationEnabled() {
+        return songNotificationEnabled;
+    }
+
+    public boolean isAutoHidePlayQueue() {
+        return autoHidePlayQueue;
+    }
+
+    public void setAutoHidePlayQueue(boolean autoHidePlayQueue) {
+        this.autoHidePlayQueue = autoHidePlayQueue;
     }
 
     public boolean isLastFmEnabled() {

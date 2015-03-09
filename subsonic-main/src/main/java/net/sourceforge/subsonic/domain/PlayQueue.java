@@ -28,7 +28,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * A playlist is a list of music files that are associated to a remote player.
+ * A play queue is a list of music files that are associated to a remote player.
  *
  * @author Sindre Mehus
  */
@@ -284,6 +284,30 @@ public class PlayQueue {
         if (currentFile != null) {
             index = files.indexOf(currentFile);
         }
+    }
+
+    /**
+     * Rearranges the playlist using the provided indexes.
+     */
+    public synchronized void rearrange(int[] indexes) {
+        makeBackup();
+        if (indexes == null || indexes.length != size()) {
+            return;
+        }
+
+        MediaFile[] newFiles = new MediaFile[files.size()];
+        for (int i = 0; i < indexes.length; i++) {
+            newFiles[i] = files.get(indexes[i]);
+        }
+        for (int i = 0; i < indexes.length; i++) {
+            if (index == indexes[i]) {
+                index = i;
+                break;
+            }
+        }
+
+        files.clear();
+        files.addAll(Arrays.asList(newFiles));
     }
 
     /**

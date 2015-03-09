@@ -199,7 +199,7 @@ public class TranscodingService {
         if (transcoding != null) {
             parameters.setTranscoding(transcoding);
             if (maxBitRate == null) {
-                maxBitRate = mediaFile.isVideo() ? VideoPlayerController.DEFAULT_BIT_RATE : 128;
+                maxBitRate = mediaFile.isVideo() ? VideoPlayerController.DEFAULT_BIT_RATE : TranscodeScheme.MAX_192.getMaxBitRate();
             }
         } else if (maxBitRate != null) {
             boolean supported = isDownsamplingSupported(mediaFile);
@@ -433,7 +433,7 @@ public class TranscodingService {
     }
 
     /**
-     * Returns whether downsampling is supported (i.e., whether LAME is installed or not.)
+     * Returns whether downsampling is supported (i.e., whether ffmpeg is installed or not.)
      *
      * @param mediaFile If not null, returns whether downsampling is supported for this file.
      * @return Whether downsampling is supported.

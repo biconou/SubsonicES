@@ -22,11 +22,8 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 
-import net.sourceforge.subsonic.command.MusicFolderSettingsCommand.MusicFolderInfo;
 import net.sourceforge.subsonic.controller.PlayerSettingsController;
-import net.sourceforge.subsonic.domain.CoverArtScheme;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
@@ -46,7 +43,6 @@ public class PlayerSettingsCommand {
     private Date lastSeen;
     private boolean isDynamicIp;
     private boolean isAutoControlEnabled;
-    private String coverArtSchemeName;
     private String technologyName;
     private String transcodeSchemeName;
     private boolean transcodingSupported;
@@ -55,7 +51,6 @@ public class PlayerSettingsCommand {
     private int[] activeTranscodingIds;
     private EnumHolder[] technologyHolders;
     private EnumHolder[] transcodeSchemeHolders;
-    private EnumHolder[] coverArtSchemeHolders;
     private Player[] players;
     private boolean isAdmin;
     private boolean isReloadNeeded;
@@ -175,14 +170,6 @@ public class PlayerSettingsCommand {
         isAutoControlEnabled = autoControlEnabled;
     }
 
-    public String getCoverArtSchemeName() {
-        return coverArtSchemeName;
-    }
-
-    public void setCoverArtSchemeName(String coverArtSchemeName) {
-        this.coverArtSchemeName = coverArtSchemeName;
-    }
-
     public String getTranscodeSchemeName() {
         return transcodeSchemeName;
     }
@@ -244,18 +231,6 @@ public class PlayerSettingsCommand {
         for (int i = 0; i < transcodeSchemes.length; i++) {
             TranscodeScheme scheme = transcodeSchemes[i];
             transcodeSchemeHolders[i] = new EnumHolder(scheme.name(), scheme.toString());
-        }
-    }
-
-    public EnumHolder[] getCoverArtSchemeHolders() {
-        return coverArtSchemeHolders;
-    }
-
-    public void setCoverArtSchemes(CoverArtScheme[] coverArtSchemes) {
-        coverArtSchemeHolders = new EnumHolder[coverArtSchemes.length];
-        for (int i = 0; i < coverArtSchemes.length; i++) {
-            CoverArtScheme scheme = coverArtSchemes[i];
-            coverArtSchemeHolders[i] = new EnumHolder(scheme.name(), scheme.toString());
         }
     }
 

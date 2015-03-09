@@ -4,10 +4,38 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <script type="text/javascript" src="<c:url value="/script/scripts.js"/>"></script>
+    <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
+    <script type="text/javascript">
+        function init() {
+            enablePasswordChangeFields();
+            <c:if test="${command.reload}">
+            parent.frames.left.location.href="left.view?";
+            </c:if>
+        }
+        function enablePasswordChangeFields() {
+            var changePasswordCheckbox = $("#passwordChange");
+            var ldapCheckbox = $("#ldapAuthenticated");
+            var passwordChangeTable = $("#passwordChangeTable");
+            var passwordChangeCheckboxTable = $("#passwordChangeCheckboxTable");
+
+            if (changePasswordCheckbox && changePasswordCheckbox.is(":checked") && (ldapCheckbox == null || !ldapCheckbox.is(":checked"))) {
+                passwordChangeTable.show();
+            } else {
+                passwordChangeTable.hide();
+            }
+
+            if (changePasswordCheckbox) {
+                if (ldapCheckbox && ldapCheckbox.is(":checked")) {
+                    passwordChangeCheckboxTable.hide();
+                } else {
+                    passwordChangeCheckboxTable.show();
+                }
+            }
+        }
+    </script>
 </head>
 
-<body class="mainframe bgcolor1" onload="enablePasswordChangeFields();">
+<body class="mainframe bgcolor1" onload="init()">
 <script type="text/javascript" src="<c:url value="/script/wz_tooltip.js"/>"></script>
 <script type="text/javascript" src="<c:url value="/script/tip_balloon.js"/>"></script>
 
@@ -15,29 +43,6 @@
     <c:param name="cat" value="user"/>
     <c:param name="toast" value="${command.toast}"/>
 </c:import>
-
-<script type="text/javascript" language="javascript">
-    function enablePasswordChangeFields() {
-        var changePasswordCheckbox = $("#passwordChange");
-        var ldapCheckbox = $("#ldapAuthenticated");
-        var passwordChangeTable = $("#passwordChangeTable");
-        var passwordChangeCheckboxTable = $("#passwordChangeCheckboxTable");
-
-        if (changePasswordCheckbox && changePasswordCheckbox.is(":checked") && (ldapCheckbox == null || !ldapCheckbox.is(":checked"))) {
-            passwordChangeTable.show();
-        } else {
-            passwordChangeTable.hide();
-        }
-
-        if (changePasswordCheckbox) {
-            if (ldapCheckbox && ldapCheckbox.is(":checked")) {
-                passwordChangeCheckboxTable.hide();
-            } else {
-                passwordChangeCheckboxTable.show();
-            }
-        }
-    }
-</script>
 
 <table class="indent">
     <tr>
@@ -102,6 +107,19 @@
         </table>
     </c:if>
 
+    <c:if test="${not empty command.allMusicFolders}">
+        <h2><fmt:message key="usersettings.folderaccess"/></h2>
+
+        <div style="width:75%">
+            <c:forEach items="${command.allMusicFolders}" var="musicFolder">
+                <span style="white-space:nowrap">
+                    <form:checkbox path="allowedMusicFolderIds" id="musicFolder${musicFolder.id}" value="${musicFolder.id}" cssClass="checkbox"/>
+                    <label for="musicFolder${musicFolder.id}" style="padding-right:1.5em">${musicFolder.name}</label>
+                </span>
+            </c:forEach>
+        </div>
+    </c:if>
+
     <table class="indent">
         <tr>
             <td><fmt:message key="playersettings.maxbitrate"/></td>
@@ -114,7 +132,7 @@
             </td>
             <td><c:import url="helpToolTip.jsp"><c:param name="topic" value="transcode"/></c:import></td>
             <c:if test="${not command.transcodingSupported}">
-                <td class="warning"><fmt:message key="playersettings.nolame"/></td>
+                <td class="warning"><fmt:message key="playersettings.notranscoder"/></td>
             </c:if>
         </tr>
     </table>
@@ -144,22 +162,22 @@
             <table class="indent">
                 <tr>
                     <td><fmt:message key="usersettings.username"/></td>
-                    <td><form:input path="username"/></td>
-                    <td class="warning"><form:errors path="username"/></td>
+                    <td><form:input path="username" cssStyle="width:15em"/></td>
+                    <td class="warning"><form:errors path="username" cssStyle="width:15em"/></td>
                 </tr>
                 <tr>
                     <td><fmt:message key="usersettings.email"/></td>
-                    <td><form:input path="email"/></td>
+                    <td><form:input path="email" cssStyle="width:15em"/></td>
                     <td class="warning"><form:errors path="email"/></td>
                 </tr>
                 <tr>
                     <td><fmt:message key="usersettings.password"/></td>
-                    <td><form:password path="password"/></td>
+                    <td><form:password path="password" cssStyle="width:15em"/></td>
                     <td class="warning"><form:errors path="password"/></td>
                 </tr>
                 <tr>
                     <td><fmt:message key="usersettings.confirmpassword"/></td>
-                    <td><form:password path="confirmPassword"/></td>
+                    <td><form:password path="confirmPassword" cssStyle="width:15em"/></td>
                     <td/>
                 </tr>
             </table>
@@ -189,7 +207,7 @@
             <table>
                 <tr>
                     <td><fmt:message key="usersettings.email"/></td>
-                    <td><form:input path="email"/></td>
+                    <td><form:input path="email" cssStyle="width:20em"/></td>
                     <td class="warning"><form:errors path="email"/></td>
                 </tr>
             </table>

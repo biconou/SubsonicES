@@ -47,16 +47,18 @@ import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Playlist;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlaylistService;
+import net.sourceforge.subsonic.util.Util;
 
 /**
  * @author Sindre Mehus
- * @version $Id: FolderBasedContentDirectory.java 3769 2013-12-08 08:39:55Z sindre_mehus $
+ * @version $Id: FolderBasedContentDirectory.java 4324 2015-01-19 20:22:14Z sindre_mehus $
  */
 public class FolderBasedContentDirectory extends SubsonicContentDirectory {
 
     private static final Logger LOG = Logger.getLogger(FolderBasedContentDirectory.class);
     private static final String CONTAINER_ID_PLAYLIST_ROOT = "playlists";
     private static final String CONTAINER_ID_PLAYLIST_PREFIX = "playlist-";
+    private static final String CONTAINER_ID_FOLDER_PREFIX = "folder-";
     private MediaFileService mediaFileService;
     private PlaylistService playlistService;
 
@@ -90,7 +92,8 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
                 return browseFlag == BrowseFlag.METADATA ? browsePlaylistMetadata(playlist) : browsePlaylist(playlist, firstResult, maxResults);
             }
 
-            MediaFile mediaFile = mediaFileService.getMediaFile(Integer.parseInt(objectId));
+            int mediaFileId = Integer.parseInt(objectId.replace(CONTAINER_ID_FOLDER_PREFIX, ""));
+            MediaFile mediaFile = mediaFileService.getMediaFile(mediaFileId);
             return browseFlag == BrowseFlag.METADATA ? browseMediaFileMetadata(mediaFile) : browseMediaFile(mediaFile, firstResult, maxResults);
 
         } catch (Throwable x) {
@@ -128,7 +131,7 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
     private BrowseResult browsePlaylistRoot(long firstResult, long maxResults) throws Exception {
         DIDLContent didl = new DIDLContent();
         List<Playlist> allPlaylists = playlistService.getAllPlaylists();
-        List<Playlist> selectedPlaylists = subList(allPlaylists, firstResult, maxResults);
+        List<Playlist> selectedPlaylists = Util.subList(allPlaylists, firstResult, maxResults);
         for (Playlist playlist : selectedPlaylists) {
             didl.addContainer(createPlaylistContainer(playlist));
         }
@@ -144,7 +147,7 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
 
     private BrowseResult browsePlaylist(Playlist playlist, long firstResult, long maxResults) throws Exception {
         List<MediaFile> allChildren = playlistService.getFilesInPlaylist(playlist.getId());
-        List<MediaFile> selectedChildren = subList(allChildren, firstResult, maxResults);
+        List<MediaFile> selectedChildren = Util.subList(allChildren, firstResult, maxResults);
 
         DIDLContent didl = new DIDLContent();
         for (MediaFile child : selectedChildren) {
@@ -156,7 +159,7 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
     private BrowseResult browseRoot(long firstResult, long maxResults) throws Exception {
         DIDLContent didl = new DIDLContent();
         List<MusicFolder> allFolders = settingsService.getAllMusicFolders();
-        List<MusicFolder> selectedFolders = subList(allFolders, firstResult, maxResults);
+        List<MusicFolder> selectedFolders = Util.subList(allFolders, firstResult, maxResults);
         for (MusicFolder folder : selectedFolders) {
             MediaFile mediaFile = mediaFileService.getMediaFile(folder.getPath());
             addContainerOrItem(didl, mediaFile);
@@ -177,17 +180,13 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
 
     private BrowseResult browseMediaFile(MediaFile mediaFile, long firstResult, long maxResults) throws Exception {
         List<MediaFile> allChildren = mediaFileService.getChildrenOf(mediaFile, true, true, true);
-        List<MediaFile> selectedChildren = subList(allChildren, firstResult, maxResults);
+        List<MediaFile> selectedChildren = Util.subList(allChildren, firstResult, maxResults);
 
         DIDLContent didl = new DIDLContent();
         for (MediaFile child : selectedChildren) {
             addContainerOrItem(didl, child);
         }
         return createBrowseResult(didl, selectedChildren.size(), allChildren.size());
-    }
-
-    private <T> List<T> subList(List<T> list, long offset, long max) {
-        return list.subList((int) offset, Math.min(list.size(), (int) (offset + max)));
     }
 
     private void addContainerOrItem(DIDLContent didl, MediaFile mediaFile) throws Exception {
@@ -225,7 +224,7 @@ public class FolderBasedContentDirectory extends SubsonicContentDirectory {
 
     private Container createContainer(MediaFile mediaFile) throws Exception {
         Container container = mediaFile.isAlbum() ? createAlbumContainer(mediaFile) : new MusicAlbum();
-        container.setId(String.valueOf(mediaFile.getId()));
+        container.setId(CONTAINER_ID_FOLDER_PREFIX + mediaFile.getId());
         container.setTitle(mediaFile.getName());
         List<MediaFile> children = mediaFileService.getChildrenOf(mediaFile, true, true, false);
         container.setChildCount(children.size());

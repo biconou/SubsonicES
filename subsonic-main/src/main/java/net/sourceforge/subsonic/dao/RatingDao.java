@@ -19,11 +19,15 @@
 package net.sourceforge.subsonic.dao;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MusicFolder;
 
 import static net.sourceforge.subsonic.domain.MediaFile.MediaType.ALBUM;
 
@@ -37,20 +41,28 @@ public class RatingDao extends AbstractDao {
     /**
      * Returns paths for the highest rated albums.
      *
-     * @param offset Number of albums to skip.
-     * @param count  Maximum number of albums to return.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param musicFolders Only return albums in these folders.
      * @return Paths for the highest rated albums.
      */
-    public List<String> getHighestRatedAlbums(int offset, int count) {
-        if (count < 1) {
-            return new ArrayList<String>();
+    public List<String> getHighestRatedAlbums(final int offset, final int count, final List<MusicFolder> musicFolders) {
+        if (count < 1 || musicFolders.isEmpty()) {
+            return Collections.emptyList();
         }
 
+        Map<String, Object> args = new HashMap<String, Object>() {{
+            put("type", ALBUM.name());
+            put("folders", MusicFolder.toPathList(musicFolders));
+            put("count", count);
+            put("offset", offset);
+        }};
+
         String sql = "select user_rating.path from user_rating, media_file " +
-                "where user_rating.path=media_file.path and media_file.present and media_file.type=?" +
-                "group by path " +
-                "order by avg(rating) desc limit ? offset ?";
-        return queryForStrings(sql, ALBUM.name(), count, offset);
+                     "where user_rating.path=media_file.path and media_file.present and media_file.type = :type and media_file.folder in (:folders) " +
+                     "group by path " +
+                     "order by avg(rating) desc limit :count offset :offset";
+        return namedQueryForStrings(sql, args);
     }
 
     /**
@@ -98,5 +110,24 @@ public class RatingDao extends AbstractDao {
         } catch (EmptyResultDataAccessException x) {
             return null;
         }
+    }
+
+    public int getRatedAlbumCount(final String username, final List<MusicFolder> musicFolders) {
+        if (musicFolders.isEmpty()) {
+            return 0;
+        }
+        Map<String, Object> args = new HashMap<String, Object>() {{
+            put("type", ALBUM.name());
+            put("folders", MusicFolder.toPathList(musicFolders));
+            put("username", username);
+        }};
+
+        return namedQueryForInt("select count(*) from user_rating, media_file " +
+                                "where media_file.path = user_rating.path " +
+                                "and media_file.type = :type " +
+                                "and media_file.present " +
+                                "and media_file.folder in (:folders) " +
+                                "and user_rating.username = :username",
+                                0, args);
     }
 }

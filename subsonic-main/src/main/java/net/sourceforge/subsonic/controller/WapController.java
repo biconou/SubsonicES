@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.SortedSet;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,17 +36,17 @@ import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.MusicIndex;
-import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayQueue;
+import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.RandomSearchCriteria;
 import net.sourceforge.subsonic.domain.SearchCriteria;
 import net.sourceforge.subsonic.domain.SearchResult;
 import net.sourceforge.subsonic.domain.User;
-import net.sourceforge.subsonic.service.SearchService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.MusicIndexService;
 import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.PlaylistService;
+import net.sourceforge.subsonic.service.SearchService;
 import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
 
@@ -72,18 +71,20 @@ public class WapController extends MultiActionController {
 
     public ModelAndView wap(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Map<String, Object> map = new HashMap<String, Object>();
-        List<MusicFolder> folders = settingsService.getAllMusicFolders();
+
+        String username = securityService.getCurrentUsername(request);
+        List<MusicFolder> folders = settingsService.getMusicFoldersForUser(username);
 
         if (folders.isEmpty()) {
             map.put("noMusic", true);
         } else {
 
-            SortedMap<MusicIndex, SortedSet<MusicIndex.SortableArtistWithMediaFiles>> allArtists = musicIndexService.getIndexedArtists(folders, false);
+            SortedMap<MusicIndex, List<MusicIndex.SortableArtistWithMediaFiles>> allArtists = musicIndexService.getIndexedArtists(folders, false);
 
             // If an index is given as parameter, only show music files for this index.
             String index = request.getParameter("index");
             if (index != null) {
-                SortedSet<MusicIndex.SortableArtistWithMediaFiles> artists = allArtists.get(new MusicIndex(index));
+                List<MusicIndex.SortableArtistWithMediaFiles> artists = allArtists.get(new MusicIndex(index));
                 if (artists == null) {
                     map.put("noMusic", true);
                 } else {
@@ -154,7 +155,8 @@ public class WapController extends MultiActionController {
                 List<MediaFile> songs = playlistService.getFilesInPlaylist(ServletRequestUtils.getIntParameter(request, "id"));
                 playQueue.addFiles(false, songs);
             } else if (request.getParameter("random") != null) {
-                List<MediaFile> randomFiles = searchService.getRandomSongs(new RandomSearchCriteria(20, null, null, null, null));
+                List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(securityService.getCurrentUsername(request));
+                List<MediaFile> randomFiles = searchService.getRandomSongs(new RandomSearchCriteria(20, null, null, null, musicFolders));
                 playQueue.addFiles(false, randomFiles);
             }
         }
@@ -174,10 +176,11 @@ public class WapController extends MultiActionController {
     }
 
     public ModelAndView searchResult(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String username = securityService.getCurrentUsername(request);
         String query = request.getParameter("query");
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put("hits", search(query));
+        map.put("hits", search(query, username));
 
         return new ModelAndView("wap/searchResult", "model", map);
     }
@@ -207,13 +210,14 @@ public class WapController extends MultiActionController {
         return settings(request, response);
     }
 
-    private List<MediaFile> search(String query) throws IOException {
+    private List<MediaFile> search(String query, String username) throws IOException {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setQuery(query);
         criteria.setOffset(0);
         criteria.setCount(50);
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
 
-        SearchResult result = searchService.search(criteria, SearchService.IndexType.SONG);
+        SearchResult result = searchService.search(criteria, musicFolders, SearchService.IndexType.SONG);
         return result.getMediaFiles();
     }
 

@@ -23,19 +23,18 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
+
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.domain.CoverArtScheme;
-import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
+import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.TranscodeScheme;
-
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 
 /**
  * Provides player-related database services.
@@ -46,7 +45,7 @@ public class PlayerDao extends AbstractDao {
 
     private static final Logger LOG = Logger.getLogger(PlayerDao.class);
     private static final String COLUMNS = "id, name, type, username, ip_address, auto_control_enabled, " +
-            "last_seen, cover_art_scheme, transcode_scheme, dynamic_ip, technology, client_id, cmushost, cmusport, cmuspassword";
+                                          "last_seen, cover_art_scheme, transcode_scheme, dynamic_ip, technology, client_id, cmushost, cmusport, cmuspassword";
 
     private PlayerRowMapper rowMapper = new PlayerRowMapper();
     private Map<String, PlayQueue> playlists = Collections.synchronizedMap(new HashMap<String, PlayQueue>());
@@ -102,7 +101,7 @@ public class PlayerDao extends AbstractDao {
 	private void completeCmusFoldersPath(Player player) {
 		if (player != null && player.getTechnology().equals(PlayerTechnology.CMUS)) {
         	
-        	final Map<Integer, String> cmusFolders = new Hashtable<Integer, String>();
+        	final Map<Integer, String> cmusFolders = new HashMap<Integer, String>();
         	
         	query("select music_folder_id, player_id,cmuspath from cmus_player_folder_path where player_id = ?", 
         			new RowMapper() {
@@ -134,10 +133,10 @@ public class PlayerDao extends AbstractDao {
         player.setId(String.valueOf(id));
         String sql = "insert into player (" + COLUMNS + ") values (" + questionMarks(COLUMNS) + ")";
         update(sql, player.getId(), player.getName(), player.getType(), player.getUsername(),
-                player.getIpAddress(), player.isAutoControlEnabled(),
-                player.getLastSeen(), player.getCoverArtScheme().name(),
-                player.getTranscodeScheme().name(), player.isDynamicIp(),
-                player.getTechnology().name(), player.getClientId());
+               player.getIpAddress(), player.isAutoControlEnabled(),
+               player.getLastSeen(), CoverArtScheme.MEDIUM.name(),
+               player.getTranscodeScheme().name(), player.isDynamicIp(),
+               player.getTechnology().name(), player.getClientId());
         addPlaylist(player);
 
         LOG.info("Created player " + id + '.');
@@ -178,28 +177,26 @@ public class PlayerDao extends AbstractDao {
      */
     public void updatePlayer(Player player) {
         String sql = "update player set " +
-                "name = ?," +
-                "type = ?," +
-                "username = ?," +
-                "ip_address = ?," +
-                "auto_control_enabled = ?," +
-                "last_seen = ?," +
-                "cover_art_scheme = ?," +
-                "transcode_scheme = ?, " +
-                "dynamic_ip = ?, " +
-                "technology = ?, " +
-                "client_id = ?, " +
-                "cmushost = ?, " +
-                "cmusport = ?, " +
-                "cmuspassword = ? " +
-                "where id = ?";
+                     "name = ?," +
+                     "type = ?," +
+                     "username = ?," +
+                     "ip_address = ?," +
+                     "auto_control_enabled = ?," +
+                     "last_seen = ?," +
+                     "transcode_scheme = ?, " +
+                     "dynamic_ip = ?, " +
+                     "technology = ?, " +
+                     "client_id = ?, " +
+                     "cmushost = ?, " +
+                     "cmusport = ?, " +
+                     "cmuspassword = ? " +                
+                     "where id = ?";
         update(sql, player.getName(), player.getType(), player.getUsername(),
-                player.getIpAddress(), player.isAutoControlEnabled(),
-                player.getLastSeen(), player.getCoverArtScheme().name(),
-                player.getTranscodeScheme().name(), player.isDynamicIp(),
-                player.getTechnology(), player.getClientId(),
-                player.getCmusHost(),player.getCmusPort(),player.getCmusPassword(),
-                player.getId());
+               player.getIpAddress(), player.isAutoControlEnabled(),
+               player.getLastSeen(), player.getTranscodeScheme().name(), player.isDynamicIp(),
+               player.getTechnology(), player.getClientId(), 
+               player.getCmusHost(),player.getCmusPort(),player.getCmusPassword(),
+               player.getId());
         
         if (player.getTechnology().equals(PlayerTechnology.CMUS)) {
         	Map<Integer, String> cmusFolder = player.getCmusMusicFoldersPath();
@@ -235,7 +232,7 @@ public class PlayerDao extends AbstractDao {
             player.setIpAddress(rs.getString(col++));
             player.setAutoControlEnabled(rs.getBoolean(col++));
             player.setLastSeen(rs.getTimestamp(col++));
-            player.setCoverArtScheme(CoverArtScheme.valueOf(rs.getString(col++)));
+            col++; // Ignore cover art scheme.
             player.setTranscodeScheme(TranscodeScheme.valueOf(rs.getString(col++)));
             player.setDynamicIp(rs.getBoolean(col++));
             player.setTechnology(PlayerTechnology.valueOf(rs.getString(col++)));

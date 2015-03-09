@@ -20,6 +20,8 @@ package net.sourceforge.subsonic.ajax;
 
 import java.util.List;
 
+import net.sourceforge.subsonic.util.StringUtil;
+
 /**
  * The playlist of a player.
  *
@@ -28,16 +30,15 @@ import java.util.List;
 public class PlayQueueInfo {
 
     private final List<Entry> entries;
-    private final int index;
     private final boolean stopEnabled;
     private final boolean repeatEnabled;
     private final boolean sendM3U;
     private final float gain;
     private int startPlayerAt = -1;
+    private long startPlayerAtPosition; // millis
 
-    public PlayQueueInfo(List<Entry> entries, int index, boolean stopEnabled, boolean repeatEnabled, boolean sendM3U, float gain) {
+    public PlayQueueInfo(List<Entry> entries, boolean stopEnabled, boolean repeatEnabled, boolean sendM3U, float gain) {
         this.entries = entries;
-        this.index = index;
         this.stopEnabled = stopEnabled;
         this.repeatEnabled = repeatEnabled;
         this.sendM3U = sendM3U;
@@ -48,8 +49,14 @@ public class PlayQueueInfo {
         return entries;
     }
 
-    public int getIndex() {
-        return index;
+    public String getDurationAsString() {
+        int durationSeconds = 0;
+        for (Entry entry : entries) {
+            if (entry.getDuration() != null) {
+                durationSeconds += entry.getDuration();
+            }
+        }
+        return StringUtil.formatDuration(durationSeconds);
     }
 
     public boolean isStopEnabled() {
@@ -77,6 +84,15 @@ public class PlayQueueInfo {
         return this;
     }
 
+    public long getStartPlayerAtPosition() {
+        return startPlayerAtPosition;
+    }
+
+    public PlayQueueInfo setStartPlayerAtPosition(long startPlayerAtPosition) {
+        this.startPlayerAtPosition = startPlayerAtPosition;
+        return this;
+    }
+
     public static class Entry {
         private final int id;
         private final Integer trackNumber;
@@ -94,10 +110,13 @@ public class PlayQueueInfo {
         private final boolean starred;
         private final String albumUrl;
         private final String streamUrl;
+        private final String remoteStreamUrl;
+        private final String coverArtUrl;
+        private final String remoteCoverArtUrl;
 
         public Entry(int id, Integer trackNumber, String title, String artist, String album, String genre, Integer year,
-                     String bitRate, Integer duration, String durationAsString, String format, String contentType, String fileSize,
-                     boolean starred, String albumUrl, String streamUrl) {
+                String bitRate, Integer duration, String durationAsString, String format, String contentType, String fileSize,
+                boolean starred, String albumUrl, String streamUrl, String remoteStreamUrl, String coverArtUrl, String remoteCoverArtUrl) {
             this.id = id;
             this.trackNumber = trackNumber;
             this.title = title;
@@ -114,6 +133,9 @@ public class PlayQueueInfo {
             this.starred = starred;
             this.albumUrl = albumUrl;
             this.streamUrl = streamUrl;
+            this.remoteStreamUrl = remoteStreamUrl;
+            this.coverArtUrl = coverArtUrl;
+            this.remoteCoverArtUrl = remoteCoverArtUrl;
         }
 
         public int getId() {
@@ -179,6 +201,17 @@ public class PlayQueueInfo {
         public String getStreamUrl() {
             return streamUrl;
         }
-    }
 
+        public String getRemoteStreamUrl() {
+            return remoteStreamUrl;
+        }
+
+        public String getCoverArtUrl() {
+            return coverArtUrl;
+        }
+
+        public String getRemoteCoverArtUrl() {
+            return remoteCoverArtUrl;
+        }
+    }
 }

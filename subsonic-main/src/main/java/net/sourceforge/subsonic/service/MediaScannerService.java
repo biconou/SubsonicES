@@ -146,7 +146,6 @@ public class MediaScannerService {
             public void run() {
                 doScanLibrary();
                 playlistService.importPlaylists();
-                playlistService.updatePlaylistStatistics();
             }
         };
 
@@ -232,8 +231,8 @@ public class MediaScannerService {
                 scanFile(child, musicFolder, lastScanned, albumCount, genres);
             }
         } else {
-            updateAlbum(file, lastScanned, albumCount);
-            updateArtist(file, lastScanned, albumCount);
+            updateAlbum(file, musicFolder, lastScanned, albumCount);
+            updateArtist(file, musicFolder, lastScanned, albumCount);
             statistics.incrementSongs(1);
         }
 
@@ -262,7 +261,7 @@ public class MediaScannerService {
         }
     }
 
-    private void updateAlbum(MediaFile file, Date lastScanned, Map<String, Integer> albumCount) {
+    private void updateAlbum(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount) {
         String artist = file.getAlbumArtist() != null ? file.getAlbumArtist() : file.getArtist();
         if (file.getAlbumName() == null || artist == null || file.getParentPath() == null || !file.isAudio()) {
             return;
@@ -291,6 +290,7 @@ public class MediaScannerService {
 
         boolean firstEncounter = !lastScanned.equals(album.getLastScanned());
         if (firstEncounter) {
+            album.setFolderId(musicFolder.getId());
             album.setDurationSeconds(0);
             album.setSongCount(0);
             Integer n = albumCount.get(artist);
@@ -302,7 +302,6 @@ public class MediaScannerService {
         if (file.isAudio()) {
             album.setSongCount(album.getSongCount() + 1);
         }
-
         album.setLastScanned(lastScanned);
         album.setPresent(true);
         albumDao.createOrUpdateAlbum(album);
@@ -317,7 +316,7 @@ public class MediaScannerService {
         }
     }
 
-    private void updateArtist(MediaFile file, Date lastScanned, Map<String, Integer> albumCount) {
+    private void updateArtist(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount) {
         if (file.getAlbumArtist() == null || !file.isAudio()) {
             return;
         }
@@ -343,7 +342,7 @@ public class MediaScannerService {
         artistDao.createOrUpdateArtist(artist);
 
         if (firstEncounter) {
-            searchService.index(artist);
+            searchService.index(artist, musicFolder);
         }
     }
 

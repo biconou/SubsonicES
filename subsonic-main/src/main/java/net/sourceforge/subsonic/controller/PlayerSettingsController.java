@@ -27,7 +27,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import net.sourceforge.subsonic.command.PlayerSettingsCommand;
 import net.sourceforge.subsonic.command.PlayerSettingsCommand.MusicFolderRef;
-import net.sourceforge.subsonic.domain.CoverArtScheme;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.PlayerTechnology;
@@ -81,7 +80,6 @@ public class PlayerSettingsController extends SimpleFormController {
             command.setLastSeen(player.getLastSeen());
             command.setDynamicIp(player.isDynamicIp());
             command.setAutoControlEnabled(player.isAutoControlEnabled());
-            command.setCoverArtSchemeName(player.getCoverArtScheme().name());
             command.setTranscodeSchemeName(player.getTranscodeScheme().name());
             command.setTechnologyName(player.getTechnology().name());
             command.setAllTranscodings(transcodingService.getAllTranscodings());
@@ -110,7 +108,6 @@ public class PlayerSettingsController extends SimpleFormController {
 
         command.setTranscodingSupported(transcodingService.isDownsamplingSupported(null));
         command.setTranscodeDirectory(transcodingService.getTranscodeDirectory().getPath());
-        command.setCoverArtSchemes(CoverArtScheme.values());
         command.setTranscodeSchemes(TranscodeScheme.values());
         command.setTechnologies(PlayerTechnology.values());
         command.setPlayers(players.toArray(new Player[players.size()]));
@@ -142,7 +139,6 @@ public class PlayerSettingsController extends SimpleFormController {
         Player player = playerService.getPlayerById(command.getPlayerId());
 
         player.setAutoControlEnabled(command.isAutoControlEnabled());
-        player.setCoverArtScheme(CoverArtScheme.valueOf(command.getCoverArtSchemeName()));
         player.setDynamicIp(command.isDynamicIp());
         player.setName(StringUtils.trimToNull(command.getName()));
         player.setTranscodeScheme(TranscodeScheme.valueOf(command.getTranscodeSchemeName()));

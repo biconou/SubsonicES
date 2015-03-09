@@ -32,6 +32,7 @@ import org.springframework.web.servlet.mvc.ParameterizableViewController;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlayerService;
+import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.util.StringUtil;
 
@@ -42,12 +43,13 @@ import net.sourceforge.subsonic.util.StringUtil;
  */
 public class VideoPlayerController extends ParameterizableViewController {
 
-    public static final int DEFAULT_BIT_RATE = 1000;
+    public static final int DEFAULT_BIT_RATE = 2000;
     public static final int[] BIT_RATES = {200, 300, 400, 500, 700, 1000, 1200, 1500, 2000, 3000, 5000};
 
     private MediaFileService mediaFileService;
     private SettingsService settingsService;
     private PlayerService playerService;
+    private SecurityService securityService;
 
     @Override
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -56,23 +58,39 @@ public class VideoPlayerController extends ParameterizableViewController {
         int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
         MediaFile file = mediaFileService.getMediaFile(id);
 
-        int timeOffset = ServletRequestUtils.getIntParameter(request, "timeOffset", 0);
-        timeOffset = Math.max(0, timeOffset);
         Integer duration = file.getDurationSeconds();
-        if (duration != null) {
-            map.put("skipOffsets", createSkipOffsets(duration));
-            timeOffset = Math.min(duration, timeOffset);
-            duration -= timeOffset;
+        String playerId = playerService.getPlayer(request, response).getId();
+        String url = request.getRequestURL().toString();
+        String streamUrl = url.replaceFirst("/videoPlayer.view.*", "/stream?id=" + file.getId() + "&player=" + playerId);
+        String coverArtUrl = url.replaceFirst("/videoPlayer.view.*", "/coverArt.view?id=" + file.getId());
+
+        // Rewrite URLs in case we're behind a proxy.
+        if (settingsService.isRewriteUrlEnabled()) {
+            String referer = request.getHeader("referer");
+            streamUrl = StringUtil.rewriteUrl(streamUrl, referer);
+            coverArtUrl = StringUtil.rewriteUrl(coverArtUrl, referer);
         }
 
+        boolean urlRedirectionEnabled = settingsService.isUrlRedirectionEnabled();
+        String urlRedirectFrom = settingsService.getUrlRedirectFrom();
+        String urlRedirectContextPath = settingsService.getUrlRedirectContextPath();
+
+        String localIp = settingsService.getLocalIpAddress();
+        int localPort = settingsService.getPort();
+        String remoteStreamUrl = StringUtil.rewriteRemoteUrl(streamUrl, urlRedirectionEnabled, urlRedirectFrom,
+                urlRedirectContextPath, localIp, localPort);
+        String remoteCoverArtUrl = StringUtil.rewriteRemoteUrl(coverArtUrl, urlRedirectionEnabled, urlRedirectFrom,
+                urlRedirectContextPath, localIp, localPort);
+
         map.put("video", file);
-        map.put("player", playerService.getPlayer(request, response).getId());
-        map.put("maxBitRate", ServletRequestUtils.getIntParameter(request, "maxBitRate", DEFAULT_BIT_RATE));
-        map.put("popout", ServletRequestUtils.getBooleanParameter(request, "popout", false));
+        map.put("streamUrl", streamUrl);
+        map.put("remoteStreamUrl", remoteStreamUrl);
+        map.put("remoteCoverArtUrl", remoteCoverArtUrl);
         map.put("duration", duration);
-        map.put("timeOffset", timeOffset);
         map.put("bitRates", BIT_RATES);
+        map.put("defaultBitRate", DEFAULT_BIT_RATE);
         map.put("licenseInfo", settingsService.getLicenseInfo());
+        map.put("user", securityService.getCurrentUser(request));
 
         ModelAndView result = super.handleRequestInternal(request, response);
         result.addObject("model", map);
@@ -97,5 +115,9 @@ public class VideoPlayerController extends ParameterizableViewController {
 
     public void setPlayerService(PlayerService playerService) {
         this.playerService = playerService;
+    }
+
+    public void setSecurityService(SecurityService securityService) {
+        this.securityService = securityService;
     }
 }

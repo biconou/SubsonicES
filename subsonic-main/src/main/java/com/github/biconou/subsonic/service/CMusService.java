@@ -284,6 +284,7 @@ public class CMusService  {
 	 * @param player
 	 * @return
 	 */
+        @Deprecated
 	public List<TransferStatus> checkForNowPlayingService(Player player) {
 		
 		//List<TransferStatus> statuses = null;

@@ -4,6 +4,22 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+
+    <script type="text/javascript" language="javascript">
+
+        function showMoreArtists() {
+            $('.artistRow').show(); $('#moreArtists').hide();
+        }
+
+        function showMoreAlbums() {
+            $('.albumRow').show(); $('#moreAlbums').hide();
+        }
+
+        function showMoreSongs() {
+            $('.songRow').show();$('#moreSongs').hide();
+        }
+
+    </script>
 </head>
 <body class="mainframe bgcolor1">
 
@@ -11,17 +27,6 @@
     <img src="<spring:theme code="searchImage"/>" alt=""/>
     <span style="vertical-align: middle"><fmt:message key="search.title"/></span>
 </h1>
-
-<form:form commandName="command" method="post" action="search.view" name="searchForm">
-    <table>
-        <tr>
-            <td><fmt:message key="search.query"/></td>
-            <td style="padding-left:0.25em"><form:input path="query" size="35"/></td>
-            <td style="padding-left:0.25em"><input type="submit" onclick="search(0)" value="<fmt:message key="search.search"/>"/></td>
-        </tr>
-    </table>
-
-</form:form>
 
 <c:if test="${command.indexBeingCreated}">
     <p class="warning"><fmt:message key="search.index"/></p>
@@ -33,7 +38,7 @@
 
 <c:if test="${not empty command.artists}">
     <h2><b><fmt:message key="search.hits.artists"/></b></h2>
-    <table style="border-collapse:collapse">
+    <table class="music indent">
         <c:forEach items="${command.artists}" var="match" varStatus="loopStatus">
 
             <sub:url value="/main.view" var="mainUrl">
@@ -47,21 +52,19 @@
                     <c:param name="addEnabled" value="${command.user.streamRole and (not command.partyModeEnabled or not match.directory)}"/>
                     <c:param name="asTable" value="true"/>
                 </c:import>
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-left:0.25em;padding-right:1.25em">
-                    <a href="${mainUrl}">${match.name}</a>
-                </td>
+                <td class="truncate"><a href="${mainUrl}">${fn:escapeXml(match.name)}</a></td>
             </tr>
 
             </c:forEach>
     </table>
     <c:if test="${fn:length(command.artists) gt 5}">
-        <div id="moreArtists" class="forward"><a href="#" onclick="$('.artistRow').show(); $('#moreArtists').hide();"><fmt:message key="search.hits.more"/></a></div>
+        <div id="moreArtists" class="forward"><a href="javascript:showMoreArtists()"><fmt:message key="search.hits.more"/></a></div>
     </c:if>
 </c:if>
 
 <c:if test="${not empty command.albums}">
     <h2><b><fmt:message key="search.hits.albums"/></b></h2>
-    <table style="border-collapse:collapse">
+    <table class="music indent">
         <c:forEach items="${command.albums}" var="match" varStatus="loopStatus">
 
             <sub:url value="/main.view" var="mainUrl">
@@ -76,26 +79,21 @@
                     <c:param name="asTable" value="true"/>
                 </c:import>
 
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-left:0.25em;padding-right:1.25em">
-                    <a href="${mainUrl}">${match.albumName}</a>
-                </td>
-
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-right:0.25em">
-                    <span class="detail">${match.artist}</span>
-                </td>
+                <td class="truncate"><a href="${mainUrl}">${fn:escapeXml(match.albumName)}</a></td>
+                <td class="truncate"><span class="detail">${fn:escapeXml(match.artist)}</span></td>
             </tr>
 
             </c:forEach>
     </table>
     <c:if test="${fn:length(command.albums) gt 5}">
-        <div id="moreAlbums" class="forward"><a href="#" onclick="$('.albumRow').show(); $('#moreAlbums').hide();"><fmt:message key="search.hits.more"/></a></div>
+        <div id="moreAlbums" class="forward"><a href="javascript:showMoreAlbums()"><fmt:message key="search.hits.more"/></a></div>
     </c:if>
 </c:if>
 
 
 <c:if test="${not empty command.songs}">
     <h2><b><fmt:message key="search.hits.songs"/></b></h2>
-    <table style="border-collapse:collapse">
+    <table class="music indent">
         <c:forEach items="${command.songs}" var="match" varStatus="loopStatus">
 
             <sub:url value="/main.view" var="mainUrl">
@@ -111,23 +109,15 @@
                     <c:param name="asTable" value="true"/>
                 </c:import>
 
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-left:0.25em;padding-right:1.25em">
-                        <span class="songTitle">${match.title}</span>
-                </td>
-
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-right:1.25em">
-                    <a href="${mainUrl}"><span class="detail">${match.albumName}</span></a>
-                </td>
-
-                <td ${loopStatus.count % 2 == 1 ? "class='bgcolor2'" : ""} style="padding-right:0.25em">
-                    <span class="detail">${match.artist}</span>
-                </td>
+                <td class="truncate"><span class="songTitle">${fn:escapeXml(match.title)}</span></td>
+                <td class="truncate"><a href="${mainUrl}"><span class="detail">${fn:escapeXml(match.albumName)}</span></a></td>
+                <td class="truncate"><span class="detail">${fn:escapeXml(match.artist)}</span></td>
             </tr>
 
             </c:forEach>
     </table>
 <c:if test="${fn:length(command.songs) gt 15}">
-    <div id="moreSongs" class="forward"><a href="#" onclick="$('.songRow').show();$('#moreSongs').hide(); "><fmt:message key="search.hits.more"/></a></div>
+    <div id="moreSongs" class="forward"><a href="javascript:showMoreSongs()"><fmt:message key="search.hits.more"/></a></div>
 </c:if>
 </c:if>
 

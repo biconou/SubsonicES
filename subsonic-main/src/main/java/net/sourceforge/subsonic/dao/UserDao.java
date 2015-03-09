@@ -41,12 +41,12 @@ public class UserDao extends AbstractDao {
     private static final Logger LOG = Logger.getLogger(UserDao.class);
     private static final String USER_COLUMNS = "username, password, email, ldap_authenticated, bytes_streamed, bytes_downloaded, bytes_uploaded";
     private static final String USER_SETTINGS_COLUMNS = "username, locale, theme_id, final_version_notification, beta_version_notification, " +
-            "main_caption_cutoff, main_track_number, main_artist, main_album, main_genre, " +
+            "song_notification, main_track_number, main_artist, main_album, main_genre, " +
             "main_year, main_bit_rate, main_duration, main_format, main_file_size, " +
-            "playlist_caption_cutoff, playlist_track_number, playlist_artist, playlist_album, playlist_genre, " +
+            "playlist_track_number, playlist_artist, playlist_album, playlist_genre, " +
             "playlist_year, playlist_bit_rate, playlist_duration, playlist_format, playlist_file_size, " +
             "last_fm_enabled, last_fm_username, last_fm_password, transcode_scheme, show_now_playing, selected_music_folder_id, " +
-            "party_mode_enabled, now_playing_allowed, avatar_scheme, system_avatar_id, changed, show_chat";
+            "party_mode_enabled, now_playing_allowed, avatar_scheme, system_avatar_id, changed, show_chat, show_artist_info, auto_hide_play_queue, view_as_list";
 
     private static final Integer ROLE_ID_ADMIN = 1;
     private static final Integer ROLE_ID_DOWNLOAD = 2;
@@ -180,16 +180,18 @@ public class UserDao extends AbstractDao {
         UserSettings.Visibility playlist = settings.getPlaylistVisibility();
         getJdbcTemplate().update(sql, new Object[]{settings.getUsername(), locale, settings.getThemeId(),
                 settings.isFinalVersionNotificationEnabled(), settings.isBetaVersionNotificationEnabled(),
-                main.getCaptionCutoff(), main.isTrackNumberVisible(), main.isArtistVisible(), main.isAlbumVisible(),
-                main.isGenreVisible(), main.isYearVisible(), main.isBitRateVisible(), main.isDurationVisible(),
-                main.isFormatVisible(), main.isFileSizeVisible(),
-                playlist.getCaptionCutoff(), playlist.isTrackNumberVisible(), playlist.isArtistVisible(), playlist.isAlbumVisible(),
+                settings.isSongNotificationEnabled(), main.isTrackNumberVisible(),
+                main.isArtistVisible(), main.isAlbumVisible(), main.isGenreVisible(), main.isYearVisible(),
+                main.isBitRateVisible(), main.isDurationVisible(), main.isFormatVisible(), main.isFileSizeVisible(),
+                playlist.isTrackNumberVisible(), playlist.isArtistVisible(), playlist.isAlbumVisible(),
                 playlist.isGenreVisible(), playlist.isYearVisible(), playlist.isBitRateVisible(), playlist.isDurationVisible(),
                 playlist.isFormatVisible(), playlist.isFileSizeVisible(),
                 settings.isLastFmEnabled(), settings.getLastFmUsername(), encrypt(settings.getLastFmPassword()),
                 settings.getTranscodeScheme().name(), settings.isShowNowPlayingEnabled(),
                 settings.getSelectedMusicFolderId(), settings.isPartyModeEnabled(), settings.isNowPlayingAllowed(),
-                settings.getAvatarScheme().name(), settings.getSystemAvatarId(), settings.getChanged(), settings.isShowChatEnabled()});
+                settings.getAvatarScheme().name(), settings.getSystemAvatarId(), settings.getChanged(),
+                settings.isShowChatEnabled(), settings.isShowArtistInfoEnabled(), settings.isAutoHidePlayQueue(),
+                settings.isViewAsList()});
     }
 
     private static String encrypt(String s) {
@@ -309,8 +311,8 @@ public class UserDao extends AbstractDao {
             settings.setThemeId(rs.getString(col++));
             settings.setFinalVersionNotificationEnabled(rs.getBoolean(col++));
             settings.setBetaVersionNotificationEnabled(rs.getBoolean(col++));
+            settings.setSongNotificationEnabled(rs.getBoolean(col++));
 
-            settings.getMainVisibility().setCaptionCutoff(rs.getInt(col++));
             settings.getMainVisibility().setTrackNumberVisible(rs.getBoolean(col++));
             settings.getMainVisibility().setArtistVisible(rs.getBoolean(col++));
             settings.getMainVisibility().setAlbumVisible(rs.getBoolean(col++));
@@ -321,7 +323,6 @@ public class UserDao extends AbstractDao {
             settings.getMainVisibility().setFormatVisible(rs.getBoolean(col++));
             settings.getMainVisibility().setFileSizeVisible(rs.getBoolean(col++));
 
-            settings.getPlaylistVisibility().setCaptionCutoff(rs.getInt(col++));
             settings.getPlaylistVisibility().setTrackNumberVisible(rs.getBoolean(col++));
             settings.getPlaylistVisibility().setArtistVisible(rs.getBoolean(col++));
             settings.getPlaylistVisibility().setAlbumVisible(rs.getBoolean(col++));
@@ -345,6 +346,9 @@ public class UserDao extends AbstractDao {
             settings.setSystemAvatarId((Integer) rs.getObject(col++));
             settings.setChanged(rs.getTimestamp(col++));
             settings.setShowChatEnabled(rs.getBoolean(col++));
+            settings.setShowArtistInfoEnabled(rs.getBoolean(col++));
+            settings.setAutoHidePlayQueue(rs.getBoolean(col++));
+            settings.setViewAsList(rs.getBoolean(col++));
 
             return settings;
         }

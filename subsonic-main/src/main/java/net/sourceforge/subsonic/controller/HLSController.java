@@ -37,6 +37,7 @@ import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlayerService;
+import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.util.Pair;
 import net.sourceforge.subsonic.util.StringUtil;
 
@@ -52,22 +53,34 @@ public class HLSController implements Controller {
 
     private PlayerService playerService;
     private MediaFileService mediaFileService;
+    private SecurityService securityService;
 
     public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
+        response.addHeader("Access-Control-Allow-Origin", "*");
+
         int id = ServletRequestUtils.getIntParameter(request, "id");
         MediaFile mediaFile = mediaFileService.getMediaFile(id);
+        Player player = playerService.getPlayer(request, response);
+        String username = player.getUsername();
+
         if (mediaFile == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Media file not found: " + id);
             return null;
         }
+
+        if (username != null && !securityService.isFolderAccessAllowed(mediaFile, username)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                               "Access to file " + mediaFile.getId() + " is forbidden for user " + username);
+            return null;
+        }
+
         Integer duration = mediaFile.getDurationSeconds();
         if (duration == null || duration == 0) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unknown duration for media file: " + id);
             return null;
         }
 
-        Player player = playerService.getPlayer(request, response);
         response.setContentType("application/vnd.apple.mpegurl");
         response.setCharacterEncoding(StringUtil.ENCODING_UTF8);
         List<Pair<Integer, Dimension>> bitRates = parseBitRates(request);
@@ -180,5 +193,9 @@ public class HLSController implements Controller {
 
     public void setPlayerService(PlayerService playerService) {
         this.playerService = playerService;
+    }
+
+    public void setSecurityService(SecurityService securityService) {
+        this.securityService = securityService;
     }
 }
