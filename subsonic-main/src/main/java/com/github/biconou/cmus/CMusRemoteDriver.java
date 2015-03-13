@@ -282,7 +282,7 @@ public class CMusRemoteDriver {
 	 */
 	public synchronized void sendCommandToCMus(final String command,final CMusCommandHandler handler) throws Exception {
 
-		LOG.debug("sending command to cmus : {}",command);
+		LOG.debug("sending command to cmus {}:{} : {}",new Object[]{host,port,command});
 
 		try {
 			

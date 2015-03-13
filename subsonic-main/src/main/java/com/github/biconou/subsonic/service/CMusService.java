@@ -58,9 +58,6 @@ public class CMusService  {
 	private SettingsService settingsService;
 	private SecurityService securityService;
 
-	// TODO not safe if multiple players
-	// TODO currentPlayingFile is perhaps non necessary !!!! try to remove it.
-	private MediaFile currentPlayingFile;
 	private float gain = 0.5f;
 	private int offset;
 	private MediaFileService mediaFileService;
@@ -216,14 +213,18 @@ public class CMusService  {
 				LOG.debug("Begin of play : file = {}",currentFileInPlayQueue != null?currentFileInPlayQueue.getName():"null");
 			}
 			
-			// Resume if possible.
-			boolean sameFile = currentFileInPlayQueue != null && currentFileInPlayQueue.equals(currentPlayingFile);
+                        CMusStatus cmusStatus = cmusDriver.status();
+                        String currentPlayingFileInCmus = cmusStatus.getFile();
+                        String currentFileNameInPlayQueue = computeFilePathForCmus(player, currentFileInPlayQueue.getFile().getAbsolutePath());
+                        
+			// Resume if possible.                                             
+			boolean sameFile = currentFileNameInPlayQueue != null && currentFileNameInPlayQueue.equals(currentPlayingFileInCmus);
 			if (LOG.isDebugEnabled()) {				
 				LOG.debug("sameFile={} (file={} and currentPlayingFile={})",new Object[]{new Boolean(sameFile),currentFileInPlayQueue.getName(),
-						currentPlayingFile == null?"null":currentPlayingFile.getName()});
+						currentPlayingFileInCmus == null?"null":currentPlayingFileInCmus});
 			}
 
-			boolean paused = cmusDriver.isPaused();
+                        boolean paused = cmusStatus.isPaused();
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("CMUS paused ? {} ",paused);
 			}
@@ -236,9 +237,11 @@ public class CMusService  {
 				
 				deleteCmusPlayingFile(player);
 
+                                /*
 				if (currentPlayingFile != null) {
 					onSongEnd(player,currentPlayingFile);
 				}
+                                */
 
 				if (currentFileInPlayQueue != null) {
 
@@ -253,10 +256,6 @@ public class CMusService  {
 					onSongStart(player,currentFileInPlayQueue);
 				}
 			}
-
-			currentPlayingFile = currentFileInPlayQueue;
-
-
 
 			// load the other songs in cmus play queue starting with the second file in queue
 			LOG.debug("load the other songs in cmus play queue starting with the next file in queue");
@@ -279,28 +278,6 @@ public class CMusService  {
 	}
 
 	
-	/**
-	 * 
-	 * @param player
-	 * @return
-	 */
-        @Deprecated
-	public List<TransferStatus> checkForNowPlayingService(Player player) {
-		
-		//List<TransferStatus> statuses = null;
-		checkCmusStatus(player);
-	//	if (player.getPlayQueue().getStatus().equals(Status.PLAYING)) {			
-//		MediaFile currentPlayingInPlayQueue = player.getPlayQueue().getCurrentFile();
-//			if (currentPlayingInPlayQueue != null) {
-//				TransferStatus status = statusService.createStreamStatus(player);
-//				status.setFile(currentPlayingInPlayQueue.getFile());
-//				status.addBytesTransfered(currentPlayingInPlayQueue.getFileSize());
-//				statuses = new ArrayList<TransferStatus>();
-//				statuses.add(status);
-//			} 
-//		}
-		return statusService.getStreamStatusesForPlayer(player);
-	}
 	/**
 	 * 
 	 */
@@ -376,9 +353,6 @@ public class CMusService  {
 		TransferStatus status = statusService.createStreamStatus(player);
 		status.setFile(file.getFile());
 		status.addBytesTransfered(file.getFileSize());
-		//streamStatusesForPlayers.put(Integer.valueOf(player.getId()), status);
-		//LOG.trace("streamStatusesForPlayers has {} element(s)",streamStatusesForPlayers.size());
-		//statusService.getStreamStatusesForPlayer(player);
 		
 		mediaFileService.incrementPlayCount(file);
 		scrobble(player,file, false);
