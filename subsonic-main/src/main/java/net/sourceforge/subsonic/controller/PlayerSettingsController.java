@@ -155,7 +155,9 @@ public class PlayerSettingsController extends SimpleFormController {
 				folders.put(folder.getId(), folder.getPathInCmus());
 			}
         	player.setCmusMusicFoldersPath(folders);
-        	
+                
+                // No transcoding for a CMUS player.
+                command.setActiveTranscodingIds(new int[0]);                
         }
 
         playerService.updatePlayer(player);

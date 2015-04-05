@@ -33,6 +33,7 @@ import org.apache.commons.lang.StringUtils;
 
 import net.sourceforge.subsonic.dao.PlayerDao;
 import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.domain.PlayerTechnology;
 import net.sourceforge.subsonic.domain.Transcoding;
 import net.sourceforge.subsonic.domain.TransferStatus;
 import net.sourceforge.subsonic.domain.User;
@@ -301,6 +302,7 @@ public class PlayerService {
      * @param id The unique player ID.
      */
     public synchronized void removePlayerById(String id) {
+        transcodingService.setTranscodingsForPlayer(id, new int[0]);
         playerDao.deletePlayer(id);
     }
 
@@ -336,7 +338,9 @@ public class PlayerService {
             }
         }
 
-        transcodingService.setTranscodingsForPlayer(player, defaultActiveTranscodings);
+        if (!player.getTechnology().equals(PlayerTechnology.CMUS)) {
+            transcodingService.setTranscodingsForPlayer(player, defaultActiveTranscodings);
+        }
     }
 
     /**

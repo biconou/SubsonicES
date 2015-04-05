@@ -90,6 +90,16 @@ public class TranscodingService {
         transcodingDao.setTranscodingsForPlayer(player.getId(), transcodingIds);
     }
 
+        /**
+     * Sets the list of active transcodings for the given player.
+     *
+     * @param playerId         The player id.
+     * @param transcodingIds ID's of the active transcodings.
+     */
+    public void setTranscodingsForPlayer(String playerId, int[] transcodingIds) {
+        transcodingDao.setTranscodingsForPlayer(playerId, transcodingIds);
+    }
+
     /**
      * Sets the list of active transcodings for the given player.
      *
