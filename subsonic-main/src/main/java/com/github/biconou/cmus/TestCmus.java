@@ -15,15 +15,12 @@ public class TestCmus {
         try {
 
             String[] listSongs = {
-                "/mnt/NAS/REMI/musique/PCDM/3 . Musique classique/3.1 Musique de chambre/Vienna Octet - Schubert Octet D803 - Mozart Divertimento K205/11 - Mozart, W.A. - Finale presto.flac",
-                "/mnt/NAS/REMI/musique/PCDM/3 . Musique classique/3.9 classement par périodes/3.94 Epoque baroque/Dumont/Henry Dumont - Motets à la chapelle de Louis XIV - FNAC MUSIC 592054/09 - Les Pages de la Chapelle-Muasica Aeterna-Olivier Schneebeli - Magnificat.wav",
-                "/mnt/NAS/REMI/musique/PCDM/3 . Musique classique/3.9 classement par périodes/3.94 Epoque baroque/Rameau/Rameau - Dardanus_hi-res/01-29-Dardanus_Acte_II_Scene_3_Entendez_ma_voi-SMR.flac",
-                "/mnt/NAS/REMI/Ma musique/The Smiths/The Smiths/09 What Difference Does It Make-.mp3",
-                "/mnt/NAS/REMI/Ma musique/The Smiths/The Smiths/02 You've Got Everything Now.mp3",
-                "/mnt/NAS/REMI/Ma musique/The Smiths/The Smiths/03 Miserable Lie.mp3"
+                    "/mnt/NAS/REMI/musique/audiotest/FLAC/16bits-44_1khz.flac",
+                    "/mnt/NAS/REMI/musique/audiotest/FLAC/naim-test-1-flac-16-44100.flac",
+                    "/mnt/NAS/REMI/musique/audiotest/FLAC/naim-test-2-flac-24-96000.flac"
             };
             
-            final CMusRemoteDriver cmus = new CMusRemoteDriver("192.168.0.7", 4041, "subsonic");
+            final CMusRemoteDriver cmus = new CMusRemoteDriver("192.168.0.13", 4041, "subsonic");
             
             Random rand = new Random();
             int first = rand.nextInt(listSongs.length);
@@ -54,9 +51,13 @@ public class TestCmus {
                     for (;;) {
                         try {
                             CMusStatus status = cmus.status();
+                            System.out.println("+++");
                             System.out.println(status.getFile());
                             System.out.println(status.getStatus());
                             System.out.println(status.getUnifiedVolume());
+                            System.out.println(status.getDuration());
+                            System.out.println(status.getPosition());
+                            System.out.println(status.getPositionPercent());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -73,6 +74,9 @@ public class TestCmus {
 
             System.out.println("------Start status thread ----------------");
             t.start();
+
+            Thread.sleep(10000);
+            cmus.setPosition(3);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -521,6 +521,10 @@ public class CMusRemoteDriver {
 	}
 
 
+    public void setPosition(int positionInSeconds) throws Exception {
+        sendCommandToCMus("seek "+positionInSeconds, noAnswerExpectedCMusCommandHandler);
+    }
+
 	/**
 	 * 
 	 * @return
