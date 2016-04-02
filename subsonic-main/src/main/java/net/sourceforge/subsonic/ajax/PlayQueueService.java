@@ -689,14 +689,16 @@ public class PlayQueueService {
         boolean isStopEnabled = playQueue.getStatus() == PlayQueue.Status.PLAYING && !player.isExternalWithPlaylist();
         
         float gain = 0.5f;
+        boolean isMute = false;
         // what is the current gain ?
         if (player.getTechnology().equals(PlayerTechnology.CMUS)) {        	
             gain = cmusService.getGain(player);
-	} else if (player.isJukebox()) {
+        } else if (player.isJukebox()) {
             gain = jukeboxService.getGain();
-	}
+            isMute = jukeboxService.isMute();
+        }
 
-        return new PlayQueueInfo(entries, isStopEnabled, playQueue.isRepeatEnabled(), serverSidePlaylist, gain);
+        return new PlayQueueInfo(entries, isStopEnabled, playQueue.isRepeatEnabled(), serverSidePlaylist, gain,isMute);
     }
 
     private String formatFileSize(Long fileSize, Locale locale) {

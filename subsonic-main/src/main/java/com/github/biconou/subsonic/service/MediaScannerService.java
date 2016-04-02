@@ -56,8 +56,8 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     }
 
     @Override
-    protected void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount, Genres genres) {
-        super.scanFile(file, musicFolder, lastScanned, albumCount, genres);
+    protected void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount, Genres genres, boolean isPodcast) {
+        super.scanFile(file, musicFolder, lastScanned, albumCount, genres, isPodcast);
 
         if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
              getQueueSender().send("scanned : id="+file.getId()+" name="+file.getPath()+file.getName());
