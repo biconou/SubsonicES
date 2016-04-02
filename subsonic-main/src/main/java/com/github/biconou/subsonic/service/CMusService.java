@@ -59,7 +59,7 @@ public class CMusService  {
 	private SecurityService securityService;
 
 	private float gain = 0.5f;
-	private int offset;
+	//private int offset;
 	private MediaFileService mediaFileService;
 	
 	private List<MusicFolder> allMusicFolders = null;
@@ -229,13 +229,19 @@ public class CMusService  {
 				LOG.debug("CMUS paused ? {} ",paused);
 			}
 
-			if (sameFile && paused && offset == 0) {
+			if (sameFile && paused) {
 				cmusDriver.play();
 			} else {
-				this.offset = offset;
-				//cmusDriver.stop();
-				
-				deleteCmusPlayingFile(player);
+
+                if (sameFile) {
+                    cmusDriver.setPosition(offset);
+                    CMusStatus status = cmusDriver.status();
+                    String pos = status.getPosition();
+                } else {
+                    //this.offset = offset;
+                    //cmusDriver.stop();
+
+                    deleteCmusPlayingFile(player);
 
                                 /*
 				if (currentPlayingFile != null) {
@@ -243,19 +249,20 @@ public class CMusService  {
 				}
                                 */
 
-				if (currentFileInPlayQueue != null) {
-
-					
-					cmusDriver.initPlayQueue(computeFilePathForCmus(player, currentFileInPlayQueue.getFile().getAbsolutePath()));
-					
-					if (!cmusDriver.isPlaying()) {
-						cmusDriver.play();
-					}
+                    if (currentFileInPlayQueue != null) {
 
 
-					onSongStart(player,currentFileInPlayQueue);
-				}
-			}
+                        cmusDriver.initPlayQueue(computeFilePathForCmus(player, currentFileInPlayQueue.getFile().getAbsolutePath()));
+
+                        if (!cmusDriver.isPlaying()) {
+                            cmusDriver.play();
+                        }
+
+
+                        onSongStart(player, currentFileInPlayQueue);
+                    }
+                }
+            }
 
 			// load the other songs in cmus play queue starting with the second file in queue
 			LOG.debug("load the other songs in cmus play queue starting with the next file in queue");

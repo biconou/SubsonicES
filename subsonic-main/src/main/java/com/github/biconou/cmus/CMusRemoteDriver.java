@@ -379,7 +379,7 @@ public class CMusRemoteDriver {
                         // 
                     }
                 }
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()), Character.SIZE);
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"), Character.SIZE);
                 if (out != null) {
                     try {
                         out.close();

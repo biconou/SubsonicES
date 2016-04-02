@@ -110,6 +110,9 @@ public class PlayerDao extends AbstractDao {
 						public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 							Integer folderId = Integer.valueOf(rs.getInt("music_folder_id"));
 							String cmusPath = rs.getString("cmuspath");
+                            if (cmusPath.endsWith("/") || cmusPath.endsWith("\\")) {
+                                cmusPath = cmusPath.substring(0,cmusPath.length()-1);
+                            }
 							cmusFolders.put(folderId, cmusPath);
 							
 							return null;
