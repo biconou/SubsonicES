@@ -50,4 +50,5 @@
 /subsonic-installer-debian/target
 /subsonic-rest-api/target/
 /subsonic-sonos-api/target/
+/activemq-data/
 
