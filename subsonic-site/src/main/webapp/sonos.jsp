@@ -27,7 +27,7 @@
             <div class="6u 12u(3)">
                 <ul>
                     <li>Works with giant music libraries. Not limited to 65,000 songs like the native Sonos controller.</li>
-                    <li>Doesn't require installation of the Sonos controller.</li>
+                    <li>Configure which folders each user is allowed to access.</li>
                     <li>Access your personal Subsonic playlists (as well as Sonos playlists).</li>
                     <li>Star your favorites.</li>
                     <li>Audioscrobbling and play statistics.</li>
@@ -41,7 +41,7 @@
                     <li>Artist radio for playing similar songs.</li>
                     <li>Shuffle play whole library or by artist.</li>
                     <li>Album lists: Random, Recently added, Starred, Top rated, Most Played, Recently played, By decade, By genre.</li>
-                    <li>Same folder structure / album art / media meta data as in the Subsonic web app</li>
+                    <li>Same folder structure / album art / media meta data as in the Subsonic web app.</li>
                 </ul>
             </div>
         </div>
@@ -99,25 +99,30 @@
             in the Sonos controller app.
         </p>
         <ol>
-            <li>Open <b>http://SONOS_IP:1400/customsd.htm</b> in a browser.</li>
+            <li>Open http://<b>SONOS_IP</b>:1400/customsd.htm in a browser.</li>
             <li>Enter the following values in the web form:
                 <ul>
                     <li><b>SID</b> &ndash; Any legal value except 242</li>
                     <li><b>Service Name</b> &ndash; Any name, for instance "Subsonic Remote"</li>
-                    <li><b>Endpoint URL</b> &ndash; http://SUBSONIC_IP:4040/ws/Sonos</li>
-                    <li><b>Secure Endpoint URL</b> &ndash; http://SUBSONIC_IP:4040/ws/Sonos</li>
+                    <li><b>Endpoint URL</b> &ndash; http://<b>SUBSONIC_IP</b>:4040/ws/Sonos?ip=<b>SUBSONIC_IP</b></li>
+                    <li><b>Secure Endpoint URL</b> &ndash; http://<b>SUBSONIC_IP</b>:4040/ws/Sonos?ip=<b>SUBSONIC_IP</b></li>
                     <li><b>Polling Interval</b> &ndash; 1200</li>
                     <li><b>Authentication</b> &ndash; Session ID</li>
-                    <li><b>Strings Table</b> &ndash; Version: 5, URI: http://SUBSONIC_IP:4040/sonos/strings.xml</li>
-                    <li><b>Presentation Map</b> &ndash; Version: 1, URI: http://SUBSONIC_IP:4040/sonos/presentationMap.xml</li>
+                    <li><b>Strings Table</b> &ndash; Version: 6, URI: http://<b>SUBSONIC_IP</b>:4040/sonos/strings.xml</li>
+                    <li><b>Presentation Map</b> &ndash; Version: 2, URI: http://<b>SUBSONIC_IP</b>:4040/sonos/presentationMap.xml</li>
                     <li><b>Container Type</b> &ndash; Music Service</li>
-                    <li><b>Capabilities</b> &ndash; Search, Favorites, Extended Metadata</li>
+                    <li><b>Capabilities</b> &ndash; Search, Favorites, User Content Playlists, Extended Metadata</li>
                 </ul>
             </li>
         </ol>
 
         <p>
             Finally, in the Sonos controller, click <b>Add Music Services</b> and select the newly added Subsonic music service.
+        </p>
+
+        <h3>Disclaimer</h3>
+        <p>
+            Subsonic is not affiliated with Sonos, Inc. Sonos and its product names are trademarks or registered trademarks of Sonos, Inc.
         </p>
     </section>
 

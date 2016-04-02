@@ -61,14 +61,14 @@
                     <select name="player" onchange="location='playerSettings.view?id=' + options[selectedIndex].value;">
                         <c:forEach items="${command.players}" var="player">
                             <option ${player.id eq command.playerId ? "selected" : ""}
-                                    value="${player.id}">${player.description}</option>
+                                    value="${player.id}">${fn:escapeXml(player.description)}</option>
                         </c:forEach>
                     </select>
                 </td>
             </tr>
             <tr>
-                <td style="padding-right:1em"><div class="forward"><a href="${deleteUrl}"><fmt:message key="playersettings.forget"/></a></div></td>
-                <td><div class="forward"><a href="${cloneUrl}"><fmt:message key="playersettings.clone"/></a></div></td>
+                <td style="padding-right:1em"><i class="fa fa-chevron-right icon"></i>&nbsp;<a href="${deleteUrl}"><fmt:message key="playersettings.forget"/></a></td>
+                <td><i class="fa fa-chevron-right icon"></i>&nbsp;<a href="${cloneUrl}"><fmt:message key="playersettings.clone"/></a></td>
             </tr>
         </table>
 

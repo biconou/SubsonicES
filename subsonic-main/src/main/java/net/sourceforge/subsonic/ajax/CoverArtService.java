@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
@@ -31,7 +32,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.HttpConnectionParams;
 
 import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.domain.LastFmCoverArt;
 import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.service.LastFmService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.util.StringUtil;
@@ -49,6 +52,11 @@ public class CoverArtService {
 
     private SecurityService securityService;
     private MediaFileService mediaFileService;
+    private LastFmService lastFmService;
+
+    public List<LastFmCoverArt> searchCoverArt(String artist, String album) {
+        return lastFmService.searchCoverArt(artist, album);
+    }
 
     /**
      * Downloads and saves the cover art at the given URL.
@@ -96,7 +104,7 @@ public class CoverArtService {
             }
 
             // If file exists, create a backup.
-            backup(newCoverFile, new File(path, "cover.backup." + suffix));
+            backup(newCoverFile, new File(path, "cover." + suffix + ".backup"));
 
             // Write file.
             output = new FileOutputStream(newCoverFile);
@@ -108,16 +116,22 @@ public class CoverArtService {
             mediaFileService.refreshMediaFile(dir);
             dir = mediaFileService.getMediaFile(dir.getId());
 
-            // Rename existing cover file if new cover file is not the preferred.
+            // Rename existing cover files if new cover file is not the preferred.
             try {
-                File coverFile = mediaFileService.getCoverArt(dir);
-                if (coverFile != null && !isMediaFile(coverFile)) {
-                    if (!newCoverFile.equals(coverFile)) {
-                        coverFile.renameTo(new File(coverFile.getCanonicalPath() + ".old"));
+                while (true) {
+                    File coverFile = mediaFileService.getCoverArt(dir);
+                    if (coverFile != null && !isMediaFile(coverFile) && !newCoverFile.equals(coverFile)) {
+                        if (!coverFile.renameTo(new File(coverFile.getCanonicalPath() + ".old"))) {
+                            LOG.warn("Unable to rename old image file " + coverFile);
+                            break;
+                        }
                         LOG.info("Renamed old image file " + coverFile);
 
                         // Must refresh again.
                         mediaFileService.refreshMediaFile(dir);
+                        dir = mediaFileService.getMediaFile(dir.getId());
+                    } else {
+                        break;
                     }
                 }
             } catch (Exception x) {
@@ -154,5 +168,9 @@ public class CoverArtService {
 
     public void setMediaFileService(MediaFileService mediaFileService) {
         this.mediaFileService = mediaFileService;
+    }
+
+    public void setLastFmService(LastFmService lastFmService) {
+        this.lastFmService = lastFmService;
     }
 }

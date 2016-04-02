@@ -18,16 +18,10 @@
  */
 package net.sourceforge.subsonic.dao;
 
-import java.io.File;
-
-import javax.sql.DataSource;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.dao.schema.BiconouSchema;
 import net.sourceforge.subsonic.dao.schema.Schema;
 import net.sourceforge.subsonic.dao.schema.Schema25;
 import net.sourceforge.subsonic.dao.schema.Schema26;
@@ -59,90 +53,20 @@ import net.sourceforge.subsonic.service.SettingsService;
  *
  * @author Sindre Mehus
  */
-public class DaoHelper {
-
-    private static final Logger LOG = Logger.getLogger(DaoHelper.class);
-
-    private Schema[] schemas = {new Schema25(), new Schema26(), new Schema27(), new Schema28(), new Schema29(),
-                                new Schema30(), new Schema31(), new Schema32(), new Schema33(), new Schema34(),
-                                new Schema35(), new Schema36(), new Schema37(), new Schema38(), new Schema40(),
-                                new Schema43(), new Schema45(), new Schema46(), new Schema47(), new Schema49(),
-                                new Schema50(), new Schema51(), new Schema52(),
-                                new BiconouSchema()};
-    private DataSource dataSource;
-    private static boolean shutdownHookAdded;
-
-    public DaoHelper() {
-        dataSource = createDataSource();
-        checkDatabase();
-        addShutdownHook();
-    }
-
-    private void addShutdownHook() {
-        if (shutdownHookAdded) {
-            return;
-        }
-        shutdownHookAdded = true;
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                System.err.println("Shutting down database...");
-                getJdbcTemplate().execute("shutdown");
-                System.err.println("Shutting down database - Done!");
-            }
-        });
-    }
+public interface DaoHelper {
 
     /**
      * Returns a JDBC template for performing database operations.
      *
      * @return A JDBC template.
      */
-    public JdbcTemplate getJdbcTemplate() {
-        return new JdbcTemplate(dataSource);
-    }
+    JdbcTemplate getJdbcTemplate();
 
-    public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
-        return new NamedParameterJdbcTemplate(dataSource);
-    }
+    /**
+     * Returns a named parameter JDBC template for performing database operations.
+     *
+     * @return A named parameter JDBC template.
+     */
+    NamedParameterJdbcTemplate getNamedParameterJdbcTemplate();
 
-    private DataSource createDataSource() {
-        File subsonicHome = SettingsService.getSubsonicHome();
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-
-        ds.setDriverClassName("org.hsqldb.jdbcDriver");
-
-        String serverDBUrl = System.getProperty("com.github.biconou.serverDB.url");
-        if (serverDBUrl == null) {
-        	LOG.info("No server DataBase configured in system properties. Using default local file database");
-            ds.setUrl("jdbc:hsqldb:file:" + subsonicHome.getPath() + "/db/subsonic");
-            ds.setUsername("sa");
-            ds.setPassword("");        	
-        } else {
-        	LOG.info("Server DataBase configured in system properties.");
-        	// URL for using a server HSQLDB
-        	ds.setUrl(serverDBUrl);
-        	String serverDBUserName=System.getProperty("com.github.biconou.serverDB.username");
-        	ds.setUsername(serverDBUserName);
-        	String serverDBPassword=System.getProperty("com.github.biconou.serverDB.password");
-        	if (serverDBPassword == null) {
-        		serverDBPassword = "";
-        	}
-        	ds.setPassword(serverDBPassword);
-        }
-
-        return ds;
-    }
-
-    private void checkDatabase() {
-        LOG.info("Checking database schema.");
-        try {
-            for (Schema schema : schemas) {
-                schema.execute(getJdbcTemplate());
-            }
-            LOG.info("Done checking database schema.");
-        } catch (Exception x) {
-            LOG.error("Failed to initialize database.", x);
-        }
-    }
 }

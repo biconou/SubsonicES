@@ -25,6 +25,7 @@ import java.util.List;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 
 import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.domain.AlbumListType;
 import net.sourceforge.subsonic.domain.AvatarScheme;
 import net.sourceforge.subsonic.domain.TranscodeScheme;
 import net.sourceforge.subsonic.domain.User;
@@ -46,7 +47,8 @@ public class UserDao extends AbstractDao {
             "playlist_track_number, playlist_artist, playlist_album, playlist_genre, " +
             "playlist_year, playlist_bit_rate, playlist_duration, playlist_format, playlist_file_size, " +
             "last_fm_enabled, last_fm_username, last_fm_password, transcode_scheme, show_now_playing, selected_music_folder_id, " +
-            "party_mode_enabled, now_playing_allowed, avatar_scheme, system_avatar_id, changed, show_chat, show_artist_info, auto_hide_play_queue, view_as_list";
+            "party_mode_enabled, now_playing_allowed, avatar_scheme, system_avatar_id, changed, show_chat, show_artist_info, auto_hide_play_queue, " +
+            "view_as_list, default_album_list, queue_following_songs, show_side_bar";
 
     private static final Integer ROLE_ID_ADMIN = 1;
     private static final Integer ROLE_ID_DOWNLOAD = 2;
@@ -59,6 +61,7 @@ public class UserDao extends AbstractDao {
     private static final Integer ROLE_ID_SETTINGS = 9;
     private static final Integer ROLE_ID_JUKEBOX = 10;
     private static final Integer ROLE_ID_SHARE = 11;
+    private static final Integer ROLE_ID_VIDEO_CONVERSION = 12;
 
     private UserRowMapper userRowMapper = new UserRowMapper();
     private UserSettingsRowMapper userSettingsRowMapper = new UserSettingsRowMapper();
@@ -117,11 +120,9 @@ public class UserDao extends AbstractDao {
             throw new IllegalArgumentException("Can't delete admin user.");
         }
 
-        String sql = "delete from user_role where username=?";
-        update(sql, username);
-
-        sql = "delete from user where username=?";
-        update(sql, username);
+        update("delete from user_role where username=?", username);
+        update("delete from player where username=?", username);
+        update("delete from user where username=?", username);
     }
 
     /**
@@ -179,19 +180,20 @@ public class UserDao extends AbstractDao {
         UserSettings.Visibility main = settings.getMainVisibility();
         UserSettings.Visibility playlist = settings.getPlaylistVisibility();
         getJdbcTemplate().update(sql, new Object[]{settings.getUsername(), locale, settings.getThemeId(),
-                settings.isFinalVersionNotificationEnabled(), settings.isBetaVersionNotificationEnabled(),
-                settings.isSongNotificationEnabled(), main.isTrackNumberVisible(),
-                main.isArtistVisible(), main.isAlbumVisible(), main.isGenreVisible(), main.isYearVisible(),
-                main.isBitRateVisible(), main.isDurationVisible(), main.isFormatVisible(), main.isFileSizeVisible(),
-                playlist.isTrackNumberVisible(), playlist.isArtistVisible(), playlist.isAlbumVisible(),
-                playlist.isGenreVisible(), playlist.isYearVisible(), playlist.isBitRateVisible(), playlist.isDurationVisible(),
-                playlist.isFormatVisible(), playlist.isFileSizeVisible(),
-                settings.isLastFmEnabled(), settings.getLastFmUsername(), encrypt(settings.getLastFmPassword()),
-                settings.getTranscodeScheme().name(), settings.isShowNowPlayingEnabled(),
-                settings.getSelectedMusicFolderId(), settings.isPartyModeEnabled(), settings.isNowPlayingAllowed(),
-                settings.getAvatarScheme().name(), settings.getSystemAvatarId(), settings.getChanged(),
-                settings.isShowChatEnabled(), settings.isShowArtistInfoEnabled(), settings.isAutoHidePlayQueue(),
-                settings.isViewAsList()});
+                                                   settings.isFinalVersionNotificationEnabled(), settings.isBetaVersionNotificationEnabled(),
+                                                   settings.isSongNotificationEnabled(), main.isTrackNumberVisible(),
+                                                   main.isArtistVisible(), main.isAlbumVisible(), main.isGenreVisible(), main.isYearVisible(),
+                                                   main.isBitRateVisible(), main.isDurationVisible(), main.isFormatVisible(), main.isFileSizeVisible(),
+                                                   playlist.isTrackNumberVisible(), playlist.isArtistVisible(), playlist.isAlbumVisible(),
+                                                   playlist.isGenreVisible(), playlist.isYearVisible(), playlist.isBitRateVisible(), playlist.isDurationVisible(),
+                                                   playlist.isFormatVisible(), playlist.isFileSizeVisible(),
+                                                   settings.isLastFmEnabled(), settings.getLastFmUsername(), encrypt(settings.getLastFmPassword()),
+                                                   settings.getTranscodeScheme().name(), settings.isShowNowPlayingEnabled(),
+                                                   settings.getSelectedMusicFolderId(), settings.isPartyModeEnabled(), settings.isNowPlayingAllowed(),
+                                                   settings.getAvatarScheme().name(), settings.getSystemAvatarId(), settings.getChanged(),
+                                                   settings.isShowChatEnabled(), settings.isShowArtistInfoEnabled(), settings.isAutoHidePlayQueue(),
+                                                   settings.isViewAsList(), settings.getDefaultAlbumList().getId(), settings.isQueueFollowingSongs(),
+                                                   settings.isShowSideBar()});
     }
 
     private static String encrypt(String s) {
@@ -246,6 +248,8 @@ public class UserDao extends AbstractDao {
                     user.setJukeboxRole(true);
                 } else if (ROLE_ID_SHARE.equals(role)) {
                     user.setShareRole(true);
+                } else if (ROLE_ID_VIDEO_CONVERSION.equals(role)) {
+                    user.setVideoConversionRole(true);
                 } else {
                     LOG.warn("Unknown role: '" + role + '\'');
                 }
@@ -290,6 +294,9 @@ public class UserDao extends AbstractDao {
             }
             if (user.isShareRole()) {
                 getJdbcTemplate().update(sql, new Object[]{user.getUsername(), ROLE_ID_SHARE});
+            }
+            if (user.isVideoConversionRole()) {
+                getJdbcTemplate().update(sql, new Object[]{user.getUsername(), ROLE_ID_VIDEO_CONVERSION});
             }
         }
     }
@@ -349,6 +356,9 @@ public class UserDao extends AbstractDao {
             settings.setShowArtistInfoEnabled(rs.getBoolean(col++));
             settings.setAutoHidePlayQueue(rs.getBoolean(col++));
             settings.setViewAsList(rs.getBoolean(col++));
+            settings.setDefaultAlbumList(AlbumListType.fromId(rs.getString(col++)));
+            settings.setQueueFollowingSongs(rs.getBoolean(col++));
+            settings.setShowSideBar(rs.getBoolean(col++));
 
             return settings;
         }

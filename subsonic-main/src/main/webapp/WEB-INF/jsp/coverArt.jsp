@@ -5,6 +5,8 @@
 PARAMETERS
   albumId: ID of album.
   playlistId: ID of playlist.
+  podcastChannelId: ID of podcast channel
+  auth: Authentication token
   coverArtSize: Height and width of cover art.
   caption1: Caption line 1
   caption2: Caption line 2
@@ -33,18 +35,21 @@ PARAMETERS
 <div class="coverart dropshadow">
     <div style="width:${size};max-width:${size};height:${size};max-height:${size};cursor:pointer" title="${param.caption1}" id="${divId}">
 
-        <c:choose>
-            <c:when test="${not empty param.albumId}">
-                <c:url value="main.view" var="targetUrl">
-                    <c:param name="id" value="${param.albumId}"/>
-                </c:url>
-            </c:when>
-            <c:otherwise>
-                <c:url value="playlist.view" var="targetUrl">
-                    <c:param name="id" value="${param.playlistId}"/>
-                </c:url>
-            </c:otherwise>
-        </c:choose>
+        <c:if test="${not empty param.albumId}">
+            <c:url value="main.view" var="targetUrl">
+                <c:param name="id" value="${param.albumId}"/>
+            </c:url>
+        </c:if>
+        <c:if test="${not empty param.playlistId}">
+            <c:url value="playlist.view" var="targetUrl">
+                <c:param name="id" value="${param.playlistId}"/>
+            </c:url>
+        </c:if>
+        <c:if test="${not empty param.podcastChannelId}">
+            <c:url value="podcastChannel.view" var="targetUrl">
+                <c:param name="id" value="${param.podcastChannelId}"/>
+            </c:url>
+        </c:if>
 
         <c:url value="/coverArt.view" var="coverArtUrl">
             <c:if test="${not empty param.coverArtSize}">
@@ -53,12 +58,20 @@ PARAMETERS
             <c:if test="${not empty param.albumId}">
                 <c:param name="id" value="${param.albumId}"/>
             </c:if>
+            <c:if test="${not empty param.podcastChannelId}">
+                <c:param name="id" value="pod-${param.podcastChannelId}"/>
+            </c:if>
             <c:if test="${not empty param.playlistId}">
                 <c:param name="id" value="pl-${param.playlistId}"/>
             </c:if>
+            <c:if test="${not empty param.auth}">
+                <c:param name="auth" value="${param.auth}"/>
+            </c:if>
         </c:url>
+
         <c:url value="/coverArt.view" var="zoomCoverArtUrl">
             <c:param name="id" value="${param.albumId}"/>
+            <c:param name="auth" value="${param.auth}"/>
         </c:url>
 
         <div style="position: relative; width: 0; height: 0">
@@ -85,22 +98,13 @@ PARAMETERS
     </c:if>
 </div>
 
-<c:if test="${param.showChange or param.showZoom}">
+<c:if test="${param.showChange}">
     <div style="padding-top:6px;text-align:right">
-        <c:if test="${param.showChange}">
-            <c:url value="/changeCoverArt.view" var="changeCoverArtUrl">
-                <c:param name="id" value="${param.albumId}"/>
-            </c:url>
-            <a class="detail" href="${changeCoverArtUrl}"><fmt:message key="coverart.change"/></a>
-        </c:if>
-
-        <c:if test="${param.showZoom and param.showChange}">
-            |
-        </c:if>
-
-        <c:if test="${param.showZoom}">
-            <a class="detail" rel="zoom" title="${param.caption1}" href="${zoomCoverArtUrl}"><fmt:message key="coverart.zoom"/></a>
-        </c:if>
+        <c:url value="/changeCoverArt.view" var="changeCoverArtUrl">
+            <c:param name="id" value="${param.albumId}"/>
+        </c:url>
+        <i class="fa fa-edit icon clickable" onclick="location.href='${changeCoverArtUrl}'"
+           title="<fmt:message key="coverart.change"/>"></i>
     </div>
 </c:if>
 
@@ -120,14 +124,15 @@ PARAMETERS
         $("#${imgId}").animate({opacity: 1.0}, 150);
     });
     $("#${playId}").click(function () {
-        <c:choose>
-        <c:when test="${not empty param.albumId}">
+        <c:if test="${not empty param.albumId}">
         top.playQueue.onPlay(${param.albumId});
-        </c:when>
-        <c:otherwise>
+        </c:if>
+        <c:if test="${not empty param.playlistId}">
         top.playQueue.onPlayPlaylist(${param.playlistId});
-        </c:otherwise>
-        </c:choose>
+        </c:if>
+        <c:if test="${not empty param.podcastChannelId}">
+        top.playQueue.onPlayPodcastChannel(${param.podcastChannelId});
+        </c:if>
     });
 
 </script>

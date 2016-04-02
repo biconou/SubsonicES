@@ -25,6 +25,8 @@ import net.sourceforge.subsonic.backend.domain.ProcessingStatus;
 import net.sourceforge.subsonic.backend.domain.Subscription;
 import net.sourceforge.subsonic.backend.domain.SubscriptionNotification;
 import net.sourceforge.subsonic.backend.domain.SubscriptionPayment;
+import net.sourceforge.subsonic.backend.service.LicenseService;
+
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
@@ -59,6 +61,7 @@ public class IPNController implements Controller {
     private static final String PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr";
     private static final Pattern SUBSCRIPTION_DURATION_PATTERN = Pattern.compile("(\\d+) year(s)?");
 
+    private LicenseService licenseService;
     private PaymentDao paymentDao;
     private SubscriptionDao subscriptionDao;
 
@@ -195,10 +198,13 @@ public class IPNController implements Controller {
             paymentForTx.setPaymentStatus(paymentStatus);
             paymentForTx.setLastUpdated(new Date());
             paymentDao.updatePayment(paymentForTx);
-        }
-        else {
-            Payment paymentForEmail = paymentDao.getPaymentByEmail(payerEmail);
-            Date validTo = computeValidTo(paymentForEmail, request, item);
+
+        } else if (isDonation(item)) {
+            // TODO: insert into separate donation table?
+            LOG.info("Received donation of " + paymentCurrency + " " + paymentAmount + " from " + payerEmail);
+
+        } else {
+            Date validTo = computeValidTo(payerEmail, request, item);
 
             Payment newPayment = new Payment(null, txnId, txnType, item, paymentType, paymentStatus,
                     paymentAmount, paymentCurrency, payerEmail, payerFirstName, payerLastName,
@@ -207,7 +213,11 @@ public class IPNController implements Controller {
         }
     }
 
-    private Date computeValidTo(Payment existingPayment, HttpServletRequest request, String item) {
+    private boolean isDonation(String item) {
+        return "sub-donation".equals(item);
+    }
+
+    private Date computeValidTo(String email, HttpServletRequest request, String item) {
         if ("sub-pre-lifetime".equals(item)) {
             return null;
         }
@@ -225,9 +235,10 @@ public class IPNController implements Controller {
         int years = Integer.parseInt(matcher.group(1));
         Calendar validTo = Calendar.getInstance();
 
-        // If an existing payment exists, add to the existing end date.
-        if (existingPayment != null && existingPayment.getValidTo() != null && existingPayment.getValidTo().after(new Date())) {
-            validTo.setTime(existingPayment.getValidTo());
+        // If payment exists, add to the existing end date.
+        Date licenseExpires = licenseService.getLicenseInfo(email).getLicenseExpires();
+        if (licenseExpires != null && licenseExpires.after(validTo.getTime())) {
+            validTo.setTime(licenseExpires);
         }
 
         validTo.add(Calendar.YEAR, years);
@@ -274,6 +285,10 @@ public class IPNController implements Controller {
 
     public void setSubscriptionDao(SubscriptionDao subscriptionDao) {
         this.subscriptionDao = subscriptionDao;
+    }
+
+    public void setLicenseService(LicenseService licenseService) {
+        this.licenseService = licenseService;
     }
 }
 

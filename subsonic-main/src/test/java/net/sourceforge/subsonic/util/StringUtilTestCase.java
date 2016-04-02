@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Locale;
 
 import junit.framework.TestCase;
+import net.sourceforge.subsonic.domain.UrlRedirectType;
 
 /**
  * Unit test of {@link StringUtil}.
@@ -128,13 +129,6 @@ public class StringUtilTestCase extends TestCase {
         assertEquals("Error in parseInts().", Arrays.toString(expected), Arrays.toString(StringUtil.parseInts(s)));
     }
 
-    public void testToHttpUrl() throws Exception {
-        assertEquals("Error in toHttpUrl.", "http://foo.bar.com", StringUtil.toHttpUrl("http://foo.bar.com", 8080));
-        assertEquals("Error in toHttpUrl.", "http://foo.bar.com:12/abc?f=a", StringUtil.toHttpUrl("http://foo.bar.com:12/abc?f=a", 8080));
-        assertEquals("Error in toHttpUrl.", "http://foo.bar.com:443", StringUtil.toHttpUrl("https://foo.bar.com", 443));
-        assertEquals("Error in toHttpUrl.", "http://foo.bar.com:443/a/b/c?k=1&j=2", StringUtil.toHttpUrl("https://foo.bar.com/a/b/c?k=1&j=2", 443));
-    }
-
     public void testParseLocale() {
         assertEquals("Error in parseLocale().", null, null);
         assertEquals("Error in parseLocale().", new Locale("en"), StringUtil.parseLocale("en"));
@@ -209,22 +203,24 @@ public class StringUtilTestCase extends TestCase {
 
     public void testRewriteRemoteUrl() throws MalformedURLException {
 
+        UrlRedirectType urlRedirectType = UrlRedirectType.NORMAL;
+        String urlRedirectCustomUrl = null;
         assertEquals("http://192.168.1.10:4040/stream?id=42",
-                StringUtil.rewriteRemoteUrl("http://localhost:4040/stream?id=42", false, null, "", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("http://localhost:4040/stream?id=42", false, urlRedirectType, null, urlRedirectCustomUrl, "", "192.168.1.10", 4040));
         assertEquals("http://192.168.1.10:4040/subsonic/stream?id=42",
-                StringUtil.rewriteRemoteUrl("http://localhost:4040/subsonic/stream?id=42", false, null, "subsonic", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("http://localhost:4040/subsonic/stream?id=42", false, urlRedirectType, null, urlRedirectCustomUrl, "subsonic", "192.168.1.10", 4040));
         assertEquals("http://192.168.1.10:4040/stream?id=42",
-                StringUtil.rewriteRemoteUrl("https://localhost:4443/stream?id=42", false, null, "", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("https://localhost:4443/stream?id=42", false, urlRedirectType, null, urlRedirectCustomUrl, "", "192.168.1.10", 4040));
         assertEquals("http://192.168.1.10:4040/subsonic/stream?id=42",
-                StringUtil.rewriteRemoteUrl("https://localhost:4443/subsonic/stream?id=42", false, null, "subsonic", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("https://localhost:4443/subsonic/stream?id=42", false, urlRedirectType, null, urlRedirectCustomUrl, "subsonic", "192.168.1.10", 4040));
 
         assertEquals("http://sindre.subsonic.org:80/stream?id=42",
-                StringUtil.rewriteRemoteUrl("http://localhost:4040/stream?id=42", true, "sindre", "", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("http://localhost:4040/stream?id=42", true, urlRedirectType, "sindre", urlRedirectCustomUrl, "", "192.168.1.10", 4040));
         assertEquals("http://sindre.subsonic.org:80/stream?id=42",
-                StringUtil.rewriteRemoteUrl("http://localhost:4040/subsonic/stream?id=42", true, "sindre", "subsonic", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("http://localhost:4040/subsonic/stream?id=42", true, urlRedirectType, "sindre", urlRedirectCustomUrl, "subsonic", "192.168.1.10", 4040));
         assertEquals("http://sindre.subsonic.org:80/stream?id=42",
-                StringUtil.rewriteRemoteUrl("https://localhost:4443/stream?id=42", true, "sindre", "", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("https://localhost:4443/stream?id=42", true, urlRedirectType, "sindre", urlRedirectCustomUrl, "", "192.168.1.10", 4040));
         assertEquals("http://sindre.subsonic.org:80/stream?id=42",
-                StringUtil.rewriteRemoteUrl("https://localhost:4443/subsonic/stream?id=42", true, "sindre", "subsonic", "192.168.1.10", 4040));
+                     StringUtil.rewriteRemoteUrl("https://localhost:4443/subsonic/stream?id=42", true, urlRedirectType, "sindre", urlRedirectCustomUrl, "subsonic", "192.168.1.10", 4040));
     }
 }
