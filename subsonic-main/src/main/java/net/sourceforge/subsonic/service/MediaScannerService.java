@@ -50,18 +50,18 @@ public class MediaScannerService {
     private static final int INDEX_VERSION = 15;
     private static final Logger LOG = Logger.getLogger(MediaScannerService.class);
 
-    private MediaLibraryStatistics statistics;
+    protected MediaLibraryStatistics statistics;
 
-    private boolean scanning;
+    protected boolean scanning;
     private Timer timer;
-    private SettingsService settingsService;
-    private SearchService searchService;
+    protected SettingsService settingsService;
+    protected SearchService searchService;
     private PlaylistService playlistService;
-    private MediaFileService mediaFileService;
-    private MediaFileDao mediaFileDao;
-    private ArtistDao artistDao;
-    private AlbumDao albumDao;
-    private int scanCount;
+    protected MediaFileService mediaFileService;
+    protected MediaFileDao mediaFileDao;
+    protected ArtistDao artistDao;
+    protected AlbumDao albumDao;
+    protected int scanCount;
 
     public void init() {
         deleteOldIndexFiles();
@@ -153,7 +153,7 @@ public class MediaScannerService {
         thread.start();
     }
 
-    private void doScanLibrary() {
+    protected void doScanLibrary() {
         LOG.info("Starting to scan media library.");
 
         try {
@@ -208,7 +208,7 @@ public class MediaScannerService {
         }
     }
 
-    private void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned,
+    protected void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned,
                           Map<String, Integer> albumCount, Genres genres) {
         scanCount++;
         if (scanCount % 250 == 0) {

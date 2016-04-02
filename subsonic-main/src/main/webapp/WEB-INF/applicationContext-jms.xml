@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jms="http://www.springframework.org/schema/jms"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+       http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-2.5.xsd">
+
+    <context:annotation-config />
+    <context:component-scan base-package="com.github.biconou"/>
+
+
+  <!--  <bean id="queueSender" class="com.github.biconou.service.media.scan.QueueSender"/>
+
+    <bean id="queueListener" class="com.github.biconou.service.media.scan.QueueListener"/>
+-->
+
+    <!-- Fabrique de connexions à ActiveMQ  -->
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="vm://localhost" />
+    </bean>
+
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="connectionFactory"/>
+    </bean>
+
+
+    <jms:listener-container concurrency="5" >
+        <jms:listener id="QueueListener" destination="Queue.Name" ref="queueListener" />
+    </jms:listener-container>
+</beans>

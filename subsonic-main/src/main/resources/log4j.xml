@@ -26,8 +26,8 @@
     </layout> 
   </appender> 
 
-	<logger name="net.sourceforge.subsonic.MEDIA_SCANNER_LOGGER">
-	   <level value="warn"/>
+	<logger name="com.github.biconou.subsonic.service.MediaScannerService">
+	   <level value="info"/>
 	   <appender-ref ref="mediaScannerLogFile"/>
 	</logger>
 
