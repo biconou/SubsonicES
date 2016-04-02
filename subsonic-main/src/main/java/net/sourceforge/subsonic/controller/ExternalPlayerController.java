@@ -18,26 +18,28 @@
  */
 package net.sourceforge.subsonic.controller;
 
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.dao.ShareDao;
-import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.Share;
-import net.sourceforge.subsonic.service.MediaFileService;
-import net.sourceforge.subsonic.service.PlayerService;
-import net.sourceforge.subsonic.service.SecurityService;
-import net.sourceforge.subsonic.service.SettingsService;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.ParameterizableViewController;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.ParameterizableViewController;
+
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MusicFolder;
+import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.domain.Share;
+import net.sourceforge.subsonic.service.MediaFileService;
+import net.sourceforge.subsonic.service.PlayerService;
+import net.sourceforge.subsonic.service.SettingsService;
+import net.sourceforge.subsonic.service.ShareService;
+import net.sourceforge.subsonic.service.TranscodingService;
 
 /**
  * Controller for the page used to play shared music (Twitter, Facebook etc).
@@ -46,12 +48,11 @@ import java.util.Map;
  */
 public class ExternalPlayerController extends ParameterizableViewController {
 
-    private static final Logger LOG = Logger.getLogger(ExternalPlayerController.class);
-
     private SettingsService settingsService;
     private PlayerService playerService;
-    private ShareDao shareDao;
+    private ShareService shareService;
     private MediaFileService mediaFileService;
+    private TranscodingService transcodingService;
 
     @Override
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -65,49 +66,52 @@ public class ExternalPlayerController extends ParameterizableViewController {
             return null;
         }
 
-        Share share = shareDao.getShareByName(pathInfo.substring(1));
-        if (share == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return null;
+        Share share = shareService.getShareByName(pathInfo.substring(1));
+
+        if (share != null && share.getExpires() != null && share.getExpires().before(new Date())) {
+            share = null;
         }
 
-        if (share.getExpires() != null && share.getExpires().before(new Date())) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return null;
+        if (share != null) {
+            share.setLastVisited(new Date());
+            share.setVisitCount(share.getVisitCount() + 1);
+            shareService.updateShare(share);
         }
 
-        share.setLastVisited(new Date());
-        share.setVisitCount(share.getVisitCount() + 1);
-        shareDao.updateShare(share);
+        Player player = playerService.getGuestPlayer(request);
 
         map.put("share", share);
-        map.put("songs", getSongs(share));
-        map.put("redirectFrom", settingsService.getUrlRedirectFrom());
-        map.put("player", playerService.getGuestPlayer(request).getId());
+        map.put("entries", getEntries(share, player));
+        map.put("redirectUrl", settingsService.getUrlRedirectUrl());
+        map.put("player", player.getId());
 
         ModelAndView result = super.handleRequestInternal(request, response);
         result.addObject("model", map);
         return result;
     }
 
-    private List<MediaFile> getSongs(Share share) throws IOException {
-        List<MediaFile> result = new ArrayList<MediaFile>();
+    private List<Entry> getEntries(Share share, Player player) throws IOException {
+        List<Entry> result = new ArrayList<Entry>();
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(player.getUsername());
 
-        for (String path : shareDao.getSharedFiles(share.getId())) {
-            try {
-                MediaFile file = mediaFileService.getMediaFile(path);
+        if (share != null) {
+            for (MediaFile file : shareService.getSharedFiles(share.getId(), musicFolders)) {
                 if (file.getFile().exists()) {
                     if (file.isDirectory()) {
-                        result.addAll(mediaFileService.getChildrenOf(file, true, false, true));
+                        for (MediaFile child : mediaFileService.getChildrenOf(file, true, false, true)) {
+                            result.add(createEntry(child, player));
+                        }
                     } else {
-                        result.add(file);
+                        result.add(createEntry(file, player));
                     }
                 }
-            } catch (Exception x) {
-                LOG.warn("Couldn't read file " + path);
             }
         }
         return result;
+    }
+
+    private Entry createEntry(MediaFile file, Player player) {
+        return new Entry(file, transcodingService.getSuffix(player, file, null));
     }
 
     public void setSettingsService(SettingsService settingsService) {
@@ -118,11 +122,33 @@ public class ExternalPlayerController extends ParameterizableViewController {
         this.playerService = playerService;
     }
 
-    public void setShareDao(ShareDao shareDao) {
-        this.shareDao = shareDao;
+    public void setShareService(ShareService shareService) {
+        this.shareService = shareService;
     }
 
     public void setMediaFileService(MediaFileService mediaFileService) {
         this.mediaFileService = mediaFileService;
+    }
+
+    public void setTranscodingService(TranscodingService transcodingService) {
+        this.transcodingService = transcodingService;
+    }
+
+    public static class Entry {
+        private final MediaFile file;
+        private final String format;
+
+        public Entry(MediaFile file, String format) {
+            this.file = file;
+            this.format = format;
+        }
+
+        public MediaFile getFile() {
+            return file;
+        }
+
+        public String getFormat() {
+            return format;
+        }
     }
 }

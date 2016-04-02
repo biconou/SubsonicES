@@ -1223,7 +1223,7 @@
 		background-attachment: scroll,							fixed;
 		background-color: #666;
 		/*background-image: url("images/overlay.png"), url("../images/banner.jpg");*/
-		background-image: url("images/overlay.png"), url("../inc/img/girl.jpg");
+		background-image: url("images/overlay.png"), url("../inc/img/crowd.jpg");
 		background-position: top left,						center center;
 		background-repeat: repeat,							no-repeat;
 		background-size: auto,							cover;
@@ -1426,3 +1426,9 @@
 		#cta .formerize-placeholder {
 			color: rgba(255, 255, 255, 0.75) !important;
 		}
+
+.dropshadow {
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 6px #333333;
+}
+

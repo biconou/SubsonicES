@@ -51,10 +51,10 @@ import net.sourceforge.subsonic.backend.Util;
 import net.sourceforge.subsonic.backend.dao.DaoHelper;
 import net.sourceforge.subsonic.backend.dao.PaymentDao;
 import net.sourceforge.subsonic.backend.dao.SubscriptionDao;
-import net.sourceforge.subsonic.backend.domain.Payment;
-import net.sourceforge.subsonic.backend.domain.Subscription;
+import net.sourceforge.subsonic.backend.domain.LicenseInfo;
 import net.sourceforge.subsonic.backend.service.EmailSession;
 import net.sourceforge.subsonic.backend.service.LicenseGenerator;
+import net.sourceforge.subsonic.backend.service.LicenseService;
 import net.sourceforge.subsonic.backend.service.WhitelistGenerator;
 
 /**
@@ -66,13 +66,13 @@ public class MultiController extends MultiActionController {
 
     private static final Logger LOG = Logger.getLogger(MultiController.class);
 
-    private static final String SUBSONIC_VERSION = "5.2";
-    private static final String SUBSONIC_BETA_VERSION = "5.2.beta1";
+    private static final String SUBSONIC_VERSION = "5.3";
+    private static final String SUBSONIC_BETA_VERSION = "6.0.beta1";
 
     private static final Date LICENSE_DATE_THRESHOLD;
 
+    private LicenseService licenseService;
     private DaoHelper daoHelper;
-
     private PaymentDao paymentDao;
     private SubscriptionDao subscriptionDao;
     private WhitelistGenerator whitelistGenerator;
@@ -104,10 +104,13 @@ public class MultiController extends MultiActionController {
     public ModelAndView validateLicense(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         String email = request.getParameter("email");
-        Long date = ServletRequestUtils.getLongParameter(request, "date");
+        long date = ServletRequestUtils.getLongParameter(request, "date", System.currentTimeMillis());
 
-        boolean valid = isLicenseValid(email, date);
-        Date expirationDate = getLicenseExpirationDate(email);
+        LicenseInfo licenseInfo = licenseService.getLicenseInfo(email);
+
+        // Always accept licenses that are older than 2010-06-19.
+        boolean valid = licenseInfo.isLicenseValid() || date < LICENSE_DATE_THRESHOLD.getTime();
+        Date expirationDate = licenseInfo.getLicenseExpires();
         LOG.info(request.getRemoteAddr() + " asked to validate license for " + email + ". Result: " +
                 valid + ", expires: " + expirationDate);
 
@@ -229,10 +232,12 @@ public class MultiController extends MultiActionController {
     public ModelAndView requestLicense(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         String email = request.getParameter("email");
-        boolean valid = email != null && isLicenseValid(email, System.currentTimeMillis());
+
+        LicenseInfo licenseInfo = licenseService.getLicenseInfo(email);
+        boolean valid = licenseInfo.isLicenseValid();
         if (valid) {
             EmailSession session = new EmailSession();
-            licenseGenerator.sendLicenseTo(email, session);
+            licenseGenerator.sendLicenseTo(licenseInfo.getFirstName(), email, session);
         }
 
         Map<String, Object> map = new HashMap<String, Object>();
@@ -268,59 +273,6 @@ public class MultiController extends MultiActionController {
         return true;
     }
 
-    private boolean isLicenseValid(String email, Long date) {
-        if (email == null || date == null) {
-            return false;
-        }
-
-        if (paymentDao.isBlacklisted(email)) {
-            return false;
-        }
-
-        // Always accept licenses that are older than 2010-06-19.
-        if (date < LICENSE_DATE_THRESHOLD.getTime()) {
-            return true;
-        }
-
-        return hasValidSubscription(email) || hasValidPayment(email) || paymentDao.isWhitelisted(email);
-    }
-
-    private Date getLicenseExpirationDate(String email) {
-        if (email == null) {
-            return null;
-        }
-
-        if (paymentDao.isBlacklisted(email) || paymentDao.isWhitelisted(email)) {
-            return null;
-        }
-
-        Subscription subscription = subscriptionDao.getSubscriptionByEmail(email);
-        Payment payment = paymentDao.getPaymentByEmail(email);
-
-        Date subscriptionExpirationDate = subscription == null ? null : subscription.getValidTo();
-        Date paymentExpirationDate = payment == null ? null : payment.getValidTo();
-
-        return Util.latest(subscriptionExpirationDate, paymentExpirationDate);
-    }
-
-    private boolean hasValidPayment(String email) {
-        Payment payment = paymentDao.getPaymentByEmail(email);
-        if (payment == null) {
-            return false;
-        }
-        Date now = new Date();
-        return payment.getValidTo() == null || payment.getValidTo().after(now);
-    }
-
-    private boolean hasValidSubscription(String email) {
-        Subscription subscription = subscriptionDao.getSubscriptionByEmail(email);
-        if (subscription == null) {
-            return false;
-        }
-        Date now = new Date();
-        return subscription.getValidTo() == null || subscription.getValidTo().after(now);
-    }
-
     public void setDaoHelper(DaoHelper daoHelper) {
         this.daoHelper = daoHelper;
     }
@@ -339,5 +291,9 @@ public class MultiController extends MultiActionController {
 
     public void setSubscriptionDao(SubscriptionDao subscriptionDao) {
         this.subscriptionDao = subscriptionDao;
+    }
+
+    public void setLicenseService(LicenseService licenseService) {
+        this.licenseService = licenseService;
     }
 }

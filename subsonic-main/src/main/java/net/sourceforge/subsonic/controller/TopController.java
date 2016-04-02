@@ -50,7 +50,7 @@ public class TopController extends ParameterizableViewController {
         UserSettings userSettings = settingsService.getUserSettings(user.getUsername());
 
         map.put("user", user);
-        map.put("showAvatar", userSettings.getAvatarScheme() != AvatarScheme.NONE);
+        map.put("showSideBar", userSettings.isShowSideBar());
 
         ModelAndView result = super.handleRequestInternal(request, response);
         result.addObject("model", map);

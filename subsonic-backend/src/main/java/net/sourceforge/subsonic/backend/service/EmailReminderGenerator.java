@@ -23,17 +23,17 @@ import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import javax.mail.MessagingException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import net.sourceforge.subsonic.backend.Util;
 import net.sourceforge.subsonic.backend.dao.PaymentDao;
 import net.sourceforge.subsonic.backend.dao.SubscriptionDao;
 import net.sourceforge.subsonic.backend.domain.Payment;
@@ -49,11 +49,12 @@ public class EmailReminderGenerator {
 
     private static final Logger LOG = Logger.getLogger(EmailReminderGenerator.class);
     private static final long DELAY_HOURS = 24;
+    private static final DateFormat DATE_FORMAT = DateFormat.getDateInstance(DateFormat.LONG, Locale.US);
 
+    private LicenseService licenseService;
     private PaymentDao paymentDao;
     private SubscriptionDao subscriptionDao;
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private static final DateFormat DATE_FORMAT = DateFormat.getDateInstance(DateFormat.LONG, Locale.US);
+    private final ScheduledExecutorService executor = Util.singleThreadExecutor("EmailReminderGenerator");
 
     public void init() {
         Runnable task = new Runnable() {
@@ -79,8 +80,8 @@ public class EmailReminderGenerator {
 
                     processPayments(emailSession, in7Days, in8Days);
                     processPayments(emailSession, in14Days, in15Days);
-                    processSubscriptions(emailSession, in7Days, in8Days);
-                    processSubscriptions(emailSession, in14Days, in15Days);
+//                    processSubscriptions(emailSession, in7Days, in8Days);
+//                    processSubscriptions(emailSession, in14Days, in15Days);
 
                     LOG.info("Completed email reminder generator.");
                 } catch (Throwable x) {
@@ -96,13 +97,14 @@ public class EmailReminderGenerator {
     private void processPayments(EmailSession emailSession, Date from, Date to) throws Exception {
         List<Payment> payments = paymentDao.getPaymentsByExpirationDate(from, to);
         LOG.info(payments.size() + " payment(s) expiring between " + from + " and " + to);
-        if (payments.isEmpty()) {
-            return;
-        }
 
         for (Payment payment : payments) {
             try {
-                processPayment(payment, emailSession);
+                // Don't send email if another payment exists which is valid after the "to" date.
+                Date expires = licenseService.getLicenseInfo(payment.getPayerEmail()).getLicenseExpires();
+                if (expires != null && expires.before(to)) {
+                    processPayment(payment, emailSession);
+                }
             } catch (Throwable x) {
                 LOG.error("Failed to process " + payment, x);
             }
@@ -153,36 +155,25 @@ public class EmailReminderGenerator {
         }
     }
 
-    public void sendReminder(Date licenseExpires, String firstName, String to, EmailSession emailSession) throws MessagingException {
-        emailSession.sendMessage("license@subsonic.org",
-                Arrays.asList(to),
-                null,
-                Arrays.asList("license@subsonic.org", "sindre@activeobjects.no"),
-                Arrays.asList("license@subsonic.org"),
-                "Your Subsonic Premium subscription is about to expire",
-                createEmailContent(licenseExpires, firstName));
-        LOG.info("Sent email reminder to " + to);
-    }
-
-    private String createEmailContent(Date licenseExpires, String firstName) {
-
+    private void sendReminder(Date licenseExpires, String firstName, String to, EmailSession emailSession) throws Exception {
         if (StringUtils.isBlank(firstName)) {
             firstName = "Subsonic Premium user";
         }
-        return "Dear " + firstName + ",\n" +
-                "\n" +
-                "This is a friendly reminder that your Subsonic Premium subscription expires on " + DATE_FORMAT.format(licenseExpires) + ".\n" +
-                "\n" +
-                "We hope that you enjoy the service and that you choose to renew your subscription.\n" +
-                "\n" +
-                "Please visit http://premium.subsonic.org for more details and purchase options!\n" +
-                "\n" +
-                "Note: If you previously selected the automatic renewal option you will be charged automatically, and no action is required on your part.\n" +
-                "\n" +
-                "Best regards,\n" +
-                "The Subsonic team\n" +
-                "\n" +
-                "(This email is sent 14 and 7 days before the license expires)";
+        Map<String, String> tokens = new HashMap<String, String>();
+        tokens.put("NAME", firstName);
+        tokens.put("EXPIRES", DATE_FORMAT.format(licenseExpires));
+        String plainText = emailSession.fromTemplate("reminder.txt", tokens);
+        String htmlText = emailSession.fromTemplate("reminder.html", tokens);
+
+        emailSession.sendHtmlMessage("license@subsonic.org",
+                                     Arrays.asList(to),
+                                     null,
+                                     Arrays.asList("license@subsonic.org", "sindre@activeobjects.no"),
+                                     Arrays.asList("license@subsonic.org"),
+                                     "Your Subsonic Premium subscription is about to expire",
+                                     htmlText,
+                                     plainText);
+        LOG.info("Sent email reminder to " + to);
     }
 
     public void setPaymentDao(PaymentDao paymentDao) {
@@ -191,5 +182,13 @@ public class EmailReminderGenerator {
 
     public void setSubscriptionDao(SubscriptionDao subscriptionDao) {
         this.subscriptionDao = subscriptionDao;
+    }
+
+    public void setLicenseService(LicenseService licenseService) {
+        this.licenseService = licenseService;
+    }
+
+    public static void main(String[] args) throws Exception {
+        new EmailReminderGenerator().sendReminder(new Date(), "Sindre", "sindre@activeobjects.no", new EmailSession());
     }
 }
