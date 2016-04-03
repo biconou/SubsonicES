@@ -22,6 +22,7 @@ import java.io.File;
 
 import javax.sql.DataSource;
 
+import net.sourceforge.subsonic.dao.schema.BiconouSchema;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -68,7 +69,8 @@ public class HsqlDaoHelper implements DaoHelper {
                                 new Schema30(), new Schema31(), new Schema32(), new Schema33(), new Schema34(),
                                 new Schema35(), new Schema36(), new Schema37(), new Schema38(), new Schema40(),
                                 new Schema43(), new Schema45(), new Schema46(), new Schema47(), new Schema49(),
-                                new Schema50(), new Schema51(), new Schema52(), new Schema53(), new Schema60()};
+                                new Schema50(), new Schema51(), new Schema52(), new Schema53(), new Schema60(),
+                                new BiconouSchema()};
     private DataSource dataSource;
     private static boolean shutdownHookAdded;
 
