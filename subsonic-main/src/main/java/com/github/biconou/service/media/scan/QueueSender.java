@@ -1,22 +1,25 @@
 package com.github.biconou.service.media.scan;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import net.sourceforge.subsonic.domain.MediaFile;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.jms.core.MessageCreator;
 
-@Component
-public class QueueSender
-{
-    private final JmsTemplate jmsTemplate;
+import javax.jms.ObjectMessage;
 
-    @Autowired
-    public QueueSender( final JmsTemplate jmsTemplate )
-    {
+public class QueueSender {
+
+    private JmsTemplate jmsTemplate;
+
+    public void setJmsTemplate(JmsTemplate jmsTemplate) {
         this.jmsTemplate = jmsTemplate;
     }
 
-    public void send( final String message )
-    {
-        jmsTemplate.convertAndSend( "Queue.Name", message );
+    public void send(final MediaFile file) {
+        MessageCreator creator = session -> {
+            ObjectMessage message = session.createObjectMessage();
+            message.setObject(file);
+            return message;
+        };
+        jmsTemplate.send("Queue.Name", creator);
     }
 }

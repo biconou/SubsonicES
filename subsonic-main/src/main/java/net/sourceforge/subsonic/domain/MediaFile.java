@@ -19,6 +19,7 @@
 package net.sourceforge.subsonic.domain;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
@@ -35,7 +36,7 @@ import net.sourceforge.subsonic.util.FileUtil;
  * @author Sindre Mehus
  * @version $Id$
  */
-public class MediaFile {
+public class MediaFile implements Serializable {
 
     private int id;
     private String path;

@@ -2,21 +2,26 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:jms="http://www.springframework.org/schema/jms"
-       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
-       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
        http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-2.5.xsd">
 
-    <context:annotation-config />
-    <context:component-scan base-package="com.github.biconou"/>
 
 
-  <!--  <bean id="queueSender" class="com.github.biconou.service.media.scan.QueueSender"/>
+    <bean id="videoIndex" class="com.github.biconou.service.media.scan.VideoIndex">
+        <property name="settingsService" ref="settingsService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+    </bean>
+    <!--
+        JMS
+    -->
+    <bean id="queueSender" class="com.github.biconou.service.media.scan.QueueSender">
+        <property name="jmsTemplate" ref="jmsTemplate"/>
+    </bean>
 
-    <bean id="queueListener" class="com.github.biconou.service.media.scan.QueueListener"/>
--->
+    <bean id="queueListener" class="com.github.biconou.service.media.scan.QueueListener">
+        <property name="videoIndex" ref="videoIndex"/>
+    </bean>
 
-    <!-- Fabrique de connexions à ActiveMQ  -->
     <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
         <property name="brokerURL" value="vm://localhost" />
     </bean>
@@ -25,8 +30,7 @@
         <constructor-arg ref="connectionFactory"/>
     </bean>
 
-
     <jms:listener-container concurrency="5" >
-        <jms:listener id="QueueListener" destination="Queue.Name" ref="queueListener" />
+        <jms:listener destination="Queue.Name" ref="queueListener" />
     </jms:listener-container>
 </beans>

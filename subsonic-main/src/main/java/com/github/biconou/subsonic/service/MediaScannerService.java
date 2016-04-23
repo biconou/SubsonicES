@@ -19,22 +19,13 @@
 package com.github.biconou.subsonic.service;
 
 import com.github.biconou.service.media.scan.QueueSender;
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.dao.AlbumDao;
-import net.sourceforge.subsonic.dao.ArtistDao;
-import net.sourceforge.subsonic.dao.MediaFileDao;
-import net.sourceforge.subsonic.domain.*;
-import net.sourceforge.subsonic.service.MediaFileService;
-import net.sourceforge.subsonic.service.PlaylistService;
-import net.sourceforge.subsonic.service.SearchService;
-import net.sourceforge.subsonic.service.SettingsService;
-import net.sourceforge.subsonic.util.FileUtil;
-import org.apache.commons.lang.ObjectUtils;
+import net.sourceforge.subsonic.domain.Genres;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
-import java.io.File;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
 
 /**
  * Provides services for scanning the music library.
@@ -43,24 +34,46 @@ import java.util.*;
  */
 public class MediaScannerService extends net.sourceforge.subsonic.service.MediaScannerService {
 
-    private static final int INDEX_VERSION = 15;
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(MediaScannerService.class);
     private QueueSender queueSender = null;
 
+    /**
+     * Constructor needed for Spring 2.5 without annotations
+     * @return
+     */
     public QueueSender getQueueSender() {
         return queueSender;
     }
 
+    /**
+     * Sets the queue sender
+     * @param queueSender
+     */
     public void setQueueSender(QueueSender queueSender) {
         this.queueSender = queueSender;
     }
 
+    /**
+     * Override behavior of scanFile with pre dans post process.
+     * @param file
+     * @param musicFolder
+     * @param lastScanned
+     * @param albumCount
+     * @param genres
+     * @param isPodcast
+     */
     @Override
     protected void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount, Genres genres, boolean isPodcast) {
+
+/*        if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
+            getQueueSender().send(file);
+        }
+        */
+
         super.scanFile(file, musicFolder, lastScanned, albumCount, genres, isPodcast);
 
         if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
-             getQueueSender().send("scanned : id="+file.getId()+" name="+file.getPath()+file.getName());
+             getQueueSender().send(file);
         }
 
     }

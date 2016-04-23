@@ -27,7 +27,7 @@
   </appender> 
 
 	<logger name="com.github.biconou.subsonic.service.MediaScannerService">
-	   <level value="info"/>
+	   <level value="debug"/>
 	   <appender-ref ref="mediaScannerLogFile"/>
 	</logger>
 

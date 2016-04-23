@@ -9,7 +9,7 @@
     <context-param>
         <param-name>contextConfigLocation</param-name>
         <param-value>
-            /WEB-INF/applicationContext-jms.xml
+            /WEB-INF/applicationContext-biconou.xml
             /WEB-INF/applicationContext-service.xml
             /WEB-INF/applicationContext-security.xml
             /WEB-INF/applicationContext-cache.xml
