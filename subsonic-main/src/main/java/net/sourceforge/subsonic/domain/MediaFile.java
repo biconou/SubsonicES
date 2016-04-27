@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.io.FilenameUtils;
 
 import com.google.common.base.Function;
@@ -126,6 +127,7 @@ public class MediaFile implements Serializable {
         this.path = path;
     }
 
+    @JsonIgnore
     public String getHash() {
         return String.valueOf(Math.abs(path.hashCode()));
     }
@@ -138,6 +140,7 @@ public class MediaFile implements Serializable {
         this.folder = folder;
     }
 
+    @JsonIgnore
     public File getFile() {
         // TODO: Optimize
         return new File(path);
@@ -155,10 +158,12 @@ public class MediaFile implements Serializable {
         this.mediaType = mediaType;
     }
 
+    @JsonIgnore
     public boolean isVideo() {
         return mediaType == MediaType.VIDEO;
     }
 
+    @JsonIgnore
     public boolean isAudio() {
         return mediaType == MediaType.MUSIC || mediaType == MediaType.AUDIOBOOK || mediaType == MediaType.PODCAST;
     }
@@ -171,14 +176,17 @@ public class MediaFile implements Serializable {
         this.format = format;
     }
 
+    @JsonIgnore
     public boolean isDirectory() {
         return !isFile();
     }
 
+    @JsonIgnore
     public boolean isFile() {
         return mediaType != MediaType.DIRECTORY && mediaType != MediaType.ALBUM;
     }
 
+    @JsonIgnore
     public boolean isAlbum() {
         return mediaType == MediaType.ALBUM;
     }
@@ -215,6 +223,7 @@ public class MediaFile implements Serializable {
         this.albumArtist = albumArtist;
     }
 
+    @JsonIgnore
     public String getName() {
         if (isFile()) {
             return title != null ? title : FilenameUtils.getBaseName(path);
@@ -279,6 +288,7 @@ public class MediaFile implements Serializable {
         this.durationSeconds = durationSeconds;
     }
 
+    @JsonIgnore
     public String getDurationString() {
         if (durationSeconds == null) {
             return null;
@@ -351,6 +361,7 @@ public class MediaFile implements Serializable {
         this.parentPath = parentPath;
     }
 
+    @JsonIgnore
     public File getParentFile() {
         return getFile().getParentFile();
     }
@@ -444,6 +455,7 @@ public class MediaFile implements Serializable {
         return path.hashCode();
     }
 
+    @JsonIgnore
     public File getCoverArtFile() {
         // TODO: Optimize
         return coverArtPath == null ? null : new File(coverArtPath);

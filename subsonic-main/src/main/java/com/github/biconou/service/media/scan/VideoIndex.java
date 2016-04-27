@@ -1,22 +1,12 @@
 package com.github.biconou.service.media.scan;
 
 import com.github.biconou.subsonic.service.MediaScannerService;
-import com.google.common.io.Files;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.TranscodingService;
-import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericField;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -54,6 +44,7 @@ public class VideoIndex {
      * @return
      * @throws IOException
      */
+    /*
     private IndexWriter createIndexWriter() throws IOException {
         File dir = getIndexDirectory();
         try {
@@ -64,11 +55,13 @@ public class VideoIndex {
 
         return indexWriter;
     }
+    */
 
     /**
      *
      * @return
      */
+    /*
     public IndexWriter getIndexWriter() {
         if (indexWriter == null) {
             synchronized (lock) {
@@ -83,12 +76,13 @@ public class VideoIndex {
             }
         }
         return indexWriter;
-    }
+    }*/
 
     /**
      *
      * @return
      */
+    /*
     public IndexReader getIndexReader() {
         if (indexReader == null) {
             synchronized (lock) {
@@ -103,13 +97,14 @@ public class VideoIndex {
             }
         }
         return indexReader;
-    }
+    }*/
 
+    /*
     private IndexReader createIndexReader() throws IOException {
         File dir = getIndexDirectory();
         indexReader = IndexReader.open(FSDirectory.open(dir), false);
         return indexReader;
-    }
+    }*/
 
     /**
      *
@@ -117,6 +112,7 @@ public class VideoIndex {
      * @return
      * @throws IOException
      */
+    /*
     public int getDocumentNum(MediaFile mediaFile) throws IOException {
         Searcher searcher = new IndexSearcher(getIndexReader());
         TermQuery query = new TermQuery(new Term(FIELD_ID, "" + mediaFile.getId()));
@@ -126,7 +122,7 @@ public class VideoIndex {
         } else  {
             return -1;
         }
-    }
+    }*/
 
     /**
      *
@@ -134,6 +130,7 @@ public class VideoIndex {
      * @return
      * @throws IOException
      */
+    /*
     public Document getDocument(MediaFile mediaFile) throws IOException {
         int existingDocNum = getDocumentNum(mediaFile);
         if (existingDocNum == -1) {
@@ -141,13 +138,14 @@ public class VideoIndex {
         } else {
             return indexReader.document(existingDocNum);
         }
-    }
+    }*/
 
     /**
      *
      * @param mediaFile
      * @throws IOException
      */
+    /*
     public void createOrReplace(MediaFile mediaFile) throws IOException, InterruptedException {
 
         LOG_SCAN.debug("createOrReplace "+mediaFile.getPath());
@@ -199,7 +197,7 @@ public class VideoIndex {
         LOG_SCAN.debug("Delete temporary dir "+tempDir.getAbsolutePath());
 
         tempDir.delete();
-    }
+    }*/
 
     /**
      *

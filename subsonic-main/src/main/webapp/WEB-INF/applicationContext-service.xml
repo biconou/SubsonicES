@@ -4,14 +4,18 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
+    <bean id="elasticSearchClient" class="com.github.biconou.dao.ElasticSearchClient">
+    </bean>
+
     <!-- DAO's -->
 
     <bean id="playerDao" class="net.sourceforge.subsonic.dao.PlayerDao">
         <property name="daoHelper" ref="daoHelper"/>
     </bean>
 
-    <bean id="mediaFileDao" class="net.sourceforge.subsonic.dao.MediaFileDao">
+    <bean id="mediaFileDao" class="com.github.biconou.dao.MediaFileDao">
         <property name="daoHelper" ref="daoHelper"/>
+        <property name="elasticSearchClient" ref="elasticSearchClient"/>
     </bean>
 
     <bean id="artistDao" class="net.sourceforge.subsonic.dao.ArtistDao">
@@ -125,6 +129,7 @@
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
+        <property name="elasticSearchClient" ref="elasticSearchClient"/>
     </bean>
 
     <bean id="networkService" class="net.sourceforge.subsonic.service.NetworkService" init-method="init">

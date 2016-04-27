@@ -27,7 +27,7 @@ public class QueueListener implements SessionAwareMessageListener {
             if (obj instanceof MediaFile) {
                 MediaFile mediaFile = (MediaFile) obj;
                 LOG.info("Scan media file : "+mediaFile.getPath()+mediaFile.getName());
-                getVideoIndex().createOrReplace(mediaFile);
+                //getVideoIndex().createOrReplace(mediaFile);
             }
         } catch (final Exception e) {
             throw new RuntimeException(e);

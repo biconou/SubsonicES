@@ -18,62 +18,26 @@
  */
 package net.sourceforge.subsonic.service;
 
+import com.github.biconou.dao.ElasticSearchClient;
+import com.sun.media.jfxmedia.Media;
+import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.dao.AlbumDao;
+import net.sourceforge.subsonic.dao.ArtistDao;
+import net.sourceforge.subsonic.domain.*;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.util.Version;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-
-import org.apache.lucene.analysis.ASCIIFoldingFilter;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.LowerCaseFilter;
-import org.apache.lucene.analysis.StopFilter;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.analysis.standard.StandardFilter;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericField;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queryParser.MultiFieldQueryParser;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.NumericRangeQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.spans.SpanOrQuery;
-import org.apache.lucene.search.spans.SpanQuery;
-import org.apache.lucene.search.spans.SpanTermQuery;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.NumericUtils;
-import org.apache.lucene.util.Version;
-
-import com.google.common.collect.Lists;
-
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.dao.AlbumDao;
-import net.sourceforge.subsonic.dao.ArtistDao;
-import net.sourceforge.subsonic.domain.Album;
-import net.sourceforge.subsonic.domain.Artist;
-import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.MusicFolder;
-import net.sourceforge.subsonic.domain.RandomSearchCriteria;
-import net.sourceforge.subsonic.domain.SearchCriteria;
-import net.sourceforge.subsonic.domain.SearchResult;
-import net.sourceforge.subsonic.util.FileUtil;
 
 import static net.sourceforge.subsonic.service.SearchService.IndexType.*;
 
@@ -98,8 +62,10 @@ public class SearchService {
     private static final String FIELD_FOLDER = "folder";
     private static final String FIELD_FOLDER_ID = "folderId";
 
-    private static final Version LUCENE_VERSION = Version.LUCENE_30;
+    private static final Version LUCENE_VERSION = Version.LUCENE_5_5_0;
     private static final String LUCENE_DIR = "lucene2";
+
+    private ElasticSearchClient elasticSearchClient = null;
 
     private MediaFileService mediaFileService;
     private ArtistDao artistDao;
@@ -112,7 +78,8 @@ public class SearchService {
     private IndexWriter songWriter;
 
     public SearchService() {
-        removeLocks();
+        new RuntimeException("No more implemented").printStackTrace();
+        //removeLocks();
     }
 
     public void startIndexing() {
@@ -158,6 +125,8 @@ public class SearchService {
     }
 
     public void stopIndexing() {
+        throw new RuntimeException("No more implemented");
+        /*
         try {
             artistWriter.optimize();
             artistId3Writer.optimize();
@@ -173,9 +142,12 @@ public class SearchService {
             FileUtil.closeQuietly(albumId3Writer);
             FileUtil.closeQuietly(songWriter);
         }
+        */
     }
 
     public SearchResult search(SearchCriteria criteria, List<MusicFolder> musicFolders, IndexType indexType) {
+        throw new RuntimeException("No more implemented");
+/*
         SearchResult result = new SearchResult();
         int offset = criteria.getOffset();
         int count = criteria.getCount();
@@ -235,9 +207,12 @@ public class SearchService {
             FileUtil.closeQuietly(reader);
         }
         return result;
+        */
     }
 
     private String analyzeQuery(String query) throws IOException {
+        throw new RuntimeException("No more implemented");
+/*
         StringBuilder result = new StringBuilder();
         ASCIIFoldingFilter filter = new ASCIIFoldingFilter(new StandardTokenizer(LUCENE_VERSION, new StringReader(query)));
         TermAttribute termAttribute = filter.getAttribute(TermAttribute.class);
@@ -245,6 +220,7 @@ public class SearchService {
             result.append(termAttribute.term()).append("* ");
         }
         return result.toString();
+        */
     }
 
     /**
@@ -254,6 +230,8 @@ public class SearchService {
      * @return List of random songs.
      */
     public List<MediaFile> getRandomSongs(RandomSearchCriteria criteria) {
+        throw new RuntimeException("No more implemented");
+/*
         List<MediaFile> result = new ArrayList<MediaFile>();
 
         IndexReader reader = null;
@@ -299,10 +277,18 @@ public class SearchService {
             FileUtil.closeQuietly(reader);
         }
         return result;
+        */
     }
 
     private static String normalizeGenre(String genre) {
         return genre.toLowerCase().replace(" ", "").replace("-", "");
+    }
+
+    private MediaFile convertFromHitAndCollect(SearchHit hit,List<MediaFile> list) throws IOException {
+        String hitSource = hit.getSourceAsString();
+        MediaFile mediaFile = getElasticSearchClient().getMapper().readValue(hitSource,MediaFile.class);
+        list.add(mediaFile);
+        return mediaFile;
     }
 
     /**
@@ -313,6 +299,25 @@ public class SearchService {
      * @return List of random albums.
      */
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
+
+
+        SearchResponse allHits = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                .setQuery(QueryBuilders.typeQuery(ElasticSearchClient.ALBUM_TYPE))
+                .setSize(10)
+                .execute().actionGet();
+
+        List<MediaFile> list = new ArrayList<>();
+        allHits.getHits().forEach(hit -> {
+            try {
+                convertFromHitAndCollect(hit, list);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        return list;
+
+        /*
         List<MediaFile> result = new ArrayList<MediaFile>();
 
         IndexReader reader = null;
@@ -347,6 +352,7 @@ public class SearchService {
             FileUtil.closeQuietly(reader);
         }
         return result;
+        */
     }
 
     /**
@@ -357,6 +363,8 @@ public class SearchService {
      * @return List of random albums.
      */
     public List<Album> getRandomAlbumsId3(int count, List<MusicFolder> musicFolders) {
+        throw new RuntimeException("No more implemented");
+        /*
         List<Album> result = new ArrayList<Album>();
 
         IndexReader reader = null;
@@ -390,6 +398,7 @@ public class SearchService {
             FileUtil.closeQuietly(reader);
         }
         return result;
+        */
     }
 
     private <T> void addIfNotNull(T value, List<T> list) {
@@ -399,13 +408,19 @@ public class SearchService {
     }
 
     private IndexWriter createIndexWriter(IndexType indexType) throws IOException {
+        throw new RuntimeException("No more implemented");
+        /*
         File dir = getIndexDirectory(indexType);
         return new IndexWriter(FSDirectory.open(dir), new SubsonicAnalyzer(), true, new IndexWriter.MaxFieldLength(10));
+        */
     }
 
     private IndexReader createIndexReader(IndexType indexType) throws IOException {
+        throw new RuntimeException("No more implemented");
+        /*
         File dir = getIndexDirectory(indexType);
         return IndexReader.open(FSDirectory.open(dir), true);
+        */
     }
 
     private File getIndexRootDirectory() {
@@ -417,6 +432,8 @@ public class SearchService {
     }
 
     private void removeLocks() {
+        throw new RuntimeException("No more implemented");
+        /*
         for (IndexType indexType : IndexType.values()) {
             Directory dir = null;
             try {
@@ -431,6 +448,7 @@ public class SearchService {
                 FileUtil.closeQuietly(dir);
             }
         }
+        */
     }
 
     public void setMediaFileService(MediaFileService mediaFileService) {
@@ -450,6 +468,8 @@ public class SearchService {
         SONG(new String[]{FIELD_TITLE, FIELD_ARTIST}, FIELD_TITLE) {
             @Override
             public Document createDocument(MediaFile mediaFile) {
+                throw new RuntimeException("No more implemented");
+                /*
                 Document doc = new Document();
                 doc.add(new NumericField(FIELD_ID, Field.Store.YES, false).setIntValue(mediaFile.getId()));
                 doc.add(new Field(FIELD_MEDIA_TYPE, mediaFile.getMediaType().name(), Field.Store.NO, Field.Index.ANALYZED_NO_NORMS));
@@ -471,12 +491,15 @@ public class SearchService {
                 }
 
                 return doc;
+                */
             }
         },
 
         ALBUM(new String[]{FIELD_ALBUM, FIELD_ARTIST, FIELD_FOLDER}, FIELD_ALBUM) {
             @Override
             public Document createDocument(MediaFile mediaFile) {
+                throw new RuntimeException("No more implemented");
+                /*
                 Document doc = new Document();
                 doc.add(new NumericField(FIELD_ID, Field.Store.YES, false).setIntValue(mediaFile.getId()));
 
@@ -491,12 +514,15 @@ public class SearchService {
                 }
 
                 return doc;
+                */
             }
         },
 
         ALBUM_ID3(new String[]{FIELD_ALBUM, FIELD_ARTIST, FIELD_FOLDER_ID}, FIELD_ALBUM) {
             @Override
             public Document createDocument(Album album) {
+                throw new RuntimeException("No more implemented");
+                /*
                 Document doc = new Document();
                 doc.add(new NumericField(FIELD_ID, Field.Store.YES, false).setIntValue(album.getId()));
 
@@ -511,12 +537,15 @@ public class SearchService {
                 }
 
                 return doc;
+                */
             }
         },
 
         ARTIST(new String[]{FIELD_ARTIST, FIELD_FOLDER}, null) {
             @Override
             public Document createDocument(MediaFile mediaFile) {
+                throw new RuntimeException("No more implemented");
+                /*
                 Document doc = new Document();
                 doc.add(new NumericField(FIELD_ID, Field.Store.YES, false).setIntValue(mediaFile.getId()));
 
@@ -528,18 +557,22 @@ public class SearchService {
                 }
 
                 return doc;
+                */
             }
         },
 
         ARTIST_ID3(new String[]{FIELD_ARTIST}, null) {
             @Override
             public Document createDocument(Artist artist, MusicFolder musicFolder) {
+                throw new RuntimeException("No more implemented");
+                /*
                 Document doc = new Document();
                 doc.add(new NumericField(FIELD_ID, Field.Store.YES, false).setIntValue(artist.getId()));
                 doc.add(new Field(FIELD_ARTIST, artist.getName(), Field.Store.YES, Field.Index.ANALYZED));
                 doc.add(new NumericField(FIELD_FOLDER_ID, Field.Store.NO, true).setIntValue(musicFolder.getId()));
 
                 return doc;
+                */
             }
         };
 
@@ -575,19 +608,27 @@ public class SearchService {
         }
     }
 
-    private class SubsonicAnalyzer extends StandardAnalyzer {
+   /* private class SubsonicAnalyzer extends StandardAnalyzer {
         private SubsonicAnalyzer() {
+
+
             super(LUCENE_VERSION);
+
         }
 
-        @Override
+       @Override
         public TokenStream tokenStream(String fieldName, Reader reader) {
+            throw new RuntimeException("No more implemented");
+
             TokenStream result = super.tokenStream(fieldName, reader);
             return new ASCIIFoldingFilter(result);
+
         }
 
-        @Override
+
         public TokenStream reusableTokenStream(String fieldName, Reader reader) throws IOException {
+            throw new RuntimeException("No more implemented");
+
             class SavedStreams {
                 StandardTokenizer tokenStream;
                 TokenStream filteredTokenStream;
@@ -608,7 +649,16 @@ public class SearchService {
             streams.tokenStream.setMaxTokenLength(DEFAULT_MAX_TOKEN_LENGTH);
 
             return streams.filteredTokenStream;
+
         }
+    } */
+
+    public ElasticSearchClient getElasticSearchClient() {
+        return elasticSearchClient;
+    }
+
+    public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
+        this.elasticSearchClient = elasticSearchClient;
     }
 }
 
