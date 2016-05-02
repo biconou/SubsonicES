@@ -134,7 +134,6 @@
 
     <bean id="networkService" class="net.sourceforge.subsonic.service.NetworkService" init-method="init">
         <property name="settingsService" ref="settingsService"/>
-        <property name="upnpService" ref="upnpService"/>
     </bean>
 
     <bean id="playerService" class="net.sourceforge.subsonic.service.PlayerService" init-method="init">
@@ -169,22 +168,11 @@
         <property name="mediaFileService" ref="mediaFileService"/>
     </bean>
 
-    <bean id="audioScrobblerService" class="net.sourceforge.subsonic.service.AudioScrobblerService">
-        <property name="settingsService" ref="settingsService"/>
-    </bean>
-
     <bean id="transcodingService" class="net.sourceforge.subsonic.service.TranscodingService">
         <property name="transcodingDao" ref="transcodingDao"/>
         <property name="settingsService" ref="settingsService"/>
-        <property name="playerService" ref="playerService"/>
     </bean>
 
-    <bean id="shareService" class="net.sourceforge.subsonic.service.ShareService">
-        <property name="shareDao" ref="shareDao"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-    </bean>
 
     <bean id="podcastService" class="net.sourceforge.subsonic.service.PodcastService" init-method="init">
         <property name="podcastDao" ref="podcastDao"/>
@@ -194,47 +182,7 @@
         <property name="metaDataParserFactory" ref="metaDataParserFactory"/>
     </bean>
 
-    <bean id="adService" class="net.sourceforge.subsonic.service.AdService">
-        <property name="adInterval" value="8"/>
-    </bean>
 
-    <bean id="jukeboxService" class="net.sourceforge.subsonic.service.JukeboxService">
-        <property name="statusService" ref="statusService"/>
-        <property name="transcodingService" ref="transcodingService"/>
-        <property name="audioScrobblerService" ref="audioScrobblerService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="securityService" ref="securityService"/>
-    </bean>
-
-    <bean id="cmusService" class="com.github.biconou.subsonic.service.CMusService">
-        <property name="statusService" ref="statusService"/>
-        <property name="audioScrobblerService" ref="audioScrobblerService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="securityService" ref="securityService"/>
-    </bean>
-
-    <bean id="folderBasedContentDirectory" class="net.sourceforge.subsonic.service.upnp.FolderBasedContentDirectory">
-        <property name="settingsService" ref="settingsService"/>
-        <property name="playlistService" ref="playlistService"/>
-        <property name="playerService" ref="playerService"/>
-        <property name="transcodingService" ref="transcodingService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-    </bean>
-
-    <bean id="upnpService" class="net.sourceforge.subsonic.service.UPnPService" init-method="init">
-        <property name="settingsService" ref="settingsService"/>
-        <property name="versionService" ref="versionService"/>
-        <property name="folderBasedContentDirectory" ref="folderBasedContentDirectory"/>
-    </bean>
-
-    <bean id="lastFmService" class="net.sourceforge.subsonic.service.LastFmService" init-method="init">
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
-        <property name="artistDao" ref="artistDao"/>
-    </bean>
 
     <bean id="videoConversionService" class="net.sourceforge.subsonic.service.VideoConversionService" init-method="init">
         <property name="mediaFileService" ref="mediaFileService"/>
@@ -256,75 +204,6 @@
         </property>
     </bean>
 
-    <!-- AJAX services -->
-
-    <bean id="ajaxMultiService" class="net.sourceforge.subsonic.ajax.MultiService">
-        <property name="networkService" ref="networkService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="lastFmService" ref="lastFmService"/>
-        <property name="videoConversionService" ref="videoConversionService"/>
-    </bean>
-
-    <bean id="ajaxNowPlayingService" class="net.sourceforge.subsonic.ajax.NowPlayingService">
-        <property name="playerService" ref="playerService"/>
-        <property name="statusService" ref="statusService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="mediaScannerService" ref="mediaScannerService"/>
-        <property name="cmusService" ref="cmusService"/>
-    </bean>
-
-    <bean id="ajaxPlayQueueService" class="net.sourceforge.subsonic.ajax.PlayQueueService">
-        <property name="playerService" ref="playerService"/>
-        <property name="playlistService" ref="playlistService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="lastFmService" ref="lastFmService"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
-        <property name="playQueueDao" ref="playQueueDao"/>
-        <property name="jukeboxService" ref="jukeboxService"/>
-        <property name="cmusService" ref="cmusService"/>
-        <property name="transcodingService" ref="transcodingService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="searchService" ref="searchService"/>
-        <property name="ratingService" ref="ratingService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="podcastService" ref="podcastService"/>
-    </bean>
-
-    <bean id="ajaxPlaylistService" class="net.sourceforge.subsonic.ajax.PlaylistService">
-        <property name="playlistService" ref="playlistService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="settingsService" ref="settingsService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="playerService" ref="playerService"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
-        <property name="localeResolver" ref="localeResolver"/>
-    </bean>
-
-    <bean id="ajaxLyricsService" class="net.sourceforge.subsonic.ajax.LyricsService"/>
-
-    <bean id="ajaxCoverArtService" class="net.sourceforge.subsonic.ajax.CoverArtService">
-        <property name="securityService" ref="securityService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="lastFmService" ref="lastFmService"/>
-    </bean>
-
-    <bean id="ajaxStarService" class="net.sourceforge.subsonic.ajax.StarService">
-        <property name="securityService" ref="securityService"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
-    </bean>
-
-    <bean id="ajaxTagService" class="net.sourceforge.subsonic.ajax.TagService">
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="metaDataParserFactory" ref="metaDataParserFactory"/>
-    </bean>
-
-    <bean id="ajaxTransferService" class="net.sourceforge.subsonic.ajax.TransferService"/>
-
-    <bean id="ajaxChatService" class="net.sourceforge.subsonic.ajax.ChatService" init-method="init">
-        <property name="securityService" ref="securityService"/>
-    </bean>
 
     <bean id="localeResolver" class="net.sourceforge.subsonic.i18n.SubsonicLocaleResolver">
         <property name="securityService" ref="securityService"/>
