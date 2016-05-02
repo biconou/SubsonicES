@@ -38,6 +38,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
 
   @Override
+  // TODO
   public MediaFile getMediaFile(int id) {
     // Appel de la classe parente
     return super.getMediaFile(id);
@@ -226,18 +227,15 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   @Override
     public synchronized void createOrUpdateMediaFile(MediaFile file) {
 
+          MediaFile existingMediaFile = getMediaFile(file.getPath());
           SearchResponse alreadyIndexedMediaFileResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), file.getPath());
 
-          long nbFound = alreadyIndexedMediaFileResponse.getHits().getTotalHits();
-
-          if (nbFound > 1) {
-            throw new RuntimeException("Index incoherence. more than one mediaFile found for patch"+file.getPath());
-          }
-
-          if (nbFound == 0) {
+          if (existingMediaFile == null) {
             try {
               String json = getElasticSearchClient().getMapper().writeValueAsString(file);
-              IndexResponse response = getElasticSearchClient().getClient().prepareIndex(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME, file.getMediaType().toString())
+              IndexResponse response = getElasticSearchClient().getClient().prepareIndex(
+                      ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
+                      file.getMediaType().toString())
                 .setSource(json)
                 .get();
 
@@ -248,8 +246,10 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             // update the media file.
             try {
               String json = getElasticSearchClient().getMapper().writeValueAsString(file);
-              UpdateResponse response = getElasticSearchClient().getClient().prepareUpdate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME, file.getMediaType().toString(), "" + file.getId())
-                .setUpsert(json)
+              UpdateResponse response = getElasticSearchClient().getClient().prepareUpdate(
+                      ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
+                      file.getMediaType().toString(), existingMediaFile.getESId())
+                .setDoc(json)
                 .get();
 
             } catch (JsonProcessingException e) {

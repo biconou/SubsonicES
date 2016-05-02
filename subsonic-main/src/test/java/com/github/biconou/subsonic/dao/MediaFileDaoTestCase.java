@@ -193,10 +193,10 @@ public class MediaFileDaoTestCase extends TestCase {
 
   public void test () {
 
-    String applicationContextService = "/com/github/biconou/subsonic/service/mediaFileDaoTestCase/applicationContext-service.xml";
-    String applicationContextCache = "/com/github/biconou/subsonic/service/mediaScannerServiceTestCase/applicationContext-cache.xml";
+    String applicationContextService = "/com/github/biconou/subsonic/dao/mediaFileDaoTestCase/applicationContext-service.xml";
+    String applicationContextCache = "/com/github/biconou/subsonic/dao/mediaFileDaoTestCase/applicationContext-cache.xml";
 
-    String subsoncicHome = this.getClass().getResource("/com/github/biconou/subsonic/service/mediaFileDaoTestCase/").toString().replace("file:/","");
+    String subsoncicHome = this.getClass().getResource("/com/github/biconou/subsonic/dao/mediaFileDaoTestCase/").toString().replace("file:/","");
     System.setProperty("subsonic.home",subsoncicHome);
 
     String[] configLocations = new String[]{
@@ -208,14 +208,15 @@ public class MediaFileDaoTestCase extends TestCase {
     MetaDataParserFactory metaDataParserFactory = (MetaDataParserFactory)context.getBean("metaDataParserFactory");
     MediaFileDao mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
 
-    String root = "D:\\musique";
-    File fichierMusique1 = new File(root + "\\Ravel\\Ravel - Complete Piano Works\\02-Gaspard de la Nuit - ii. Le Gibet.complete.mp3");
+    String root = "C:\\TEST_BASE_STREAMING";
+    File fichierMusique1 = new File(root + "\\Music\\Ravel\\Ravel - Complete Piano Works\\01 - Gaspard de la Nuit - i. Ondine.flac");
 
     MediaFile mediaFileMusique1 = createMediaFile(fichierMusique1,mediaFileDao,metaDataParserFactory,root);
-
     mediaFileDao.createOrUpdateMediaFile(mediaFileMusique1);
+    MediaFile mediaFileMusique1RetrievedByPath = mediaFileDao.getMediaFile(mediaFileMusique1.getPath());
 
-    MediaFile mediaFileMusique1RetrievedByPatch = mediaFileDao.getMediaFile(mediaFileMusique1.getPath());
+    mediaFileMusique1RetrievedByPath.setTitle(mediaFileMusique1RetrievedByPath.getTitle()+" [modified]");
+    mediaFileDao.createOrUpdateMediaFile(mediaFileMusique1RetrievedByPath);
 
 
     System.out.print("End test.");

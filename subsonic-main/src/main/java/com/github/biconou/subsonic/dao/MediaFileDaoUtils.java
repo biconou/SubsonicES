@@ -34,13 +34,16 @@ public class MediaFileDaoUtils {
   }
 
   protected static MediaFile convertFromHit(ElasticSearchClient client,SearchHit hit) throws RuntimeException {
-    String hitSource = hit.getSourceAsString();
     MediaFile mediaFile = null;
-    try {
-      mediaFile = client.getMapper().readValue(hitSource,MediaFile.class);
-    }
-    catch (IOException e) {
-      throw new RuntimeException("Error while reading MediaFile object from index. ",e);
+
+    if (hit != null) {
+      String hitSource = hit.getSourceAsString();
+      try {
+        mediaFile = client.getMapper().readValue(hitSource, MediaFile.class);
+        mediaFile.setESId(hit.id());
+      } catch (IOException e) {
+        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
+      }
     }
     return mediaFile;
   }

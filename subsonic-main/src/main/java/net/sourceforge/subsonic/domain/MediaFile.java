@@ -39,6 +39,8 @@ import net.sourceforge.subsonic.util.FileUtil;
  */
 public class MediaFile implements Serializable {
 
+    private String ESId = null;
+
     private int id;
     private String path;
     private String folder;
@@ -445,7 +447,16 @@ public class MediaFile implements Serializable {
         return version;
     }
 
-    @Override
+  @JsonIgnore
+    public String getESId() {
+      return ESId;
+    }
+
+    public void setESId(String ESId) {
+      this.ESId = ESId;
+    }
+
+  @Override
     public boolean equals(Object o) {
         return o instanceof MediaFile && ((MediaFile) o).path.equals(path);
     }

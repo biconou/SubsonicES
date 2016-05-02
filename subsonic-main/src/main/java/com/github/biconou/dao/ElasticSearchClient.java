@@ -34,7 +34,12 @@ public class ElasticSearchClient {
                                 .prepareCreate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
                                 .addMapping("DIRECTORY",
                                         "path","type=string,index=not_analyzed",
-                                        "created","type=date")
+                                        "created","type=date",
+                                        "changed","type=date",
+                                        "childrenLastUpdated","type=date",
+                                        "lastPlayed","type=date",
+                                        "lastScanned","type=date",
+                                        "starredDate","type=date")
                                 .execute().actionGet();
                     }
 
