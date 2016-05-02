@@ -28,9 +28,6 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * Provides services for scanning the music library.
- *
- * @author Sindre Mehus
  */
 public class MediaScannerService extends net.sourceforge.subsonic.service.MediaScannerService {
 
@@ -65,16 +62,18 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     @Override
     protected void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount, Genres genres, boolean isPodcast) {
 
-/*        if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
-            getQueueSender().send(file);
-        }
-        */
+
+        LOG.debug("BEGIN : scan file ["+file.getPath()+"]");
 
         super.scanFile(file, musicFolder, lastScanned, albumCount, genres, isPodcast);
 
+        LOG.debug("END : scan file ["+file.getPath()+"]");
+
+        /*
         if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
              getQueueSender().send(file);
         }
+        */
 
     }
 }

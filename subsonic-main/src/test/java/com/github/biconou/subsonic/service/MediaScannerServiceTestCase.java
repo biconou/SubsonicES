@@ -18,7 +18,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   private static String baseResources = "/com/github/biconou/subsonic/service/mediaScannerServiceTestCase/";
 
-  private net.sourceforge.subsonic.service.MediaScannerService mediaScannerService = null;
+  private MediaScannerService mediaScannerService = null;
 
   @Override
   protected void setUp() throws Exception {
@@ -53,7 +53,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     };
     ApplicationContext context = new ClassPathXmlApplicationContext(configLocations);
 
-    mediaScannerService = (net.sourceforge.subsonic.service.MediaScannerService)context.getBean("mediaScannerService");
+    mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
 
     // delete index
     ElasticSearchClient ESClient = (ElasticSearchClient)context.getBean("elasticSearchClient");

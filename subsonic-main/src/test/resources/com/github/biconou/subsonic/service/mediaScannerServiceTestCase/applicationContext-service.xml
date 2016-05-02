@@ -102,7 +102,7 @@
         <property name="versionService" ref="versionService"/>
     </bean>
 
-    <!-- <bean id="mediaScannerService" class="com.github.biconou.subsonic.service.MediaScannerService" init-method="init" depends-on="metaDataParserFactory">
+    <bean id="mediaScannerService" class="com.github.biconou.subsonic.service.MediaScannerService" init-method="init" depends-on="metaDataParserFactory">
         <property name="settingsService" ref="settingsService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="mediaFileDao" ref="mediaFileDao"/>
@@ -110,19 +110,8 @@
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
         <property name="searchService" ref="searchService"/>
-        <property name="queueSender" ref="queueSender"/>
-    </bean> -->
-
-    <bean id="mediaScannerService" class="net.sourceforge.subsonic.service.MediaScannerService" init-method="init" depends-on="metaDataParserFactory">
-        <property name="settingsService" ref="settingsService"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
-        <property name="playlistService" ref="playlistService"/>
-        <property name="artistDao" ref="artistDao"/>
-        <property name="albumDao" ref="albumDao"/>
-        <property name="searchService" ref="searchService"/>
+        <!-- <property name="queueSender" ref="queueSender"/> -->
     </bean>
-
 
 
     <bean id="searchService" class="net.sourceforge.subsonic.service.SearchService">
