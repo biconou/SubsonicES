@@ -1,12 +1,13 @@
 /**
  * Paquet de définition
  **/
-package com.github.biconou.dao;
+package com.github.biconou.subsonic.dao;
 
 import java.io.IOException;
 import java.util.List;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
+import com.github.biconou.dao.ElasticSearchClient;
 import net.sourceforge.subsonic.domain.MediaFile;
 
 /**
@@ -15,17 +16,18 @@ import net.sourceforge.subsonic.domain.MediaFile;
 public class MediaFileDaoUtils {
 
   protected static SearchResponse searchMediaFileByPath(ElasticSearchClient client,String path) {
+
+    String path2 = path.replace("\\","\\\\");
     String jsonSearch = "" +
       "{" +
       "    \"constant_score\" : {" +
       "        \"filter\" : {" +
       "            \"term\" : {" +
-      "                \"path\" : \""+path+"\"" +
+      "                \"path\" : \""+path2+"\"" +
       "            }" +
       "        }" +
       "    }" +
       "}";
-
 
     return client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
       .setQuery(jsonSearch).execute().actionGet();

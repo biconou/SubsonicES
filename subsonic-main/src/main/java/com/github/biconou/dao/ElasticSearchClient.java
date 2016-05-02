@@ -27,6 +27,18 @@ public class ElasticSearchClient {
                 if (elasticSearchClient == null) {
                     elasticSearchClient = TransportClient.builder().build()
                             .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
+
+                    boolean indexExists = elasticSearchClient.admin().indices().prepareExists(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                            .execute().actionGet().isExists();
+                    if (!indexExists) {
+                        elasticSearchClient.admin().indices()
+                                .prepareCreate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                                .addMapping("DIRECTORY",
+                                        "path","type=string,index=not_analyzed",
+                                        "created","type=date")
+                                .execute().actionGet();
+                    }
+
                 }
             }
         }

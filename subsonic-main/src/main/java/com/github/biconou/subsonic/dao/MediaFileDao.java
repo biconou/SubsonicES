@@ -1,4 +1,4 @@
-package com.github.biconou.dao;
+package com.github.biconou.subsonic.dao;
 
 
 import java.util.Date;
@@ -7,6 +7,8 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.biconou.dao.ElasticSearchClient;
+import com.github.biconou.dao.MediaFileDaoUtils;
 import net.sourceforge.subsonic.domain.Genre;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
@@ -21,7 +23,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   @Override
   public MediaFile getMediaFile(String path) {
-    SearchResponse response = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(),path);
+    SearchResponse response = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), path);
 
     long nbFound = response.getHits().getTotalHits();
     if (nbFound > 1) {
@@ -225,23 +227,10 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   @Override
     public synchronized void createOrUpdateMediaFile(MediaFile file) {
 
-        if (file.getMediaType().equals(MediaFile.MediaType.MUSIC) || file.getMediaType().equals(MediaFile.MediaType.ALBUM)) {
-
-         /* SearchResponse alreadyIndexedMediaFileResponse = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-            .setQuery(QueryBuilders.idsQuery().ids("" + file.getId()))
-            .execute().actionGet();
-*/
-
-        /* SearchResponse alreadyIndexedMediaFileResponse = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-            .setQuery(QueryBuilders.constantScoreQuery(QueryBuilders.termQuery("path", file.getPath())))
-           .setPostFilter()
-            .execute().actionGet();
-            */
-
-
           SearchResponse alreadyIndexedMediaFileResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), file.getPath());
 
           long nbFound = alreadyIndexedMediaFileResponse.getHits().getTotalHits();
+
           if (nbFound > 1) {
             throw new RuntimeException("Index incoherence. more than one mediaFile found for patch"+file.getPath());
           }
@@ -249,7 +238,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
           if (nbFound == 0) {
             try {
               String json = getElasticSearchClient().getMapper().writeValueAsString(file);
-              IndexResponse response = getElasticSearchClient().getClient().prepareIndex(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME, file.getMediaType().toString(), "" + file.getId())
+              IndexResponse response = getElasticSearchClient().getClient().prepareIndex(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME, file.getMediaType().toString())
                 .setSource(json)
                 .get();
 
@@ -268,12 +257,6 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
               throw new RuntimeException("Error trying indexing mediaFile "+e);
             }
           }
-
-
-
-        } else {
-            super.createOrUpdateMediaFile(file);
-        }
     }
 
 

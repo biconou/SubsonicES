@@ -78,12 +78,12 @@ public class SearchService {
     private IndexWriter songWriter;
 
     public SearchService() {
-        new RuntimeException("No more implemented").printStackTrace();
         //removeLocks();
     }
 
     public void startIndexing() {
-        try {
+        // Nothing to do
+     /*   try {
             artistWriter = createIndexWriter(ARTIST);
             artistId3Writer = createIndexWriter(ARTIST_ID3);
             albumWriter = createIndexWriter(ALBUM);
@@ -91,7 +91,7 @@ public class SearchService {
             songWriter = createIndexWriter(SONG);
         } catch (Exception x) {
             LOG.error("Failed to create search index.", x);
-        }
+        }*/
     }
 
     public void index(MediaFile mediaFile) {
@@ -125,7 +125,7 @@ public class SearchService {
     }
 
     public void stopIndexing() {
-        throw new RuntimeException("No more implemented");
+        // Nothing to do
         /*
         try {
             artistWriter.optimize();
