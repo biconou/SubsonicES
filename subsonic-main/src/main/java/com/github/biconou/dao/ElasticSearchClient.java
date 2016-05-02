@@ -1,12 +1,11 @@
 package com.github.biconou.dao;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import net.sourceforge.subsonic.domain.MediaFile;
+import java.net.InetAddress;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-
-import java.net.InetAddress;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import net.sourceforge.subsonic.domain.MediaFile;
 
 /**
  * Created by remi on 26/04/2016.

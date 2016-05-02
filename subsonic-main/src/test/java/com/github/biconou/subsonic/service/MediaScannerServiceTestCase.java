@@ -1,12 +1,8 @@
 package com.github.biconou.subsonic.service;
 
-import junit.framework.TestCase;
-import net.sourceforge.subsonic.domain.MusicFolder;
-import net.sourceforge.subsonic.service.SettingsService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.util.List;
+import junit.framework.TestCase;
 
 /**
  * Created by remi on 01/05/2016.

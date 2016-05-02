@@ -8,7 +8,6 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.biconou.dao.ElasticSearchClient;
-import com.github.biconou.dao.MediaFileDaoUtils;
 import net.sourceforge.subsonic.domain.Genre;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
