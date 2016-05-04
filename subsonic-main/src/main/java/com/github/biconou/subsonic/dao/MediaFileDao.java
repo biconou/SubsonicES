@@ -1,6 +1,7 @@
 package com.github.biconou.subsonic.dao;
 
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import org.elasticsearch.action.index.IndexResponse;
@@ -128,10 +129,31 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     return super.getAlbumsByGenre(offset, count, genre, musicFolders);
   }
 
+
+
   @Override
   public List<MediaFile> getSongsByGenre(String genre, int offset, int count, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getSongsByGenre(genre, offset, count, musicFolders);
+    if (musicFolders.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // TODO
+    // sélectionner tous les documents pour type MUSIC.name(), PODCAST.name(), AUDIOBOOK.name()
+    // et présent
+    // et genre = genre
+    // TODO reprendre le code de searchService
+    String jsonSearch = "" +
+      "{" +
+      "    \"constant_score\" : {" +
+      "        \"filter\" : {" +
+      "            \"term\" : {" +
+      "                \"genre\" : \""+genre+"\"" +
+      "            }" +
+      "        }" +
+      "    }" +
+      "}";
+
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch);
   }
 
   @Override

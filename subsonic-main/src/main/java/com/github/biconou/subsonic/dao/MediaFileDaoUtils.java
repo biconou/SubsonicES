@@ -4,7 +4,9 @@
 package com.github.biconou.subsonic.dao;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
 import com.github.biconou.dao.ElasticSearchClient;
@@ -48,10 +50,15 @@ public class MediaFileDaoUtils {
     return mediaFile;
   }
 
-  protected static MediaFile convertFromHitAndCollect(ElasticSearchClient client,SearchHit hit,List<MediaFile> list) throws IOException {
-    MediaFile mediaFile = convertFromHit(client,hit);
-    list.add(mediaFile);
-    return mediaFile;
+  protected static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch) {
+
+    SearchResponse response = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+      .setQuery(jsonSearch).execute().actionGet();
+
+    List<MediaFile> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(client,hit)).collect(Collectors.toList());
+
+    return returnedSongs;
+
   }
 
 }
