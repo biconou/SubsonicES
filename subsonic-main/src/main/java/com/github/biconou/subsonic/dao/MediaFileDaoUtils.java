@@ -19,20 +19,19 @@ public class MediaFileDaoUtils {
 
   protected static SearchResponse searchMediaFileByPath(ElasticSearchClient client,String path) {
 
-    String path2 = path.replace("\\","\\\\");
-    String jsonSearch = "" +
-      "{" +
+
+    String jsonSearch = "{" +
       "    \"constant_score\" : {" +
       "        \"filter\" : {" +
       "            \"term\" : {" +
-      "                \"path\" : \""+path2+"\"" +
+      "                \"path\" : \""+preparePathForSearch(path)+"\"" +
       "            }" +
       "        }" +
       "    }" +
       "}";
 
     return client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-      .setQuery(jsonSearch).execute().actionGet();
+      .setQuery(jsonSearch).setVersion(true).execute().actionGet();
   }
 
   protected static MediaFile convertFromHit(ElasticSearchClient client,SearchHit hit) throws RuntimeException {
@@ -61,5 +60,8 @@ public class MediaFileDaoUtils {
 
   }
 
+  public static String preparePathForSearch(String path) {
+    return path.replace("\\","\\\\");
+  }
 }
  

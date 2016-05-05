@@ -34,6 +34,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(MediaScannerService.class);
     private QueueSender queueSender = null;
 
+
     /**
      * Constructor needed for Spring 2.5 without annotations
      * @return

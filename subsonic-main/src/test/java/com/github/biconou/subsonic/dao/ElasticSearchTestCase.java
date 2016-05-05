@@ -3,36 +3,39 @@
  **/
 package com.github.biconou.subsonic.dao;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.biconou.dao.ElasticSearchClient;
+import junit.framework.Assert;
+import junit.framework.TestCase;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.service.metadata.MetaData;
+import net.sourceforge.subsonic.service.metadata.MetaDataParser;
+import net.sourceforge.subsonic.service.metadata.MetaDataParserFactory;
+import net.sourceforge.subsonic.util.FileUtil;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringUtils;
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.github.biconou.dao.ElasticSearchClient;
-import com.github.biconou.subsonic.service.MediaScannerService;
-import junit.framework.Assert;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import junit.framework.TestCase;
-import net.sourceforge.subsonic.domain.MediaFile;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.ALBUM;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.AUDIOBOOK;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.DIRECTORY;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.MUSIC;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.PODCAST;
-import static net.sourceforge.subsonic.domain.MediaFile.MediaType.VIDEO;
-import net.sourceforge.subsonic.service.metadata.MetaData;
-import net.sourceforge.subsonic.service.metadata.MetaDataParser;
-import net.sourceforge.subsonic.service.metadata.MetaDataParserFactory;
-import net.sourceforge.subsonic.util.FileUtil;
+import static net.sourceforge.subsonic.domain.MediaFile.MediaType.*;
 
 /**
  * Description: Merci de donner une description du service rendu par cette classe
  */
-public class MediaFileDaoTestCase extends TestCase {
+public class ElasticSearchTestCase extends TestCase {
 
   private static String baseResources = "/com/github/biconou/subsonic/dao/mediaFileDaoTestCase/";
 
@@ -44,7 +47,7 @@ public class MediaFileDaoTestCase extends TestCase {
   /* Code partly copied from MediaFileService */
 
   private boolean isVideoFile(String suffix) {
-    String[] suffixes = new String[]{"AVI","MPG","MPEG"};
+    String[] suffixes = new String[]{"AVI", "MPG", "MPEG"};
     for (String s : suffixes) {
       if (suffix.equals(s.toLowerCase())) {
         return true;
@@ -54,7 +57,7 @@ public class MediaFileDaoTestCase extends TestCase {
   }
 
   private boolean isAudioFile(String suffix) {
-    String[] suffixes = new String[]{"FLAC","MP3"};
+    String[] suffixes = new String[]{"FLAC", "MP3"};
     for (String s : suffixes) {
       if (suffix.equals(s.toLowerCase())) {
         return true;
@@ -79,9 +82,9 @@ public class MediaFileDaoTestCase extends TestCase {
   }
 
   public boolean isRoot(MediaFile mediaFile, String root) {
-      if (mediaFile.getPath().equals(root)) {
-        return true;
-      }
+    if (mediaFile.getPath().equals(root)) {
+      return true;
+    }
     return false;
   }
 
@@ -152,7 +155,7 @@ public class MediaFileDaoTestCase extends TestCase {
     } else {
 
       // Is this an album?
-      if (!isRoot(mediaFile,root)) {
+      if (!isRoot(mediaFile, root)) {
         File[] children = FileUtil.listFiles(file);
         File firstChild = null;
         for (File child : filterMediaFiles(children)) {
@@ -207,14 +210,14 @@ public class MediaFileDaoTestCase extends TestCase {
     super.setUp();
 
     // Prepare database
-    String baseDir = this.getClass().getResource(baseResources).toString().replace("file:/","");
+    String baseDir = this.getClass().getResource(baseResources).toString().replace("file:/", "");
 
     // load spring context
     String applicationContextService = baseResources + "applicationContext-service.xml";
     String applicationContextCache = baseResources + "applicationContext-cache.xml";
 
-    String subsoncicHome = this.getClass().getResource(baseResources).toString().replace("file:/","");
-    System.setProperty("subsonic.home",subsoncicHome);
+    String subsoncicHome = this.getClass().getResource(baseResources).toString().replace("file:/", "");
+    System.setProperty("subsonic.home", subsoncicHome);
 
     String[] configLocations = new String[]{
             this.getClass().getResource(applicationContextCache).toString(),
@@ -222,12 +225,12 @@ public class MediaFileDaoTestCase extends TestCase {
     };
     ApplicationContext context = new ClassPathXmlApplicationContext(configLocations);
 
-    metaDataParserFactory = (MetaDataParserFactory)context.getBean("metaDataParserFactory");
-    mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
-    ESClient = (ElasticSearchClient)context.getBean("elasticSearchClient");
+    metaDataParserFactory = (MetaDataParserFactory) context.getBean("metaDataParserFactory");
+    mediaFileDao = (MediaFileDao) context.getBean("mediaFileDao");
+    ESClient = (ElasticSearchClient) context.getBean("elasticSearchClient");
   }
 
-  public void testCreateOrUpdateMediaFile () {
+  public void testIndexFile() throws Exception {
 
     ESClient.deleteIndex();
 
@@ -235,30 +238,49 @@ public class MediaFileDaoTestCase extends TestCase {
     String fichierMusique1Path = root + "\\Music\\Ravel\\Ravel - Complete Piano Works\\01 - Gaspard de la Nuit - i. Ondine.flac";
     File fichierMusique1 = new File(fichierMusique1Path);
 
-    MediaFile mediaFileMusique1 = createMediaFile(fichierMusique1,mediaFileDao,metaDataParserFactory,root);
-    mediaFileDao.createOrUpdateMediaFile(mediaFileMusique1);
+    MediaFile mediaFileMusique1 = createMediaFile(fichierMusique1, mediaFileDao, metaDataParserFactory, root);
 
-    MediaFile mediaFileMusique1RetrievedByPath = mediaFileDao.getMediaFile(mediaFileMusique1.getPath());
+    String json = ESClient.getMapper().writeValueAsString(mediaFileMusique1);
 
-    Assert.assertNotNull(mediaFileMusique1RetrievedByPath);
+    IndexRequestBuilder indexRequestBuilder = ESClient.getClient().prepareIndex(
+            ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
+            mediaFileMusique1.getMediaType().toString())
+            .setSource(json);
+    IndexResponse indexResponse = ESClient.getClient().index(indexRequestBuilder.request()).get();
+    String createdId = indexResponse.getId();
 
-    mediaFileMusique1RetrievedByPath.setTitle(mediaFileMusique1RetrievedByPath.getTitle()+" [modified]");
-    mediaFileDao.createOrUpdateMediaFile(mediaFileMusique1RetrievedByPath);
+    long l = 0;
+    while (l==0) {
+      l = ESClient.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+              .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
+    }
 
-    mediaFileMusique1RetrievedByPath = mediaFileDao.getMediaFile(mediaFileMusique1.getPath());
 
-    Assert.assertEquals("Gaspard de la Nuit - i. Ondine [modified]",mediaFileMusique1RetrievedByPath.getTitle());
+    // Search the document just inserted.
+    System.out.println("Search the document just inserted");
+    String jsonSearch = "" +
+            "{" +
+            "    \"constant_score\" : {" +
+            "        \"filter\" : {" +
+            "            \"term\" : {" +
+            "                \"path\" : \"" + MediaFileDaoUtils.preparePathForSearch(mediaFileMusique1.getPath()) + "\"" +
+            "            }" +
+            "        }" +
+            "    }" +
+            "}";
+
+
+    SearchResponse searchResponse = ESClient.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonSearch).execute().actionGet();
+
+    Assert.assertNotNull(searchResponse);
+    Assert.assertEquals(1, searchResponse.getHits().totalHits());
+
+    Assert.assertEquals(createdId,searchResponse.getHits().getAt(0).getId());
+
 
     System.out.print("End test.");
   }
-
-  public void testGetChildrenOf () {
-
-    List<MediaFile> liste = mediaFileDao.getChildrenOf("C:\\TEST_BASE_STREAMING");
-
-    System.out.print("End test.");
-  }
-
 
 }
  

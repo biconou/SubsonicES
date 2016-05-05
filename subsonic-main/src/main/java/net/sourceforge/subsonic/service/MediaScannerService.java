@@ -69,6 +69,11 @@ public class MediaScannerService {
         schedule();
     }
 
+    public void initNoSchedule() {
+        deleteOldIndexFiles();
+        statistics = settingsService.getMediaLibraryStatistics();
+    }
+
     /**
      * Schedule background execution of media library scanning.
      */

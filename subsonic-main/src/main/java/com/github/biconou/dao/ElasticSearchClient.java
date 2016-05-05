@@ -48,6 +48,11 @@ public class ElasticSearchClient {
                     .prepareCreate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
                     .addMapping("DIRECTORY",
                             "path", "type=string,index=not_analyzed",
+                            "parentPath", "type=string,index=not_analyzed",
+                            "folder", "type=string,index=not_analyzed",
+                            "format", "type=string,index=not_analyzed",
+                            "genre", "type=string,index=not_analyzed",
+                            "coverArtPath", "type=string,index=not_analyzed",
                             "created", "type=date",
                             "changed", "type=date",
                             "childrenLastUpdated", "type=date",
