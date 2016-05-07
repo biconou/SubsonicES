@@ -21,7 +21,7 @@ public class MusicFolderDaoMock extends MusicFolderDao {
   }
 
   public static String resolveMusicFolderPath() {
-    return MusicFolderDaoMock.resolveBaseMediaPath() + "Music";
+    return MusicFolderDaoMock.resolveBaseMediaPath() + "Music".replace("/","\\");
   }
 
   @Override
