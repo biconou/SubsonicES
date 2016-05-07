@@ -3,6 +3,7 @@ package com.github.biconou.subsonic.service;
 import com.github.biconou.dao.ElasticSearchClient;
 import com.github.biconou.subsonic.dao.MediaFileDao;
 import junit.framework.Assert;
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.service.*;
@@ -24,6 +25,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   private MediaScannerService mediaScannerService = null;
   private MediaFileDao mediaFileDao = null;
+  private MusicFolderDao musicFolderDao = null;
 
   @Override
   protected void setUp() throws Exception {
@@ -60,6 +62,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
     mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
+    musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
 
     // delete index
     ElasticSearchClient ESClient = (ElasticSearchClient)context.getBean("elasticSearchClient");
@@ -80,35 +83,48 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   }
 
-  public void testScanLibrary () {
+  public void testScanLibrary() {
+
+    String musicFolderPath = MusicFolderDaoMock.resolveMusicFolderPath().replace("/","\\");
 
     execScan();
 
-   /* try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } */
-
-    List<MediaFile> liste = mediaFileDao.getChildrenOf("C:\\TEST_BASE_STREAMING");
+    List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
     Assert.assertEquals(3,liste.size());
 
-    File dir = new File("C:\\TEST_BASE_STREAMING\\XMusic");
+    List<MediaFile> listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolderDao.getAllMusicFolders());
+
+    System.out.print("End");
+  }
+
+
+
+
+  public void testScanLibraryAndRenameAndScanAgain () {
+
+    String musicFolderPath = MusicFolderDaoMock.resolveMusicFolderPath().replace("/","\\");
+
+    execScan();
+
+    List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
+    Assert.assertEquals(3,liste.size());
+
+    File dir = new File(musicFolderPath + "\\Ravel");
     if (dir.isDirectory()) {
-      dir.renameTo(new File("C:\\TEST_BASE_STREAMING\\XMusic_renamed"));
+      dir.renameTo(new File(musicFolderPath + "\\Ravel_renamed"));
     }
 
     execScan();
 
-    dir = new File("C:\\TEST_BASE_STREAMING\\XMusic_renamed");
+    dir = new File(musicFolderPath + "\\Ravel_renamed");
     if (dir.isDirectory()) {
-      dir.renameTo(new File("C:\\TEST_BASE_STREAMING\\XMusic"));
+      dir.renameTo(new File(musicFolderPath + "\\Ravel"));
     }
 
-    liste = mediaFileDao.getChildrenOf("C:\\TEST_BASE_STREAMING");
+    liste = mediaFileDao.getChildrenOf(musicFolderPath);
     Assert.assertEquals(4,liste.size());
 
-    MediaFile renamed = mediaFileDao.getMediaFile("C:\\TEST_BASE_STREAMING\\XMusic");
+    MediaFile renamed = mediaFileDao.getMediaFile(musicFolderPath + "\\Ravel");
     Assert.assertEquals(false,renamed.isPresent());
     System.out.print("End");
   }

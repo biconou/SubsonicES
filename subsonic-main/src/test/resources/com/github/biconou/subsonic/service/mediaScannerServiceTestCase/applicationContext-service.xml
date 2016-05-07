@@ -42,7 +42,7 @@
         <property name="daoHelper" ref="daoHelper"/>
     </bean>
 
-    <bean id="musicFolderDao" class="net.sourceforge.subsonic.dao.MusicFolderDao">
+    <bean id="musicFolderDao" class="com.github.biconou.subsonic.service.MusicFolderDaoMock">
         <property name="daoHelper" ref="daoHelper"/>
     </bean>
 

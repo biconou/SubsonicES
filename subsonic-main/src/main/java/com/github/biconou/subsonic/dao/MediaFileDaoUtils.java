@@ -7,7 +7,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.sun.istack.Nullable;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.search.SearchHit;
 import com.github.biconou.dao.ElasticSearchClient;
 import net.sourceforge.subsonic.domain.MediaFile;
@@ -49,10 +53,19 @@ public class MediaFileDaoUtils {
     return mediaFile;
   }
 
-  protected static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch) {
 
-    SearchResponse response = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-      .setQuery(jsonSearch).execute().actionGet();
+  protected static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch, @Nullable Integer from, @Nullable Integer size) {
+
+    SearchRequestBuilder searchRequestBuilder = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonSearch).setVersion(true);
+    if (from != null) {
+      searchRequestBuilder.setFrom(from);
+    }
+    if (size != null) {
+      searchRequestBuilder.setSize(size);
+    }
+
+    SearchResponse response = searchRequestBuilder.execute().actionGet();
 
     List<MediaFile> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(client,hit)).collect(Collectors.toList());
 

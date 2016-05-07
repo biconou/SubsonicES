@@ -63,7 +63,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
            "\t}\n" +
            "}}";
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch);
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,null,null);
   }
 
   @Override
@@ -145,30 +145,47 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   }
 
 
-
+  /**
+   *
+   * @param genre
+   * @param offset first offset is 0
+   * @param count unlimited is 0
+   * @param musicFolders
+   * @return
+   */
   @Override
   public List<MediaFile> getSongsByGenre(String genre, int offset, int count, List<MusicFolder> musicFolders) {
+
+    // TODO traiter le multi folder
     if (musicFolders.isEmpty()) {
       return Collections.emptyList();
     }
 
-    // TODO
-    // sélectionner tous les documents pour type MUSIC.name(), PODCAST.name(), AUDIOBOOK.name()
-    // et présent
-    // et genre = genre
     // TODO reprendre le code de searchService
-    String jsonSearch = "" +
-      "{" +
-      "    \"constant_score\" : {" +
-      "        \"filter\" : {" +
-      "            \"term\" : {" +
-      "                \"genre\" : \""+genre+"\"" +
-      "            }" +
-      "        }" +
-      "    }" +
-      "}";
+    String jsonSearch = "{\n" +
+            "\t\"constant_score\" : {\n" +
+            "\t\t\"filter\" : { \n" +
+            "\t\t\t\"bool\" : {\n" +
+            "\t\t\t\t\"must\" : {\n" +
+            "\t\t\t\t\t\"term\" : { \"genre\" : \""+genre+"\" }           \n" +
+            "\t\t\t\t},\n" +
+            "\t\t\t\t\"should\" : [\n" +
+            "\t\t\t\t\t{\"type\" : { \"value\" : \"MUSIC\" }},\n" +
+            "\t\t\t\t\t{\"type\" : { \"value\" : \"PODCAST\" }},\n" +
+            "\t\t\t\t\t{\"type\" : { \"value\" : \"AUDIOBOOK\" }}\n" +
+            "\t\t\t\t]\n" +
+            "\t\t\t\t\n" +
+            "\t\t\t}\n" +
+            "\t\t} \n" +
+            "\t }\n" +
+            "\t}";
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch);
+    Integer size = null;
+    if (count > 0) {
+      size = count;
+    }
+
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,offset,size);
   }
 
   @Override

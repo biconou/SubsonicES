@@ -259,6 +259,5 @@ public class MediaFileDaoTestCase extends TestCase {
     System.out.print("End test.");
   }
 
-
 }
  
