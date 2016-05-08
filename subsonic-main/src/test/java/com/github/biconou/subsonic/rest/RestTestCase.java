@@ -43,6 +43,12 @@ public class RestTestCase extends TestCase {
 
     String baseDir = RestTestCase.class.getResource(baseResources).getFile();
 
+    System.setProperty("log4j.configurationFile",baseDir + "log4j.xml");
+
+    // where is log4j.xml ?
+    //String log4jConfigPath = RestTestCase.class.getResource("/log4j.xml").getPath();
+    //System.out.println(log4jConfigPath);
+
     webapp.setWar(baseDir + "/webapp");
 
     server.setHandler(webapp);

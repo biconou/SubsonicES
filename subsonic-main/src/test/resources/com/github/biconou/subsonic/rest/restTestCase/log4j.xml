@@ -10,7 +10,7 @@
   </appender> 
 
   <appender name="mediaScannerLogFile" class="org.apache.log4j.FileAppender"> 
-		<param name="File" value="${subsonic.home}/mediaScanner.log" />
+		<param name="File" value="${subsonic.home}/log/mediaScanner.log" />
         <param name="Append" value="true" /> 
     <layout class="org.apache.log4j.PatternLayout"> 
       <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/> 
