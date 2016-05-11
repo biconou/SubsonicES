@@ -16,6 +16,7 @@
 	<properties>
         <buildNumber>1</buildNumber>
         <elastic.version>2.3.1</elastic.version>
+        <metrics.version>3.1.0</metrics.version>
     </properties>
     
     
@@ -42,9 +43,16 @@
             <version>2.1.3</version>
         </dependency>
 
+        <!-- Metrics -->
+        <dependency>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-core</artifactId>
+          <version>${metrics.version}</version>
+        </dependency>
 
 
-		<!-- Adding Jetty for a simple developement embedded server  -->
+
+      <!-- Adding Jetty for a simple developement embedded server  -->
         <dependency>
             <groupId>org.mortbay.jetty</groupId>
             <artifactId>jetty</artifactId>
