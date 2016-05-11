@@ -14,9 +14,9 @@ import net.sourceforge.subsonic.domain.MediaFile;
 public class ElasticSearchClient {
 
   public static final String SUBSONIC_MEDIA_INDEX_NAME = "subsonic_media";
+  public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
+  public static final String ALBUM_INDEX_TYPE = "ALBUM";
 
-  public static final String ALBUM_TYPE = MediaFile.MediaType.ALBUM.toString();
-  public static final String MUSIC_TYPE = MediaFile.MediaType.MUSIC.toString();
 
   private Client elasticSearchClient = null;
   private ObjectMapper mapper = new ObjectMapper();
@@ -46,9 +46,10 @@ public class ElasticSearchClient {
           if (!indexExists) {
             elasticSearchClient.admin().indices()
                     .prepareCreate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-                    .addMapping("DIRECTORY",
+                    .addMapping(MEDIA_FILE_INDEX_TYPE,
                             "path", "type=string,index=not_analyzed",
                             "parentPath", "type=string,index=not_analyzed",
+                            "mediaType", "type=string,index=not_analyzed",
                             "folder", "type=string,index=not_analyzed",
                             "format", "type=string,index=not_analyzed",
                             "genre", "type=string,index=not_analyzed",
@@ -59,6 +60,14 @@ public class ElasticSearchClient {
                             "lastPlayed", "type=date",
                             "lastScanned", "type=date",
                             "starredDate", "type=date")
+                    .addMapping(ALBUM_INDEX_TYPE,
+                            "path", "type=string,index=not_analyzed",
+                            "name", "type=string,index=not_analyzed",
+                            "artist", "type=string,index=not_analyzed",
+                            "coverArtPath", "type=string,index=not_analyzed",
+                            "lastPlayed", "type=date",
+                            "created", "type=date",
+                            "lastScanned", "type=date")
                     .execute().actionGet();
           }
 

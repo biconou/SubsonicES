@@ -1,6 +1,15 @@
 package com.github.biconou.subsonic.service;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import net.sourceforge.subsonic.domain.Album;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.service.SearchService;
 import org.springframework.context.ApplicationContext;
 import com.github.biconou.subsonic.TestCaseUtils;
 import com.github.biconou.subsonic.dao.MediaFileDao;
@@ -19,6 +28,7 @@ public class PerformanceServiceTestCase extends TestCase {
 
   private MediaFileDao mediaFileDao = null;
   private MusicFolderDao musicFolderDao = null;
+  private SearchService searchService = null;
 
   @Override
   protected void setUp() throws Exception {
@@ -34,6 +44,8 @@ public class PerformanceServiceTestCase extends TestCase {
 
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
+    searchService = (SearchService) context.getBean("searchService");
+
   }
 
 
@@ -46,20 +58,28 @@ public class PerformanceServiceTestCase extends TestCase {
     Timer globalTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.global"));
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
 
-    TimerContext globalTimerContext =  globalTimer.time();
+   // Timer.Context globalTimerContext =  globalTimer.time();
 
     while (true) {
-      TimerContext loopTimerContext = loopTimer.time();
+      Timer.Context loopTimerContext = loopTimer.time();
 
-      // Apppel service de recherche album aléatoire.
-      // Sélection d'un album
-      // appel servide album pour lister les chansons
+      // TODO mediaFolders ?
+      List<MediaFile> foundAlbums = searchService.getRandomAlbums(10,null);
+
+      /*
+      MediaFile oneAlbum = foundAlbums.get(5);
+      Album album = albumDao.getAlbum(id);
+      for (MediaFile mediaFile : mediaFileDao.getSongsForAlbum(album.getArtist(), album.getName())) {
+        result.getSong().add(createJaxbChild(player, mediaFile, username));
+      }
+      */
+
       loopTimerContext.stop();
     }
 
-    globalTimerContext.stop();
+    //globalTimerContext.stop();
 
-    System.out.print("End");
+    //System.out.print("End");
   }
 
   private void startReport() {

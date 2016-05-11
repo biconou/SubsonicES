@@ -43,12 +43,6 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   }
 
 
-  @Override
-  // TODO
-  public MediaFile getMediaFile(int id) {
-    // Appel de la classe parente
-    return super.getMediaFile(id);
-  }
 
   @Override
   public List<MediaFile> getChildrenOf(String path) {
@@ -66,83 +60,11 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,null,null);
   }
 
-  @Override
-  public List<MediaFile> getFilesInPlaylist(int playlistId) {
-    // Appel de la classe parente
-    return super.getFilesInPlaylist(playlistId);
-  }
 
-  @Override
-  public List<MediaFile> getSongsForAlbum(String artist, String album) {
-    // Appel de la classe parente
-    return super.getSongsForAlbum(artist, album);
-  }
 
-  @Override
-  public List<MediaFile> getVideos(int count, int offset, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getVideos(count, offset, musicFolders);
-  }
 
-  @Override
-  public MediaFile getArtistByName(String name, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getArtistByName(name, musicFolders);
-  }
 
-  @Override
-  public void deleteMediaFile(String path) {
-    // Appel de la classe parente
-    super.deleteMediaFile(path);
-  }
 
-  @Override
-  public List<Genre> getGenres(boolean sortByAlbum) {
-    // Appel de la classe parente
-    return super.getGenres(sortByAlbum);
-  }
-
-  @Override
-  public void updateGenres(List<Genre> genres) {
-    // Appel de la classe parente
-    super.updateGenres(genres);
-  }
-
-  @Override
-  public List<MediaFile> getMostFrequentlyPlayedAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getMostFrequentlyPlayedAlbums(offset, count, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getMostRecentlyPlayedAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getMostRecentlyPlayedAlbums(offset, count, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getNewestAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getNewestAlbums(offset, count, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getAlphabeticalAlbums(int offset, int count, boolean byArtist, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getAlphabeticalAlbums(offset, count, byArtist, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getAlbumsByYear(int offset, int count, int fromYear, int toYear, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getAlbumsByYear(offset, count, fromYear, toYear, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getAlbumsByGenre(int offset, int count, String genre, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getAlbumsByGenre(offset, count, genre, musicFolders);
-  }
 
 
   /**
@@ -188,100 +110,10 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,offset,size);
   }
 
-  @Override
-  public List<MediaFile> getSongsByArtist(String artist, int offset, int count) {
-    // Appel de la classe parente
-    return super.getSongsByArtist(artist, offset, count);
-  }
-
-  @Override
-  public MediaFile getSongByArtistAndTitle(String artist, String title, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getSongByArtistAndTitle(artist, title, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getStarredAlbums(int offset, int count, String username, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getStarredAlbums(offset, count, username, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getStarredDirectories(int offset, int count, String username, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getStarredDirectories(offset, count, username, musicFolders);
-  }
-
-  @Override
-  public List<MediaFile> getStarredFiles(int offset, int count, String username, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getStarredFiles(offset, count, username, musicFolders);
-  }
-
-  @Override
-  public int getAlbumCount(List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getAlbumCount(musicFolders);
-  }
-
-  @Override
-  public int getPlayedAlbumCount(List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getPlayedAlbumCount(musicFolders);
-  }
-
-  @Override
-  public int getStarredAlbumCount(String username, List<MusicFolder> musicFolders) {
-    // Appel de la classe parente
-    return super.getStarredAlbumCount(username, musicFolders);
-  }
-
-  @Override
-  public void starMediaFile(int id, String username) {
-    // Appel de la classe parente
-    super.starMediaFile(id, username);
-  }
-
-  @Override
-  public void unstarMediaFile(int id, String username) {
-    // Appel de la classe parente
-    super.unstarMediaFile(id, username);
-  }
-
-  @Override
-  public Date getMediaFileStarredDate(int id, String username) {
-    // Appel de la classe parente
-    return super.getMediaFileStarredDate(id, username);
-  }
-
-  @Override
-  public void markPresent(String path, Date lastScanned) {
-    // Appel de la classe parente
-    super.markPresent(path, lastScanned);
-  }
-
-  @Override
-  public void markNonPresent(Date lastScanned) {
-    // Appel de la classe parente
-    super.markNonPresent(lastScanned);
-  }
-
-  @Override
-  public void expunge() {
-    // Appel de la classe parente
-    super.expunge();
-  }
-
-  @Override
-  public List<String> getArtistNames() {
-    // Appel de la classe parente
-    return super.getArtistNames();
-  }
 
   @Override
     public synchronized void createOrUpdateMediaFile(MediaFile file) {
 
-          //MediaFile existingMediaFile = getMediaFile(file.getPath());
           SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), file.getPath());
 
           if (searchResponse.getHits().totalHits() == 0) {
@@ -289,7 +121,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
               String json = getElasticSearchClient().getMapper().writeValueAsString(file);
               IndexResponse indexResponse = getElasticSearchClient().getClient().prepareIndex(
                       ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                      file.getMediaType().toString())
+                      ElasticSearchClient.MEDIA_FILE_INDEX_TYPE)
                       .setSource(json).setVersionType(VersionType.INTERNAL).get();
               long l = 0;
               while (l==0) {
@@ -308,7 +140,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
               String json = getElasticSearchClient().getMapper().writeValueAsString(file);
               UpdateResponse response = getElasticSearchClient().getClient().prepareUpdate(
                       ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                      file.getMediaType().toString(), id)
+                      ElasticSearchClient.MEDIA_FILE_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
               long newVersion = version;
@@ -322,12 +154,13 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
           }
     }
 
-
   public ElasticSearchClient getElasticSearchClient() {
-        return elasticSearchClient;
-    }
+    return elasticSearchClient;
+  }
 
-    public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
-        this.elasticSearchClient = elasticSearchClient;
-    }
+  public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
+    this.elasticSearchClient = elasticSearchClient;
+  }
+
+
 }

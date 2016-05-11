@@ -19,6 +19,7 @@
 package net.sourceforge.subsonic.service;
 
 import com.github.biconou.dao.ElasticSearchClient;
+import com.github.biconou.subsonic.dao.MediaFileDaoUtils;
 import com.sun.media.jfxmedia.Media;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
@@ -28,6 +29,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.Version;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -300,22 +302,13 @@ public class SearchService {
      */
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
 
+        // TODO That's not ramdom
+        // TODO musicFolders ?
 
-        SearchResponse allHits = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-                .setQuery(QueryBuilders.typeQuery(ElasticSearchClient.ALBUM_TYPE))
-                .setSize(10)
-                .execute().actionGet();
+        SearchRequestBuilder searchRequestBuilder = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                .setQuery(QueryBuilders.typeQuery(ElasticSearchClient.ALBUM_INDEX_TYPE));
 
-        List<MediaFile> list = new ArrayList<>();
-        allHits.getHits().forEach(hit -> {
-            try {
-                convertFromHitAndCollect(hit, list);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        return list;
+        return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),searchRequestBuilder,0,count);
 
         /*
         List<MediaFile> result = new ArrayList<MediaFile>();

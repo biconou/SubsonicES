@@ -22,8 +22,9 @@
         <property name="daoHelper" ref="daoHelper"/>
     </bean>
 
-    <bean id="albumDao" class="net.sourceforge.subsonic.dao.AlbumDao">
+    <bean id="albumDao" class="com.github.biconou.subsonic.dao.AlbumDao">
         <property name="daoHelper" ref="daoHelper"/>
+        <property name="elasticSearchClient" ref="elasticSearchClient"/>
     </bean>
 
     <bean id="playlistDao" class="net.sourceforge.subsonic.dao.PlaylistDao">

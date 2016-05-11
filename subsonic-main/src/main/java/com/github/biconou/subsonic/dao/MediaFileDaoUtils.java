@@ -23,7 +23,6 @@ public class MediaFileDaoUtils {
 
   protected static SearchResponse searchMediaFileByPath(ElasticSearchClient client,String path) {
 
-
     String jsonSearch = "{" +
       "    \"constant_score\" : {" +
       "        \"filter\" : {" +
@@ -53,11 +52,7 @@ public class MediaFileDaoUtils {
     return mediaFile;
   }
 
-
-  protected static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch, @Nullable Integer from, @Nullable Integer size) {
-
-    SearchRequestBuilder searchRequestBuilder = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-            .setQuery(jsonSearch).setVersion(true);
+  public static List<MediaFile> extractMediaFiles(ElasticSearchClient client, SearchRequestBuilder searchRequestBuilder, @Nullable Integer from, @Nullable Integer size) {
     if (from != null) {
       searchRequestBuilder.setFrom(from);
     }
@@ -70,6 +65,14 @@ public class MediaFileDaoUtils {
     List<MediaFile> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(client,hit)).collect(Collectors.toList());
 
     return returnedSongs;
+  }
+
+  public static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch, @Nullable Integer from, @Nullable Integer size) {
+
+    SearchRequestBuilder searchRequestBuilder = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonSearch).setVersion(true);
+
+    return extractMediaFiles(client,searchRequestBuilder,from,size);
 
   }
 
