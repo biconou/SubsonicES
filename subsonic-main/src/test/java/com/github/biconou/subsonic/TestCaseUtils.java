@@ -1,6 +1,6 @@
 package com.github.biconou.subsonic;
 
-import com.github.biconou.dao.ElasticSearchClient;
+import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
 import net.sourceforge.subsonic.service.MediaScannerService;
 import org.apache.commons.io.FileUtils;
 import org.springframework.context.ApplicationContext;
@@ -58,8 +58,8 @@ public class TestCaseUtils {
   }
 
   public static void deleteIndex(ApplicationContext context) {
-    ElasticSearchClient ESClient = (ElasticSearchClient)context.getBean("elasticSearchClient");
-    ESClient.deleteIndex();
+    ElasticSearchDaoHelper elasticSearchDaoHelper = (ElasticSearchDaoHelper)context.getBean("elasticSearchDaoHelper");
+    elasticSearchDaoHelper.deleteIndex();
   }
 
 

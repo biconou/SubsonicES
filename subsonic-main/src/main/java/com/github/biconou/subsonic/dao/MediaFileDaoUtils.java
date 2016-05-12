@@ -5,15 +5,16 @@ package com.github.biconou.subsonic.dao;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.sun.istack.Nullable;
+import freemarker.template.TemplateException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.search.SearchHit;
-import com.github.biconou.dao.ElasticSearchClient;
 import net.sourceforge.subsonic.domain.MediaFile;
 
 /**
@@ -21,23 +22,22 @@ import net.sourceforge.subsonic.domain.MediaFile;
  */
 public class MediaFileDaoUtils {
 
-  protected static SearchResponse searchMediaFileByPath(ElasticSearchClient client,String path) {
+  protected static SearchResponse searchMediaFileByPath(ElasticSearchDaoHelper elasticSearchDaoHelper, String path) {
 
-    String jsonSearch = "{" +
-      "    \"constant_score\" : {" +
-      "        \"filter\" : {" +
-      "            \"term\" : {" +
-      "                \"path\" : \""+preparePathForSearch(path)+"\"" +
-      "            }" +
-      "        }" +
-      "    }" +
-      "}";
+    Map<String,String> vars = new HashMap<>();
+    vars.put("path",preparePathForSearch(path));
+    String jsonQuery = null;
+    try {
+      jsonQuery = elasticSearchDaoHelper.getQuery("searchMediaFileByPath",vars);
+    } catch (IOException|TemplateException e) {
+      throw new RuntimeException(e);
+    }
 
-    return client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-      .setQuery(jsonSearch).setVersion(true).execute().actionGet();
+    return elasticSearchDaoHelper.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+      .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
-  protected static MediaFile convertFromHit(ElasticSearchClient client,SearchHit hit) throws RuntimeException {
+  protected static MediaFile convertFromHit(ElasticSearchDaoHelper client, SearchHit hit) throws RuntimeException {
     MediaFile mediaFile = null;
 
     if (hit != null) {
@@ -52,7 +52,7 @@ public class MediaFileDaoUtils {
     return mediaFile;
   }
 
-  public static List<MediaFile> extractMediaFiles(ElasticSearchClient client, SearchRequestBuilder searchRequestBuilder, @Nullable Integer from, @Nullable Integer size) {
+  public static List<MediaFile> extractMediaFiles(ElasticSearchDaoHelper client, SearchRequestBuilder searchRequestBuilder, @Nullable Integer from, @Nullable Integer size) {
     if (from != null) {
       searchRequestBuilder.setFrom(from);
     }
@@ -67,9 +67,9 @@ public class MediaFileDaoUtils {
     return returnedSongs;
   }
 
-  public static List<MediaFile> extractMediaFiles(ElasticSearchClient client, String jsonSearch, @Nullable Integer from, @Nullable Integer size) {
+  public static List<MediaFile> extractMediaFiles(ElasticSearchDaoHelper client, String jsonSearch, @Nullable Integer from, @Nullable Integer size) {
 
-    SearchRequestBuilder searchRequestBuilder = client.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+    SearchRequestBuilder searchRequestBuilder = client.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
             .setQuery(jsonSearch).setVersion(true);
 
     return extractMediaFiles(client,searchRequestBuilder,from,size);

@@ -1,5 +1,5 @@
 /**
- * Paquet de définition
+ * Paquet de dï¿½finition
  **/
 package com.github.biconou.subsonic.dao;
 
@@ -8,10 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.github.biconou.dao.ElasticSearchClient;
-import com.github.biconou.subsonic.service.MediaScannerService;
 import junit.framework.Assert;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.context.ApplicationContext;
@@ -38,7 +35,7 @@ public class MediaFileDaoTestCase extends TestCase {
 
   private MetaDataParserFactory metaDataParserFactory = null;
   private MediaFileDao mediaFileDao = null;
-  private ElasticSearchClient ESClient;
+  private ElasticSearchDaoHelper ESClient;
 
 
   /* Code partly copied from MediaFileService */
@@ -224,7 +221,7 @@ public class MediaFileDaoTestCase extends TestCase {
 
     metaDataParserFactory = (MetaDataParserFactory)context.getBean("metaDataParserFactory");
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
-    ESClient = (ElasticSearchClient)context.getBean("elasticSearchClient");
+    ESClient = (ElasticSearchDaoHelper)context.getBean("elasticSearchClient");
   }
 
   public void testCreateOrUpdateMediaFile () {

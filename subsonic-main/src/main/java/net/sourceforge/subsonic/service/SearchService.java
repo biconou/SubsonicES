@@ -18,9 +18,8 @@
  */
 package net.sourceforge.subsonic.service;
 
-import com.github.biconou.dao.ElasticSearchClient;
+import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
 import com.github.biconou.subsonic.dao.MediaFileDaoUtils;
-import com.sun.media.jfxmedia.Media;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
 import net.sourceforge.subsonic.dao.ArtistDao;
@@ -30,13 +29,11 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +64,7 @@ public class SearchService {
     private static final Version LUCENE_VERSION = Version.LUCENE_5_5_0;
     private static final String LUCENE_DIR = "lucene2";
 
-    private ElasticSearchClient elasticSearchClient = null;
+    private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
     private MediaFileService mediaFileService;
     private ArtistDao artistDao;
@@ -286,12 +283,6 @@ public class SearchService {
         return genre.toLowerCase().replace(" ", "").replace("-", "");
     }
 
-    private MediaFile convertFromHitAndCollect(SearchHit hit,List<MediaFile> list) throws IOException {
-        String hitSource = hit.getSourceAsString();
-        MediaFile mediaFile = getElasticSearchClient().getMapper().readValue(hitSource,MediaFile.class);
-        list.add(mediaFile);
-        return mediaFile;
-    }
 
     /**
      * Returns a number of random albums.
@@ -305,10 +296,10 @@ public class SearchService {
         // TODO That's not ramdom
         // TODO musicFolders ?
 
-        SearchRequestBuilder searchRequestBuilder = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
-                .setQuery(QueryBuilders.typeQuery(ElasticSearchClient.ALBUM_INDEX_TYPE));
+        SearchRequestBuilder searchRequestBuilder = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                .setQuery(QueryBuilders.typeQuery(ElasticSearchDaoHelper.ALBUM_INDEX_TYPE));
 
-        return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),searchRequestBuilder,0,count);
+        return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),searchRequestBuilder,0,count);
 
         /*
         List<MediaFile> result = new ArrayList<MediaFile>();
@@ -646,12 +637,12 @@ public class SearchService {
         }
     } */
 
-    public ElasticSearchClient getElasticSearchClient() {
-        return elasticSearchClient;
+    public ElasticSearchDaoHelper getElasticSearchDaoHelper() {
+        return elasticSearchDaoHelper;
     }
 
-    public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
-        this.elasticSearchClient = elasticSearchClient;
+    public void setElasticSearchDaoHelper(ElasticSearchDaoHelper elasticSearchDaoHelper) {
+        this.elasticSearchDaoHelper = elasticSearchDaoHelper;
     }
 }
 

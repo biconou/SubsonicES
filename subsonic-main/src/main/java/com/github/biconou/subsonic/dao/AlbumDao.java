@@ -1,40 +1,96 @@
 package com.github.biconou.subsonic.dao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.biconou.dao.ElasticSearchClient;
+import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.domain.Album;
+import net.sourceforge.subsonic.domain.MediaFile;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by remi on 11/05/2016.
  */
 public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
 
-  private ElasticSearchClient elasticSearchClient = null;
+  private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
+  private SearchResponse searchAlbumByArtistAndName(String artist, String name) {
 
+    Map<String,String> vars = new HashMap<>();
+    vars.put("artist",artist);
+    vars.put("name",name);
+    String jsonQuery = null;
+    try {
+      jsonQuery = getElasticSearchDaoHelper().getQuery("searchAlbumByArtistAndName",vars);
+    } catch (IOException|TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    return getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonQuery).setVersion(true).execute().actionGet();
+  }
+
+  /**
+   * Converts un search hit into Album.
+   * @param hit
+   * @return
+   * @throws RuntimeException
+   */
+  private Album convertFromHit(SearchHit hit) throws RuntimeException {
+    Album album = null;
+
+    if (hit != null) {
+      String hitSource = hit.getSourceAsString();
+      try {
+        album = getElasticSearchDaoHelper().getMapper().readValue(hitSource, Album.class);
+        album.setESId(hit.id());
+      } catch (IOException e) {
+        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
+      }
+    }
+    return album;
+  }
+
+  @Override
+  public Album getAlbum(String artistName, String albumName) {
+    SearchResponse response = searchAlbumByArtistAndName(artistName,albumName);
+
+    long nbFound = response.getHits().getTotalHits();
+    if (nbFound > 1) {
+      throw new RuntimeException("Index incoherence. more than one album found for artist "+artistName+" and name "+albumName);
+    }
+
+    if (nbFound == 0) {
+      return null;
+    } else {
+      return convertFromHit(response.getHits().getHits()[0]);
+    }
+
+  }
 
   @Override
   public synchronized void createOrUpdateAlbum(Album album) {
-    //SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), file.getPath());
-    //rechercher where artist = and name =
-    // TODO
-    SearchResponse searchResponse = null;
+    SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
+
 
     if (searchResponse == null || searchResponse.getHits().totalHits() == 0) {
       try {
-        String json = getElasticSearchClient().getMapper().writeValueAsString(album);
-        IndexResponse indexResponse = getElasticSearchClient().getClient().prepareIndex(
-                ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                ElasticSearchClient.ALBUM_INDEX_TYPE)
+        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
+        IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
+                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                ElasticSearchDaoHelper.ALBUM_INDEX_TYPE)
                 .setSource(json).setVersionType(VersionType.INTERNAL).get();
         long l = 0;
         while (l==0) {
-          l = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+          l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                   .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
         }
 
@@ -46,15 +102,15 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       try {
         String id = searchResponse.getHits().getAt(0).id();
         long version  = searchResponse.getHits().getAt(0).version();
-        String json = getElasticSearchClient().getMapper().writeValueAsString(album);
-        UpdateResponse response = getElasticSearchClient().getClient().prepareUpdate(
-                ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                ElasticSearchClient.ALBUM_INDEX_TYPE, id)
+        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
+        UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
+                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                ElasticSearchDaoHelper.ALBUM_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
         long newVersion = version;
         while (newVersion==version) {
-          newVersion = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+          newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                   .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
         }
       } catch (JsonProcessingException e) {
@@ -63,12 +119,12 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     }
   }
 
-  public ElasticSearchClient getElasticSearchClient() {
-    return elasticSearchClient;
+  public ElasticSearchDaoHelper getElasticSearchDaoHelper() {
+    return elasticSearchDaoHelper;
   }
 
-  public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
-    this.elasticSearchClient = elasticSearchClient;
+  public void setElasticSearchDaoHelper(ElasticSearchDaoHelper elasticSearchDaoHelper) {
+    this.elasticSearchDaoHelper = elasticSearchDaoHelper;
   }
 
 }

@@ -18,6 +18,8 @@
  */
 package net.sourceforge.subsonic.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Date;
 
 /**
@@ -25,6 +27,8 @@ import java.util.Date;
  * @version $Id$
  */
 public class Album {
+
+    private String ESId = null;
 
     private int id;
     private String path;
@@ -194,4 +198,14 @@ public class Album {
     public Integer getFolderId() {
         return folderId;
     }
+
+    @JsonIgnore
+    public String getESId() {
+        return ESId;
+    }
+
+    public void setESId(String ESId) {
+        this.ESId = ESId;
+    }
+
 }

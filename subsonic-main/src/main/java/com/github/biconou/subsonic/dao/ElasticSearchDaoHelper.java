@@ -1,17 +1,24 @@
-package com.github.biconou.dao;
+package com.github.biconou.subsonic.dao;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.fasterxml.jackson.databind.ser.impl.StringArraySerializer;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.sourceforge.subsonic.domain.MediaFile;
 
 /**
  * Created by remi on 26/04/2016.
  */
-public class ElasticSearchClient {
+public class ElasticSearchDaoHelper {
 
   public static final String SUBSONIC_MEDIA_INDEX_NAME = "subsonic_media";
   public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
@@ -20,6 +27,13 @@ public class ElasticSearchClient {
 
   private Client elasticSearchClient = null;
   private ObjectMapper mapper = new ObjectMapper();
+  private Map<String,Template> queryTemplates = new HashMap<>();
+  private Configuration freeMarkerConfiguration = null;
+
+  public ElasticSearchDaoHelper() {
+    freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_23);
+    freeMarkerConfiguration.setClassForTemplateLoading(this.getClass(), "/com/github/biconou/subsonic/dao");
+  }
 
   private Client obtainESClient() {
     return TransportClient.builder().build()
@@ -41,11 +55,11 @@ public class ElasticSearchClient {
         if (elasticSearchClient == null) {
           elasticSearchClient = obtainESClient();
 
-          boolean indexExists = elasticSearchClient.admin().indices().prepareExists(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+          boolean indexExists = elasticSearchClient.admin().indices().prepareExists(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                   .execute().actionGet().isExists();
           if (!indexExists) {
             elasticSearchClient.admin().indices()
-                    .prepareCreate(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                    .prepareCreate(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                     .addMapping(MEDIA_FILE_INDEX_TYPE,
                             "path", "type=string,index=not_analyzed",
                             "parentPath", "type=string,index=not_analyzed",
@@ -79,5 +93,31 @@ public class ElasticSearchClient {
 
   public ObjectMapper getMapper() {
     return mapper;
+  }
+
+  /**
+   *
+   * @param queryName
+   * @param vars
+   * @return
+   * @throws IOException
+   * @throws TemplateException
+   */
+  public String getQuery(String queryName, Map<String,String> vars) throws IOException, TemplateException {
+
+    Template template = queryTemplates.get(queryName);
+    if (template == null) {
+      synchronized (queryTemplates) {
+        template = queryTemplates.get(queryName);
+        if (template == null) {
+          template = freeMarkerConfiguration.getTemplate(queryName + ".ftl");
+          queryTemplates.put(queryName,template);
+        }
+      }
+    }
+    StringWriter result = new StringWriter();
+    template.process(vars,result);
+
+    return result.toString();
   }
 }

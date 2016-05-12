@@ -17,6 +17,7 @@
         <buildNumber>1</buildNumber>
         <elastic.version>2.3.1</elastic.version>
         <metrics.version>3.1.0</metrics.version>
+        <freemarker.version>2.3.23</freemarker.version>
     </properties>
     
     
@@ -50,6 +51,11 @@
           <version>${metrics.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>${freemarker.version}</version>
+        </dependency>
 
 
       <!-- Adding Jetty for a simple developement embedded server  -->

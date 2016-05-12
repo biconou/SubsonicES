@@ -1,18 +1,13 @@
 package com.github.biconou.subsonic.dao;
 
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
-import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.biconou.dao.ElasticSearchClient;
-import net.sourceforge.subsonic.domain.Genre;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import org.elasticsearch.index.VersionType;
@@ -24,11 +19,11 @@ import org.elasticsearch.index.query.QueryBuilders;
 public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
 
-  private ElasticSearchClient elasticSearchClient = null;
+  private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
   @Override
   public MediaFile getMediaFile(String path) {
-    SearchResponse response = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), path);
+    SearchResponse response = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), path);
 
     long nbFound = response.getHits().getTotalHits();
     if (nbFound > 1) {
@@ -38,7 +33,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (nbFound == 0) {
       return null;
     } else {
-      return MediaFileDaoUtils.convertFromHit(getElasticSearchClient(),response.getHits().getHits()[0]);
+      return MediaFileDaoUtils.convertFromHit(getElasticSearchDaoHelper(),response.getHits().getHits()[0]);
     }
   }
 
@@ -57,7 +52,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
            "\t}\n" +
            "}}";
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,null,null);
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonSearch,null,null);
   }
 
 
@@ -107,25 +102,25 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       size = count;
     }
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchClient(),jsonSearch,offset,size);
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonSearch,offset,size);
   }
 
 
   @Override
     public synchronized void createOrUpdateMediaFile(MediaFile file) {
 
-          SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchClient(), file.getPath());
+          SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), file.getPath());
 
           if (searchResponse.getHits().totalHits() == 0) {
             try {
-              String json = getElasticSearchClient().getMapper().writeValueAsString(file);
-              IndexResponse indexResponse = getElasticSearchClient().getClient().prepareIndex(
-                      ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                      ElasticSearchClient.MEDIA_FILE_INDEX_TYPE)
+              String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+              IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
+                      ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                      ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
                       .setSource(json).setVersionType(VersionType.INTERNAL).get();
               long l = 0;
               while (l==0) {
-                l = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                         .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
               }
 
@@ -137,15 +132,15 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             try {
               String id = searchResponse.getHits().getAt(0).id();
               long version  = searchResponse.getHits().getAt(0).version();
-              String json = getElasticSearchClient().getMapper().writeValueAsString(file);
-              UpdateResponse response = getElasticSearchClient().getClient().prepareUpdate(
-                      ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
-                      ElasticSearchClient.MEDIA_FILE_INDEX_TYPE, id)
+              String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+              UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
+                      ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                      ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
               long newVersion = version;
               while (newVersion==version) {
-                newVersion = getElasticSearchClient().getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+                newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
                         .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
               }
             } catch (JsonProcessingException e) {
@@ -154,12 +149,12 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
           }
     }
 
-  public ElasticSearchClient getElasticSearchClient() {
-    return elasticSearchClient;
+  public ElasticSearchDaoHelper getElasticSearchDaoHelper() {
+    return elasticSearchDaoHelper;
   }
 
-  public void setElasticSearchClient(ElasticSearchClient elasticSearchClient) {
-    this.elasticSearchClient = elasticSearchClient;
+  public void setElasticSearchDaoHelper(ElasticSearchDaoHelper elasticSearchDaoHelper) {
+    this.elasticSearchDaoHelper = elasticSearchDaoHelper;
   }
 
 

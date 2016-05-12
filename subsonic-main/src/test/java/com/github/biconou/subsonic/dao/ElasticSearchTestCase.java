@@ -1,10 +1,8 @@
 /**
- * Paquet de définition
+ * Paquet de dï¿½finition
  **/
 package com.github.biconou.subsonic.dao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.biconou.dao.ElasticSearchClient;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import net.sourceforge.subsonic.domain.MediaFile;
@@ -14,12 +12,8 @@ import net.sourceforge.subsonic.service.metadata.MetaDataParserFactory;
 import net.sourceforge.subsonic.util.FileUtil;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.context.ApplicationContext;
@@ -41,7 +35,7 @@ public class ElasticSearchTestCase extends TestCase {
 
   private MetaDataParserFactory metaDataParserFactory = null;
   private MediaFileDao mediaFileDao = null;
-  private ElasticSearchClient ESClient;
+  private ElasticSearchDaoHelper ESClient;
 
 
   /* Code partly copied from MediaFileService */
@@ -227,7 +221,7 @@ public class ElasticSearchTestCase extends TestCase {
 
     metaDataParserFactory = (MetaDataParserFactory) context.getBean("metaDataParserFactory");
     mediaFileDao = (MediaFileDao) context.getBean("mediaFileDao");
-    ESClient = (ElasticSearchClient) context.getBean("elasticSearchClient");
+    ESClient = (ElasticSearchDaoHelper) context.getBean("elasticSearchClient");
   }
 
   public void testIndexFile() throws Exception {
@@ -243,7 +237,7 @@ public class ElasticSearchTestCase extends TestCase {
     String json = ESClient.getMapper().writeValueAsString(mediaFileMusique1);
 
     IndexRequestBuilder indexRequestBuilder = ESClient.getClient().prepareIndex(
-            ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME,
+            ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
             mediaFileMusique1.getMediaType().toString())
             .setSource(json);
     IndexResponse indexResponse = ESClient.getClient().index(indexRequestBuilder.request()).get();
@@ -251,7 +245,7 @@ public class ElasticSearchTestCase extends TestCase {
 
     long l = 0;
     while (l==0) {
-      l = ESClient.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+      l = ESClient.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
               .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
     }
 
@@ -270,7 +264,7 @@ public class ElasticSearchTestCase extends TestCase {
             "}";
 
 
-    SearchResponse searchResponse = ESClient.getClient().prepareSearch(ElasticSearchClient.SUBSONIC_MEDIA_INDEX_NAME)
+    SearchResponse searchResponse = ESClient.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
             .setQuery(jsonSearch).execute().actionGet();
 
     Assert.assertNotNull(searchResponse);
