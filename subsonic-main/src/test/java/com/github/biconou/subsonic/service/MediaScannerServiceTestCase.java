@@ -1,5 +1,8 @@
 package com.github.biconou.subsonic.service;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.github.biconou.subsonic.TestCaseUtils;
 import com.github.biconou.subsonic.dao.MediaFileDao;
 import junit.framework.Assert;
@@ -10,6 +13,7 @@ import org.springframework.context.ApplicationContext;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by remi on 01/05/2016.
@@ -18,6 +22,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   private static String baseResources = "/com/github/biconou/subsonic/service/mediaScannerServiceTestCase/";
 
+  private final MetricRegistry metrics = new MetricRegistry();
 
   private MediaScannerService mediaScannerService = null;
   private MediaFileDao mediaFileDao = null;
@@ -46,14 +51,31 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   public void testScanLibrary() {
 
+    ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics)
+            .convertRatesTo(TimeUnit.SECONDS.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .build();
+
     String musicFolderPath = MusicFolderDaoMock.resolveMusicFolderPath();
 
+    Timer globalTimer = metrics.timer(MetricRegistry.name(MediaScannerServiceTestCase.class, "Timer.global"));
+    Timer.Context globalTimerContext =  globalTimer.time();
     TestCaseUtils.execScan(mediaScannerService);
+    globalTimerContext.stop();
+
+    reporter.report();
+
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
     Assert.assertEquals(3,liste.size());
 
     List<MediaFile> listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolderDao.getAllMusicFolders());
+
 
     System.out.print("End");
   }
