@@ -27,46 +27,38 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
     long nbFound = response.getHits().getTotalHits();
     if (nbFound > 1) {
-      throw new RuntimeException("Index incoherence. more than one mediaFile found for patch"+path);
+      throw new RuntimeException("Index incoherence. more than one mediaFile found for patch" + path);
     }
 
     if (nbFound == 0) {
       return null;
     } else {
-      return MediaFileDaoUtils.convertFromHit(getElasticSearchDaoHelper(),response.getHits().getHits()[0]);
+      return MediaFileDaoUtils.convertFromHit(getElasticSearchDaoHelper(), response.getHits().getHits()[0]);
     }
   }
 
 
-
   @Override
   public List<MediaFile> getChildrenOf(String path) {
-   String jsonSearch = "{\"query\" : {\n" +
-           "\t\"bool\" : {\n" +
-           "\t\t\"filter\" : {\n" +
-           "\t\t\t\"term\" : {\"parentPath\" : \""+MediaFileDaoUtils.preparePathForSearch(path)+"\"}\n" +
-           "\t\t },\n" +
-           "\t\t\"filter\" : {\n" +
-           "\t\t\t\"term\" : {\"present\" : \"true\"}\n" +
-           "\t\t}\n" +
-           "\t}\n" +
-           "}}";
+    String jsonSearch = "{\"query\" : {\n" +
+            "\t\"bool\" : {\n" +
+            "\t\t\"filter\" : {\n" +
+            "\t\t\t\"term\" : {\"parentPath\" : \"" + MediaFileDaoUtils.preparePathForSearch(path) + "\"}\n" +
+            "\t\t },\n" +
+            "\t\t\"filter\" : {\n" +
+            "\t\t\t\"term\" : {\"present\" : \"true\"}\n" +
+            "\t\t}\n" +
+            "\t}\n" +
+            "}}";
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonSearch,null,null);
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(), jsonSearch, null, null);
   }
 
 
-
-
-
-
-
-
   /**
-   *
    * @param genre
-   * @param offset first offset is 0
-   * @param count unlimited is 0
+   * @param offset       first offset is 0
+   * @param count        unlimited is 0
    * @param musicFolders
    * @return
    */
@@ -84,7 +76,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             "\t\t\"filter\" : { \n" +
             "\t\t\t\"bool\" : {\n" +
             "\t\t\t\t\"must\" : {\n" +
-            "\t\t\t\t\t\"term\" : { \"genre\" : \""+genre+"\" }           \n" +
+            "\t\t\t\t\t\"term\" : { \"genre\" : \"" + genre + "\" }           \n" +
             "\t\t\t\t},\n" +
             "\t\t\t\t\"should\" : [\n" +
             "\t\t\t\t\t{\"type\" : { \"value\" : \"MUSIC\" }},\n" +
@@ -102,59 +94,59 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       size = count;
     }
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonSearch,offset,size);
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(), jsonSearch, offset, size);
   }
 
   @Override
   public synchronized void createOrUpdateMediaFile(MediaFile file) {
-    createOrUpdateMediaFile(file,true);
+    createOrUpdateMediaFile(file, true);
   }
 
-    public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
+  public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
 
-          SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), file.getPath());
+    SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), file.getPath());
 
-          if (searchResponse.getHits().totalHits() == 0) {
-            try {
-              String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
-              IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
-                      ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
-                      ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
-                      .setSource(json).setVersionType(VersionType.INTERNAL).get();
-              if (synchrone) {
-                long l = 0;
-                while (l == 0) {
-                  l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                          .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
-                }
-              }
+    if (searchResponse.getHits().totalHits() == 0) {
+      try {
+        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+        IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
+                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
+                .setSource(json).setVersionType(VersionType.INTERNAL).get();
+        if (synchrone) {
+          long l = 0;
+          while (l == 0) {
+            l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                    .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
+          }
+        }
 
-            } catch (JsonProcessingException e) {
-              throw new RuntimeException("Error trying indexing mediaFile "+e);
-            }
-          }  else {
-            // update the media file.
-            try {
-              String id = searchResponse.getHits().getAt(0).id();
-              long version  = searchResponse.getHits().getAt(0).version();
-              String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
-              UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
-                      ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
-                      ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException("Error trying indexing mediaFile " + e);
+      }
+    } else {
+      // update the media file.
+      try {
+        String id = searchResponse.getHits().getAt(0).id();
+        long version = searchResponse.getHits().getAt(0).version();
+        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+        UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
+                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
-              if (synchrone) {
-                long newVersion = version;
-                while (newVersion == version) {
-                  newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                          .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
-                }
-              }
-            } catch (JsonProcessingException e) {
-              throw new RuntimeException("Error trying indexing mediaFile "+e);
-            }
+        if (synchrone) {
+          long newVersion = version;
+          while (newVersion == version) {
+            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                    .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
           }
+        }
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException("Error trying indexing mediaFile " + e);
+      }
     }
+  }
 
   public ElasticSearchDaoHelper getElasticSearchDaoHelper() {
     return elasticSearchDaoHelper;
