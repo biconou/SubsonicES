@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/subsonic.iml" filepath="$PROJECT_DIR$/subsonic.iml" />
+      <module fileurl="file://$PROJECT_DIR$/subsonic-main/subsonic-main.iml" filepath="$PROJECT_DIR$/subsonic-main/subsonic-main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/subsonic-rest-api/subsonic-rest-api.iml" filepath="$PROJECT_DIR$/subsonic-rest-api/subsonic-rest-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/subsonic-sonos-api/subsonic-sonos-api.iml" filepath="$PROJECT_DIR$/subsonic-sonos-api/subsonic-sonos-api.iml" />
+    </modules>
+  </component>
+</project>
