@@ -67,6 +67,8 @@ public class ElasticSearchDaoHelper {
                             "folder", "type=string,index=not_analyzed",
                             "format", "type=string,index=not_analyzed",
                             "genre", "type=string,index=not_analyzed",
+                            "albumArtist", "type=string,index=not_analyzed",
+                            "albumName", "type=string,index=not_analyzed",
                             "coverArtPath", "type=string,index=not_analyzed",
                             "created", "type=date",
                             "changed", "type=date",

@@ -7,6 +7,8 @@ import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.github.biconou.subsonic.dao.AlbumDao;
+import junit.framework.Assert;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.service.SearchService;
@@ -24,15 +26,28 @@ public class PerformanceServiceTestCase extends TestCase {
   private static String baseResources = "/com/github/biconou/subsonic/service/performanceServiceTestCase/";
 
   private final MetricRegistry metrics = new MetricRegistry();
+  private ConsoleReporter reporter = null;
+  private JmxReporter jmxReporter = null;
 
 
   private MediaFileDao mediaFileDao = null;
+  private AlbumDao albumDao = null;
   private MusicFolderDao musicFolderDao = null;
   private SearchService searchService = null;
+  private MediaScannerService mediaScannerService = null;
 
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+
+    reporter = ConsoleReporter.forRegistry(metrics)
+            .convertRatesTo(TimeUnit.SECONDS.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .build();
+
+    jmxReporter = JmxReporter.forRegistry(metrics).build();
+    jmxReporter.start();
+
 
     // Prepare database
     TestCaseUtils.prepareDataBase(baseResources);
@@ -43,58 +58,58 @@ public class PerformanceServiceTestCase extends TestCase {
     ApplicationContext context = TestCaseUtils.loadSpringApplicationContext(baseResources);
 
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
+    albumDao = (AlbumDao) context.getBean("albumDao");
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
     searchService = (SearchService) context.getBean("searchService");
+    mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
 
+    // delete index
+    TestCaseUtils.deleteIndex(context);
   }
 
 
   public void testPerformaceAlbumBrowse() {
 
-    String musicFolderPath = MusicFolderDaoMock.resolveMusicFolderPath();
 
-    startReport();
+    Timer scanTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Timer.scan"));
+    Timer.Context globalTimerContext =  scanTimer.time();
+    TestCaseUtils.execScan(mediaScannerService);
+    globalTimerContext.stop();
 
-    Timer globalTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.global"));
+
+
+   /* try {
+      Thread.sleep(10000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } */
+
+
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
 
    // Timer.Context globalTimerContext =  globalTimer.time();
 
-    while (true) {
+    int i = 0;
+    while (i < 100) {
       Timer.Context loopTimerContext = loopTimer.time();
 
       // TODO mediaFolders ?
       List<MediaFile> foundAlbums = searchService.getRandomAlbums(10,null);
 
-      /*
-      MediaFile oneAlbum = foundAlbums.get(5);
-      Album album = albumDao.getAlbum(id);
-      for (MediaFile mediaFile : mediaFileDao.getSongsForAlbum(album.getArtist(), album.getName())) {
-        result.getSong().add(createJaxbChild(player, mediaFile, username));
-      }
-      */
+      foundAlbums.stream().forEach(album -> {
+        System.out.println("++++++ "+album.getAlbumName());
+        mediaFileDao.getSongsForAlbum(album.getArtist(),album.getAlbumName())
+                .stream().forEach(song -> System.out.println(song.getName()));
+      });
+
 
       loopTimerContext.stop();
+      i++;
     }
 
-    //globalTimerContext.stop();
+    reporter.report();
 
-    //System.out.print("End");
+    System.out.print("End");
   }
-
-  private void startReport() {
-
-    // Reporter console
-    ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics)
-      .convertRatesTo(TimeUnit.SECONDS)
-      .convertDurationsTo(TimeUnit.MILLISECONDS)
-      .build();
-    reporter.start(10, TimeUnit.SECONDS);
-
-    // Jmx reporter
-    final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
-    jmxReporter.start();
-  }
-
 
 }

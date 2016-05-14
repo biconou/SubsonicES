@@ -20,6 +20,7 @@ package net.sourceforge.subsonic.service;
 
 import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
 import com.github.biconou.subsonic.dao.MediaFileDaoUtils;
+import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
 import net.sourceforge.subsonic.dao.ArtistDao;
@@ -29,8 +30,10 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 
 import java.io.File;
 import java.io.IOException;
@@ -293,50 +296,19 @@ public class SearchService {
      */
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
 
-        // TODO That's not ramdom
         // TODO musicFolders ?
+        String jsonQuery;
+        try {
+            jsonQuery = getElasticSearchDaoHelper().getQuery("getRandomAlbums",null);
+        } catch (IOException|TemplateException e) {
+            throw new RuntimeException(e);
+        }
 
-        SearchRequestBuilder searchRequestBuilder = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                .setQuery(QueryBuilders.typeQuery(ElasticSearchDaoHelper.ALBUM_INDEX_TYPE));
+        SearchRequestBuilder searchRequestBuilder = getElasticSearchDaoHelper().getClient()
+                .prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                .setQuery(jsonQuery);
 
         return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),searchRequestBuilder,0,count);
-
-        /*
-        List<MediaFile> result = new ArrayList<MediaFile>();
-
-        IndexReader reader = null;
-        try {
-            reader = createIndexReader(ALBUM);
-            Searcher searcher = new IndexSearcher(reader);
-
-            List<SpanTermQuery> musicFolderQueries = new ArrayList<SpanTermQuery>();
-            for (MusicFolder musicFolder : musicFolders) {
-                musicFolderQueries.add(new SpanTermQuery(new Term(FIELD_FOLDER, musicFolder.getPath().getPath())));
-            }
-            Query query = new SpanOrQuery(musicFolderQueries.toArray(new SpanQuery[musicFolderQueries.size()]));
-
-            TopDocs topDocs = searcher.search(query, null, Integer.MAX_VALUE);
-            List<ScoreDoc> scoreDocs = Lists.newArrayList(topDocs.scoreDocs);
-            Random random = new Random(System.currentTimeMillis());
-
-            while (!scoreDocs.isEmpty() && result.size() < count) {
-                int index = random.nextInt(scoreDocs.size());
-                Document doc = searcher.doc(scoreDocs.remove(index).doc);
-                int id = Integer.valueOf(doc.get(FIELD_ID));
-                try {
-                    addIfNotNull(mediaFileService.getMediaFile(id), result);
-                } catch (Exception x) {
-                    LOG.warn("Failed to get media file " + id, x);
-                }
-            }
-
-        } catch (Throwable x) {
-            LOG.error("Failed to search for random albums.", x);
-        } finally {
-            FileUtil.closeQuietly(reader);
-        }
-        return result;
-        */
     }
 
     /**

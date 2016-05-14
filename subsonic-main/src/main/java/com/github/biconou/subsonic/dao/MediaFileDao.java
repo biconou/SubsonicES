@@ -1,10 +1,15 @@
 package com.github.biconou.subsonic.dao;
 
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import freemarker.template.TemplateException;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -54,6 +59,20 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(), jsonSearch, null, null);
   }
 
+  @Override
+  public List<MediaFile> getSongsForAlbum(String artist, String album) {
+    Map<String,String> vars = new HashMap<>();
+    vars.put("artist",artist);
+    vars.put("album",album);
+    String jsonQuery;
+    try {
+      jsonQuery = getElasticSearchDaoHelper().getQuery("getSongsForAlbum",vars);
+    } catch (IOException |TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonQuery,null,null);
+  }
 
   /**
    * @param genre
