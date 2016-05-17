@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <!-- DAO's -->
+
+    <bean id="playerDao" class="net.sourceforge.subsonic.dao.PlayerDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="mediaFileDao" class="net.sourceforge.subsonic.dao.MediaFileDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="artistDao" class="net.sourceforge.subsonic.dao.ArtistDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="albumDao" class="net.sourceforge.subsonic.dao.AlbumDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="playlistDao" class="net.sourceforge.subsonic.dao.PlaylistDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="playQueueDao" class="net.sourceforge.subsonic.dao.PlayQueueDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="internetRadioDao" class="net.sourceforge.subsonic.dao.InternetRadioDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="musicFileInfoDao" class="net.sourceforge.subsonic.dao.RatingDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="musicFolderDao" class="com.github.biconou.subsonic.service.MusicFolderDaoMock">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="userDao" class="net.sourceforge.subsonic.dao.UserDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="transcodingDao" class="net.sourceforge.subsonic.dao.TranscodingDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="podcastDao" class="net.sourceforge.subsonic.dao.PodcastDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="avatarDao" class="net.sourceforge.subsonic.dao.AvatarDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="shareDao" class="net.sourceforge.subsonic.dao.ShareDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="bookmarkDao" class="net.sourceforge.subsonic.dao.BookmarkDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="videoConversionDao" class="net.sourceforge.subsonic.dao.VideoConversionDao">
+        <property name="daoHelper" ref="daoHelper"/>
+    </bean>
+
+    <bean id="daoHelper" class="net.sourceforge.subsonic.dao.DaoHelperFactory" factory-method="create"/>
+
+
+    <!-- Services -->
+
+    <bean id="mediaFileService" class="net.sourceforge.subsonic.service.MediaFileService">
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileMemoryCache" ref="mediaFileMemoryCache"/>
+        <property name="mediaFileDao" ref="mediaFileDao"/>
+        <property name="albumDao" ref="albumDao"/>
+        <property name="metaDataParserFactory" ref="metaDataParserFactory"/>
+    </bean>
+
+    <bean id="securityService" class="net.sourceforge.subsonic.service.SecurityService">
+        <property name="settingsService" ref="settingsService"/>
+        <property name="userDao" ref="userDao"/>
+        <property name="userCache" ref="userCache"/>
+    </bean>
+
+    <bean id="settingsService" class="net.sourceforge.subsonic.service.SettingsService" init-method="init">
+        <property name="internetRadioDao" ref="internetRadioDao"/>
+        <property name="musicFolderDao" ref="musicFolderDao"/>
+        <property name="userDao" ref="userDao"/>
+        <property name="avatarDao" ref="avatarDao"/>
+        <property name="versionService" ref="versionService"/>
+    </bean>
+
+    <bean id="mediaScannerService" class="com.github.biconou.subsonic.service.MediaScannerService" init-method="initNoSchedule" depends-on="metaDataParserFactory">
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="mediaFileDao" ref="mediaFileDao"/>
+        <property name="playlistService" ref="playlistService"/>
+        <property name="artistDao" ref="artistDao"/>
+        <property name="albumDao" ref="albumDao"/>
+        <property name="searchService" ref="searchService"/>
+        <!-- <property name="queueSender" ref="queueSender"/> -->
+    </bean>
+
+
+    <bean id="searchService" class="net.sourceforge.subsonic.service.SearchService">
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="artistDao" ref="artistDao"/>
+        <property name="albumDao" ref="albumDao"/>
+    </bean>
+
+    <bean id="networkService" class="net.sourceforge.subsonic.service.NetworkService" init-method="init">
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+    <bean id="playerService" class="net.sourceforge.subsonic.service.PlayerService" init-method="init">
+        <property name="playerDao" ref="playerDao"/>
+        <property name="statusService" ref="statusService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+    </bean>
+
+    <bean id="playlistService" class="net.sourceforge.subsonic.service.PlaylistService">
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileDao" ref="mediaFileDao"/>
+        <property name="playlistDao" ref="playlistDao"/>
+    </bean>
+
+    <bean id="versionService" class="net.sourceforge.subsonic.service.VersionService" init-method="init"/>
+
+    <bean id="statusService" class="net.sourceforge.subsonic.service.StatusService">
+        <property name="mediaFileService" ref="mediaFileService"/>
+    </bean>
+
+    <bean id="ratingService" class="net.sourceforge.subsonic.service.RatingService">
+        <property name="ratingDao" ref="musicFileInfoDao"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="securityService" ref="securityService"/>
+    </bean>
+
+    <bean id="musicIndexService" class="net.sourceforge.subsonic.service.MusicIndexService">
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+    </bean>
+
+    <bean id="transcodingService" class="net.sourceforge.subsonic.service.TranscodingService">
+        <property name="transcodingDao" ref="transcodingDao"/>
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+
+    <bean id="podcastService" class="net.sourceforge.subsonic.service.PodcastService" init-method="init">
+        <property name="podcastDao" ref="podcastDao"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="metaDataParserFactory" ref="metaDataParserFactory"/>
+    </bean>
+
+
+
+    <bean id="videoConversionService" class="net.sourceforge.subsonic.service.VideoConversionService" init-method="init">
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+        <property name="videoConversionDao" ref="videoConversionDao"/>
+        <property name="metaDataParserFactory" ref="metaDataParserFactory"/>
+    </bean>
+
+
+    <bean id="metaDataParserFactory" class="net.sourceforge.subsonic.service.metadata.MetaDataParserFactory">
+        <property name="parsers">
+            <list>
+                <bean class="net.sourceforge.subsonic.service.metadata.JaudiotaggerParser"/>
+                <bean class="net.sourceforge.subsonic.service.metadata.FFmpegParser">
+                    <property name="transcodingService" ref="transcodingService"/>
+                </bean>
+                <bean class="net.sourceforge.subsonic.service.metadata.DefaultMetaDataParser"/>
+            </list>
+        </property>
+    </bean>
+
+
+    <bean id="localeResolver" class="net.sourceforge.subsonic.i18n.SubsonicLocaleResolver">
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+</beans>
