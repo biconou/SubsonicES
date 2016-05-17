@@ -2,21 +2,18 @@ package com.github.biconou.subsonic.service;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
+import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.github.biconou.subsonic.dao.AlbumDao;
-import junit.framework.Assert;
-import net.sourceforge.subsonic.domain.Album;
-import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.service.SearchService;
-import org.springframework.context.ApplicationContext;
 import com.github.biconou.subsonic.TestCaseUtils;
+import com.github.biconou.subsonic.dao.AlbumDao;
 import com.github.biconou.subsonic.dao.MediaFileDao;
 import junit.framework.TestCase;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
+import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.service.SearchService;
 
 /**
  * Created by remi on 01/05/2016.
@@ -62,35 +59,20 @@ public class PerformanceServiceTestCase extends TestCase {
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
     searchService = (SearchService) context.getBean("searchService");
     mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
-
-    // delete index
-    TestCaseUtils.deleteIndex(context);
   }
+
+
 
 
   public void testPerformaceAlbumBrowse() {
 
-
-    Timer scanTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Timer.scan"));
-    Timer.Context globalTimerContext =  scanTimer.time();
-    TestCaseUtils.execScan(mediaScannerService);
-    globalTimerContext.stop();
-
-
-
-   /* try {
-      Thread.sleep(10000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } */
-
+    Timer globalTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Global.scan"));
+    Timer.Context globalTimerContext =  globalTimer.time();
 
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
 
-   // Timer.Context globalTimerContext =  globalTimer.time();
-
     int i = 0;
-    while (i < 100) {
+    while (i < 10000000) {
       Timer.Context loopTimerContext = loopTimer.time();
 
       // TODO mediaFolders ?
@@ -107,6 +89,7 @@ public class PerformanceServiceTestCase extends TestCase {
       i++;
     }
 
+    globalTimerContext.stop();
     reporter.report();
 
     System.out.print("End");

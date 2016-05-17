@@ -1,5 +1,9 @@
 package com.github.biconou.subsonic.service;
 
+import java.io.File;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -9,11 +13,6 @@ import junit.framework.Assert;
 import junit.framework.TestCase;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MediaFile;
-import org.springframework.context.ApplicationContext;
-
-import java.io.File;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by remi on 01/05/2016.
@@ -64,12 +63,6 @@ public class MediaScannerServiceTestCase extends TestCase {
     globalTimerContext.stop();
 
     reporter.report();
-
-    try {
-      Thread.sleep(10000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
 
     List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
     Assert.assertEquals(3,liste.size());
