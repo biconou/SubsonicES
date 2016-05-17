@@ -70,25 +70,18 @@ public class PerformanceServiceTestCase extends TestCase {
 
 
     Timer scanTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Timer.scan"));
-    Timer.Context globalTimerContext =  scanTimer.time();
+    Timer.Context scanTimerContext =  scanTimer.time();
     TestCaseUtils.execScan(mediaScannerService);
-    globalTimerContext.stop();
+    scanTimerContext.stop();
 
-
-
-   /* try {
-      Thread.sleep(10000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } */
-
-
+    Timer globalTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Global.scan"));
+    Timer.Context globalTimerContext =  globalTimer.time();
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
 
    // Timer.Context globalTimerContext =  globalTimer.time();
 
     int i = 0;
-    while (i < 100) {
+    while (i < 10000000) {
       Timer.Context loopTimerContext = loopTimer.time();
 
       // TODO mediaFolders ?
@@ -100,11 +93,11 @@ public class PerformanceServiceTestCase extends TestCase {
                 .stream().forEach(song -> System.out.println(song.getName()));
       });
 
-
       loopTimerContext.stop();
       i++;
     }
 
+    globalTimerContext.stop();
     reporter.report();
 
     System.out.print("End");
