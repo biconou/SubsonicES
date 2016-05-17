@@ -2,11 +2,9 @@ package com.github.biconou.subsonic.service;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.codahale.metrics.*;
 import org.springframework.context.ApplicationContext;
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import com.github.biconou.subsonic.TestCaseUtils;
 import com.github.biconou.subsonic.dao.AlbumDao;
 import com.github.biconou.subsonic.dao.MediaFileDao;
@@ -70,22 +68,50 @@ public class PerformanceServiceTestCase extends TestCase {
     Timer.Context globalTimerContext =  globalTimer.time();
 
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
+    Timer fetchSongsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.fetchSongs"));
+    //Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"));
+    Timer randomAlbumsTimer = metrics.register(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"),new Timer(new UniformReservoir()));
 
     int i = 0;
     while (i < 10000000) {
-      Timer.Context loopTimerContext = loopTimer.time();
+
+      final boolean fisrtIteration = i==0;
+
+      Timer.Context loopTimerContext = null;
+      if (!fisrtIteration) {
+         loopTimerContext = loopTimer.time();
+      }
 
       // TODO mediaFolders ?
+      Timer.Context randomAlbumsTimerContext = null;
+      // We do not take in consideration the time of the first iteration
+      // because it could be much more slow than the other ones
+      // due to the loading of the FreeMarker query templates.
+      if (!fisrtIteration) {
+        randomAlbumsTimerContext = randomAlbumsTimer.time();
+      }
       List<MediaFile> foundAlbums = searchService.getRandomAlbums(10,null);
+      if (!fisrtIteration) {
+        randomAlbumsTimerContext.stop();
+      }
 
       foundAlbums.stream().forEach(album -> {
         System.out.println("++++++ "+album.getAlbumName());
+
+        Timer.Context fetchSongsTimerContext = null;
+        if (!fisrtIteration) {
+          fetchSongsTimerContext = fetchSongsTimer.time();
+        }
         mediaFileDao.getSongsForAlbum(album.getArtist(),album.getAlbumName())
                 .stream().forEach(song -> System.out.println(song.getName()));
+        if (!fisrtIteration) {
+          fetchSongsTimerContext.stop();
+        }
       });
 
-
-      loopTimerContext.stop();
+      if (!fisrtIteration) {
+        loopTimerContext.stop();
+      }
       i++;
     }
 
