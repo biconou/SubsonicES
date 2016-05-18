@@ -118,7 +118,8 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   @Override
   public synchronized void createOrUpdateMediaFile(MediaFile file) {
-    createOrUpdateMediaFile(file, true);
+    createOrUpdateMediaFile(file, false);
+    //createOrUpdateMediaFile(file, true);
   }
 
   public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {

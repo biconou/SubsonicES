@@ -78,6 +78,11 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
 
   @Override
   public synchronized void createOrUpdateAlbum(Album album) {
+    createOrUpdateAlbum(album, false);
+    //createOrUpdateMediaFile(file, true);
+  }
+
+  public synchronized void createOrUpdateAlbum(Album album, boolean synchrone) {
     SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
 
 
@@ -88,10 +93,12 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
                 ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
                 ElasticSearchDaoHelper.ALBUM_INDEX_TYPE)
                 .setSource(json).setVersionType(VersionType.INTERNAL).get();
-        long l = 0;
-        while (l==0) {
-          l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                  .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
+        if (synchrone) {
+          long l = 0;
+          while (l == 0) {
+            l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                    .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
+          }
         }
 
       } catch (JsonProcessingException e) {
@@ -108,10 +115,12 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
                 ElasticSearchDaoHelper.ALBUM_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
-        long newVersion = version;
-        while (newVersion==version) {
-          newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                  .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
+        if (synchrone) {
+          long newVersion = version;
+          while (newVersion == version) {
+            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+                    .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
+          }
         }
       } catch (JsonProcessingException e) {
         throw new RuntimeException("Error trying indexing mediaFile "+e);
