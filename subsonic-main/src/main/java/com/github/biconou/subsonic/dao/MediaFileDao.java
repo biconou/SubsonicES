@@ -26,9 +26,45 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
+  /**
+   *
+   * @param path
+   * @return
+   */
+  protected SearchResponse searchMediaFileByPath(String path) {
+
+    Map<String,String> vars = new HashMap<>();
+    vars.put("path",preparePathForSearch(path));
+    String jsonQuery = null;
+    try {
+      jsonQuery = getElasticSearchDaoHelper().getQuery("searchMediaFileByPath",vars);
+    } catch (IOException|TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    return getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonQuery).setVersion(true).execute().actionGet();
+  }
+
+
+  /**
+   *
+   * @param path
+   * @return
+   */
+  public static String preparePathForSearch(String path) {
+    return path.replace("\\","\\\\");
+  }
+
+  /**
+   * Retrieve a MediaFile identified by a path.
+   *
+   * @param path The path.
+   * @return
+   */
   @Override
   public MediaFile getMediaFile(String path) {
-    SearchResponse response = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), path);
+    SearchResponse response = searchMediaFileByPath(path);
 
     long nbFound = response.getHits().getTotalHits();
     if (nbFound > 1) {
@@ -38,25 +74,16 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (nbFound == 0) {
       return null;
     } else {
-      return MediaFileDaoUtils.convertFromHit(getElasticSearchDaoHelper(), response.getHits().getHits()[0]);
+      return getElasticSearchDaoHelper().convertFromHit(response.getHits().getHits()[0],MediaFile.class);
     }
   }
 
 
   @Override
   public List<MediaFile> getChildrenOf(String path) {
-    String jsonSearch = "{\"query\" : {\n" +
-            "\t\"bool\" : {\n" +
-            "\t\t\"filter\" : {\n" +
-            "\t\t\t\"term\" : {\"parentPath\" : \"" + MediaFileDaoUtils.preparePathForSearch(path) + "\"}\n" +
-            "\t\t },\n" +
-            "\t\t\"filter\" : {\n" +
-            "\t\t\t\"term\" : {\"present\" : \"true\"}\n" +
-            "\t\t}\n" +
-            "\t}\n" +
-            "}}";
-
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(), jsonSearch, null, null);
+    Map<String,String> vars = new HashMap<>();
+    vars.put("path",preparePathForSearch(path));
+    return getElasticSearchDaoHelper().extractMediaFiles("getChildrenOf",vars, null, null,MediaFile.class);
   }
 
   @Override
@@ -64,14 +91,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     Map<String,String> vars = new HashMap<>();
     vars.put("artist",artist);
     vars.put("album",album);
-    String jsonQuery;
-    try {
-      jsonQuery = getElasticSearchDaoHelper().getQuery("getSongsForAlbum",vars);
-    } catch (IOException |TemplateException e) {
-      throw new RuntimeException(e);
-    }
-
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),jsonQuery,null,null);
+    return getElasticSearchDaoHelper().extractMediaFiles("getSongsForAlbum",vars,null,null,MediaFile.class);
   }
 
   /**
@@ -89,31 +109,15 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       return Collections.emptyList();
     }
 
-    // TODO reprendre le code de searchService
-    String jsonSearch = "{\n" +
-            "\t\"constant_score\" : {\n" +
-            "\t\t\"filter\" : { \n" +
-            "\t\t\t\"bool\" : {\n" +
-            "\t\t\t\t\"must\" : {\n" +
-            "\t\t\t\t\t\"term\" : { \"genre\" : \"" + genre + "\" }           \n" +
-            "\t\t\t\t},\n" +
-            "\t\t\t\t\"should\" : [\n" +
-            "\t\t\t\t\t{\"type\" : { \"value\" : \"MUSIC\" }},\n" +
-            "\t\t\t\t\t{\"type\" : { \"value\" : \"PODCAST\" }},\n" +
-            "\t\t\t\t\t{\"type\" : { \"value\" : \"AUDIOBOOK\" }}\n" +
-            "\t\t\t\t]\n" +
-            "\t\t\t\t\n" +
-            "\t\t\t}\n" +
-            "\t\t} \n" +
-            "\t }\n" +
-            "\t}";
+    Map<String,String> vars = new HashMap<String,String>();
+    vars.put("genre",genre);
 
     Integer size = null;
     if (count > 0) {
       size = count;
     }
 
-    return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(), jsonSearch, offset, size);
+    return getElasticSearchDaoHelper().extractMediaFiles("getSongsByGenre",vars, offset, size,MediaFile.class);
   }
 
   @Override
@@ -124,7 +128,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
 
-    SearchResponse searchResponse = MediaFileDaoUtils.searchMediaFileByPath(getElasticSearchDaoHelper(), file.getPath());
+    SearchResponse searchResponse = searchMediaFileByPath(file.getPath());
 
     if (searchResponse.getHits().totalHits() == 0) {
       try {

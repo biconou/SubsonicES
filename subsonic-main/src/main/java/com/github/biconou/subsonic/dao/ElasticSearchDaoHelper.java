@@ -3,17 +3,26 @@ package com.github.biconou.subsonic.dao;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ser.impl.StringArraySerializer;
+import com.sun.istack.Nullable;
+import com.sun.media.jfxmedia.Media;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import net.sourceforge.subsonic.domain.MediaFile;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.search.SearchHit;
 
 /**
  * Created by remi on 26/04/2016.
@@ -122,4 +131,79 @@ public class ElasticSearchDaoHelper {
 
     return result.toString();
   }
+
+
+  /**
+   *
+   * @param from
+   * @param size
+   * @return
+   */
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
+                                                                      @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+    String jsonQuery;
+    try {
+      jsonQuery = getQuery(queryName,vars);
+    } catch (IOException |TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    return extractMediaFiles(jsonQuery, null, null,type);
+  }
+
+
+  /**
+   *
+   * @param jsonSearch
+   * @param from
+   * @param size
+   * @return
+   */
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            .setQuery(jsonSearch).setVersion(true);
+    return extractMediaFiles(searchRequestBuilder,from,size,type);
+  }
+
+  /**
+   *
+   * @param searchRequestBuilder
+   * @param from
+   * @param size
+   * @return
+   */
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(SearchRequestBuilder searchRequestBuilder,
+                                                                      @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+    if (from != null) {
+      searchRequestBuilder.setFrom(from);
+    }
+    if (size != null) {
+      searchRequestBuilder.setSize(size);
+    }
+    SearchResponse response = searchRequestBuilder.execute().actionGet();
+    List<T> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(hit,type)).collect(Collectors.toList());
+    return returnedSongs;
+  }
+
+  /**
+   *
+   * @param hit
+   * @return
+   * @throws RuntimeException
+   */
+  public <T extends SubsonicESDomainObject> T convertFromHit(SearchHit hit, Class<T> type) throws RuntimeException {
+    T object = null;
+
+    if (hit != null) {
+      String hitSource = hit.getSourceAsString();
+      try {
+        object = getMapper().readValue(hitSource,type);
+        object.setESId(hit.id());
+      } catch (IOException e) {
+        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
+      }
+    }
+    return object;
+  }
+
 }

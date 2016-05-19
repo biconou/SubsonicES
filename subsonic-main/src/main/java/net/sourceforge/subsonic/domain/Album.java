@@ -19,6 +19,7 @@
 package net.sourceforge.subsonic.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.biconou.subsonic.dao.SubsonicESDomainObject;
 
 import java.util.Date;
 
@@ -26,7 +27,7 @@ import java.util.Date;
  * @author Sindre Mehus
  * @version $Id$
  */
-public class Album {
+public class Album implements SubsonicESDomainObject {
 
     private String ESId = null;
 

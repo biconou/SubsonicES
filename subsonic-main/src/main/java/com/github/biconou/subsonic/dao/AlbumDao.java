@@ -38,26 +38,6 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
-  /**
-   * Converts un search hit into Album.
-   * @param hit
-   * @return
-   * @throws RuntimeException
-   */
-  private Album convertFromHit(SearchHit hit) throws RuntimeException {
-    Album album = null;
-
-    if (hit != null) {
-      String hitSource = hit.getSourceAsString();
-      try {
-        album = getElasticSearchDaoHelper().getMapper().readValue(hitSource, Album.class);
-        album.setESId(hit.id());
-      } catch (IOException e) {
-        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
-      }
-    }
-    return album;
-  }
 
   @Override
   public Album getAlbum(String artistName, String albumName) {
@@ -71,7 +51,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     if (nbFound == 0) {
       return null;
     } else {
-      return convertFromHit(response.getHits().getHits()[0]);
+      return getElasticSearchDaoHelper().convertFromHit(response.getHits().getHits()[0],Album.class);
     }
 
   }

@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.biconou.subsonic.dao.SubsonicESDomainObject;
 import org.apache.commons.io.FilenameUtils;
 
 import com.google.common.base.Function;
@@ -37,7 +38,7 @@ import net.sourceforge.subsonic.util.FileUtil;
  * @author Sindre Mehus
  * @version $Id$
  */
-public class MediaFile implements Serializable {
+public class MediaFile implements Serializable,SubsonicESDomainObject {
 
     private String ESId = null;
 

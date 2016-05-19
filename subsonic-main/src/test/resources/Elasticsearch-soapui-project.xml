@@ -13,33 +13,37 @@
 		}
 }
 
-}</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="findByPath" id="e7a68e9e-6d19-4074-9f74-2f8f012b213f" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{
-	"query" : {
-	"constant_score" : {
-		"filter" : { 
-			"term" : { "path" : "toto" }             
-			}          
-	 }
-	}
-}</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="getSongsByGenre" id="c70f2b33-a7ae-400a-8fa5-50f6e4dc3d63" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{
-	"version" : "true",
-	"query" : {
-	"constant_score" : {
-		"filter" : { 
-			"bool" : {
-				"must" : {
-					"term" : { "genre" : "Baroque Instrumental" }           
-				},
-				"should" : [
-					{"type" : { "value" : "MUSIC" }},
-					{"type" : { "value" : "PODCAST" }},
-					{"type" : { "value" : "AUDIOBOOK" }}
-				]
-				
-			}
-		} 
-	 }
-	}
+}</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="findByPath" id="e7a68e9e-6d19-4074-9f74-2f8f012b213f" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{"query" : 
+
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : {"path" : "C:\\biconouSubsonicElasticSearch\\subsonic-main\\target\\test-classes\\MEDIAS\\Music\\Céline Frisch- Café Zimmermann - Bach- Goldberg Variations, Canons [Disc 1]\\01 - Bach- Goldberg Variations, BWV 988 - Aria.flac"}},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ]
+            }
+        }
+    }
+}
+
+}</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="getSongsByGenre" id="c70f2b33-a7ae-400a-8fa5-50f6e4dc3d63" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{"query" : 
+
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : { "genre" : "Baroque Instrumental" }},
+                    {"term" : { "mediaType" : "MUSIC" }},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ]
+            }
+        }
+    }
+}
+
 }</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="getRandomAlbums" id="c70f2b33-a7ae-400a-8fa5-50f6e4dc3d63" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{
 	"version" : "true",
 	"query" : 

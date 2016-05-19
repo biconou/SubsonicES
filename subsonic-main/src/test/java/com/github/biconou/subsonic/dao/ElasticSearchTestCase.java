@@ -224,6 +224,11 @@ public class ElasticSearchTestCase extends TestCase {
     ESClient = (ElasticSearchDaoHelper) context.getBean("elasticSearchClient");
   }
 
+  public static String preparePathForSearch(String path) {
+    return path.replace("\\","\\\\");
+  }
+
+
   public void testIndexFile() throws Exception {
 
     ESClient.deleteIndex();
@@ -257,7 +262,7 @@ public class ElasticSearchTestCase extends TestCase {
             "    \"constant_score\" : {" +
             "        \"filter\" : {" +
             "            \"term\" : {" +
-            "                \"path\" : \"" + MediaFileDaoUtils.preparePathForSearch(mediaFileMusique1.getPath()) + "\"" +
+            "                \"path\" : \"" + preparePathForSearch(mediaFileMusique1.getPath()) + "\"" +
             "            }" +
             "        }" +
             "    }" +

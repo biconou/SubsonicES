@@ -19,7 +19,6 @@
 package net.sourceforge.subsonic.service;
 
 import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
-import com.github.biconou.subsonic.dao.MediaFileDaoUtils;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
@@ -30,10 +29,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 
 import java.io.File;
 import java.io.IOException;
@@ -297,18 +292,8 @@ public class SearchService {
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
 
         // TODO musicFolders ?
-        String jsonQuery;
-        try {
-            jsonQuery = getElasticSearchDaoHelper().getQuery("getRandomAlbums",null);
-        } catch (IOException|TemplateException e) {
-            throw new RuntimeException(e);
-        }
 
-        SearchRequestBuilder searchRequestBuilder = getElasticSearchDaoHelper().getClient()
-                .prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                .setQuery(jsonQuery);
-
-        return MediaFileDaoUtils.extractMediaFiles(getElasticSearchDaoHelper(),searchRequestBuilder,0,count);
+        return getElasticSearchDaoHelper().extractMediaFiles("getRandomAlbums",null,0,count,MediaFile.class);
     }
 
     /**
