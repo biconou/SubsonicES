@@ -127,9 +127,24 @@ public class ElasticSearchDaoHelper {
       }
     }
     StringWriter result = new StringWriter();
+
+    if (vars != null) {
+      vars.forEach((k, v) -> vars.put(k, escapeForJson(v)));
+    }
     template.process(vars,result);
 
     return result.toString();
+  }
+
+  /**
+   *
+   * @param source
+   * @return
+   */
+  private String escapeForJson(String source) {
+    String target = source.replace("\\","\\\\");
+    target = target.replace("\"","\\\"");
+    return target;
   }
 
 

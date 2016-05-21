@@ -53,6 +53,9 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   public void testScanLibrary() {
 
+    String log4jFile = MediaScannerServiceTestCase.class.getResource("/log4j.xml").toString();
+    System.out.println(log4jFile);
+
     ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics)
             .convertRatesTo(TimeUnit.SECONDS.SECONDS)
             .convertDurationsTo(TimeUnit.MILLISECONDS)
@@ -81,13 +84,12 @@ public class MediaScannerServiceTestCase extends TestCase {
     });
 
     ///
-    String toto = "Céline";
-    String path = "/Céline Frisch- Café Zimmermann - Bach- Goldberg Variations, Canons [Disc 1]/01 - Bach- Goldberg Variations, BWV 988 - Aria.flac";
+    String path = "/CÃ©line Frisch- CafÃ© Zimmermann - Bach- Goldberg Variations, Canons [Disc 1]/01 - Bach- Goldberg Variations, BWV 988 - Aria.flac";
     path = resolveRealPath(path);
     MediaFile mediaFile = mediaFileDao.getMediaFile(path);
     Assert.assertNotNull(mediaFile);
-    Assert.assertEquals("Céline Frisch: Café Zimmermann",mediaFile.getAlbumArtist());
-    Assert.assertEquals("Céline Frisch: Café Zimmermann",mediaFile.getArtist());
+    Assert.assertEquals("CÃ©line Frisch: CafÃ© Zimmermann",mediaFile.getAlbumArtist());
+    Assert.assertEquals("CÃ©line Frisch: CafÃ© Zimmermann",mediaFile.getArtist());
     Assert.assertEquals("Bach: Goldberg Variations, Canons [Disc 1]",mediaFile.getAlbumName());
     Assert.assertEquals(new Integer(2001),mediaFile.getYear());
     Assert.assertEquals(MediaFile.MediaType.MUSIC,mediaFile.getMediaType());

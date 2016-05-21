@@ -17,12 +17,14 @@ import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by remi on 26/04/2016.
  */
 public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaFileDao.class);
 
   private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
@@ -34,7 +36,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   protected SearchResponse searchMediaFileByPath(String path) {
 
     Map<String,String> vars = new HashMap<>();
-    vars.put("path",preparePathForSearch(path));
+    vars.put("path",path);
     String jsonQuery = null;
     try {
       jsonQuery = getElasticSearchDaoHelper().getQuery("searchMediaFileByPath",vars);
@@ -46,15 +48,6 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
-
-  /**
-   *
-   * @param path
-   * @return
-   */
-  public static String preparePathForSearch(String path) {
-    return path.replace("\\","\\\\");
-  }
 
   /**
    * Retrieve a MediaFile identified by a path.
@@ -82,7 +75,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   @Override
   public List<MediaFile> getChildrenOf(String path) {
     Map<String,String> vars = new HashMap<>();
-    vars.put("path",preparePathForSearch(path));
+    vars.put("path",path);
     return getElasticSearchDaoHelper().extractMediaFiles("getChildrenOf",vars, null, null,MediaFile.class);
   }
 
@@ -127,6 +120,8 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   }
 
   public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
+
+    logger.debug("CreateOrUpdate MediaFile : "+file.getPath());
 
     SearchResponse searchResponse = searchMediaFileByPath(file.getPath());
 

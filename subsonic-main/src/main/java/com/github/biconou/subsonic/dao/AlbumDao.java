@@ -10,6 +10,7 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -19,6 +20,8 @@ import java.util.Map;
  * Created by remi on 11/05/2016.
  */
 public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
+
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AlbumDao.class);
 
   private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
@@ -63,10 +66,13 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
   }
 
   public synchronized void createOrUpdateAlbum(Album album, boolean synchrone) {
+
+    logger.debug("CreateOrUpdateAlbum for artist=["+album.getArtist()+"] and name=["+album.getName()+"]");
     SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
 
 
     if (searchResponse == null || searchResponse.getHits().totalHits() == 0) {
+      logger.debug("Album does not exist");
       try {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
@@ -89,6 +95,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       try {
         String id = searchResponse.getHits().getAt(0).id();
         long version  = searchResponse.getHits().getAt(0).version();
+        logger.debug("Album exists with id=["+id+"] and version=["+version+"]. -> update with a new version.");
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
                 ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,

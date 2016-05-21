@@ -69,11 +69,11 @@ public class PerformanceServiceTestCase extends TestCase {
 
     Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
     Timer fetchSongsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.fetchSongs"));
-    //Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"));
-    Timer randomAlbumsTimer = metrics.register(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"),new Timer(new UniformReservoir()));
+    Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"));
+    //Timer randomAlbumsTimer = metrics.register(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"),new Timer(new UniformReservoir()));
 
     int i = 0;
-    while (i < 10000000) {
+    while (i < 100000) {
 
       final boolean fisrtIteration = i==0;
 
@@ -96,7 +96,6 @@ public class PerformanceServiceTestCase extends TestCase {
       }
 
       foundAlbums.stream().forEach(album -> {
-        System.out.println("++++++ "+album.getAlbumName());
 
         Timer.Context fetchSongsTimerContext = null;
         if (!fisrtIteration) {

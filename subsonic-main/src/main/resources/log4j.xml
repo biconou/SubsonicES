@@ -30,7 +30,10 @@
 	   <level value="debug"/>
 	   <appender-ref ref="mediaScannerLogFile"/>
 	</logger>
-
+    <logger name="com.github.biconou.subsonic.dao">
+        <level value="debug"/>
+        <appender-ref ref="mediaScannerLogFile"/>
+    </logger>
 
 	<logger name="com.github.biconou.subsonic.service">
 	   <level value="warn"/>
