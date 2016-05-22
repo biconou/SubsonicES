@@ -1,6 +1,7 @@
 package com.github.biconou.subsonic.rest;
 
 import com.github.biconou.subsonic.TestCaseUtils;
+import com.github.biconou.subsonic.service.MediaScannerService;
 import junit.framework.TestCase;
 import net.sourceforge.subsonic.TestServer;
 import org.mortbay.jetty.Server;
@@ -23,14 +24,6 @@ public class RestTestCase extends TestCase {
 
     TestCaseUtils.setSubsonicHome(baseResources);
 
-    // load spring context
-    //ApplicationContext context = TestCaseUtils.loadSpringApplicationContext(baseResources);
-
-    // delete index
-    //TestCaseUtils.deleteIndex(context);
-
-    //net.sourceforge.subsonic.service.MediaScannerService mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
-    //TestCaseUtils.execScan(mediaScannerService);
   }
 
 

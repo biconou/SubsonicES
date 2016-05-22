@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.*;
+import com.github.biconou.subsonic.AbstractTestCase;
 import org.springframework.context.ApplicationContext;
 import com.github.biconou.subsonic.TestCaseUtils;
 import com.github.biconou.subsonic.dao.AlbumDao;
@@ -16,13 +17,10 @@ import net.sourceforge.subsonic.service.SearchService;
 /**
  * Created by remi on 01/05/2016.
  */
-public class PerformanceServiceTestCase extends TestCase {
+public class PerformanceServiceTestCase extends AbstractTestCase {
 
   private static String baseResources = "/com/github/biconou/subsonic/service/performanceServiceTestCase/";
 
-  private final MetricRegistry metrics = new MetricRegistry();
-  private ConsoleReporter reporter = null;
-  private JmxReporter jmxReporter = null;
 
 
   private MediaFileDao mediaFileDao = null;
@@ -34,14 +32,6 @@ public class PerformanceServiceTestCase extends TestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-
-    reporter = ConsoleReporter.forRegistry(metrics)
-            .convertRatesTo(TimeUnit.SECONDS.SECONDS)
-            .convertDurationsTo(TimeUnit.MILLISECONDS)
-            .build();
-
-    jmxReporter = JmxReporter.forRegistry(metrics).build();
-    jmxReporter.start();
 
 
     // Prepare database
