@@ -8,21 +8,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.ser.impl.StringArraySerializer;
-import com.sun.istack.Nullable;
-import com.sun.media.jfxmedia.Media;
-import freemarker.template.Configuration;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
-import net.sourceforge.subsonic.domain.MediaFile;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.search.SearchHit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.istack.Nullable;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import net.sourceforge.subsonic.domain.MusicFolder;
 
 /**
  * Created by remi on 26/04/2016.
@@ -147,6 +144,10 @@ public class ElasticSearchDaoHelper {
     return target;
   }
 
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
+                                                                      @Nullable Integer from, @Nullable Integer size, Class<T> type) {
+    return extractMediaFiles(queryName,vars,from,size,type);
+  }
 
   /**
    *
@@ -155,7 +156,7 @@ public class ElasticSearchDaoHelper {
    * @return
    */
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
-                                                                      @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+                                                                      @Nullable Integer from, @Nullable Integer size, @Nullable List<MusicFolder> musicFolders,Class<T> type) {
     String jsonQuery;
     try {
       jsonQuery = getQuery(queryName,vars);
@@ -163,7 +164,7 @@ public class ElasticSearchDaoHelper {
       throw new RuntimeException(e);
     }
 
-    return extractMediaFiles(jsonQuery, null, null,type);
+    return extractMediaFiles(jsonQuery, null, null, musicFolders,type);
   }
 
 
@@ -174,7 +175,8 @@ public class ElasticSearchDaoHelper {
    * @param size
    * @return
    */
-  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size, @Nullable List<MusicFolder> musicFolders,Class<T> type) {
+    // TODO prendre en compte le multi folders -> multi index.
     SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
             .setQuery(jsonSearch).setVersion(true);
     return extractMediaFiles(searchRequestBuilder,from,size,type);
