@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -26,10 +28,10 @@ import net.sourceforge.subsonic.domain.MusicFolder;
  */
 public class ElasticSearchDaoHelper {
 
-  public static final String SUBSONIC_MEDIA_INDEX_NAME = "subsonic_media";
   public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
   public static final String ALBUM_INDEX_TYPE = "ALBUM";
 
+  private MusicFolderDao musicFolderDao = null;
 
   private Client elasticSearchClient = null;
   private ObjectMapper mapper = new ObjectMapper();
@@ -41,16 +43,24 @@ public class ElasticSearchDaoHelper {
     freeMarkerConfiguration.setClassForTemplateLoading(this.getClass(), "/com/github/biconou/subsonic/dao");
   }
 
+  public void setMusicFolderDao(MusicFolderDao musicFolderDao) {
+    this.musicFolderDao = musicFolderDao;
+  }
+
   private Client obtainESClient() {
     return TransportClient.builder().build()
             .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
   }
 
-  public void deleteIndex() {
+  public void deleteIndexes() {
     Client client = obtainESClient();
-    boolean indexExists = client.admin().indices().prepareExists(SUBSONIC_MEDIA_INDEX_NAME).execute().actionGet().isExists();
-    if (indexExists) {
-      client.admin().indices().prepareDelete(SUBSONIC_MEDIA_INDEX_NAME).execute().actionGet();
+    List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
+    for (MusicFolder folder : musicFolders) {
+      String indexName = folder.getName();
+      boolean indexExists = client.admin().indices().prepareExists(indexName).execute().actionGet().isExists();
+      if (indexExists) {
+        client.admin().indices().prepareDelete(indexName).execute().actionGet();
+      }
     }
     elasticSearchClient = null;
   }
@@ -61,38 +71,41 @@ public class ElasticSearchDaoHelper {
         if (elasticSearchClient == null) {
           elasticSearchClient = obtainESClient();
 
-          boolean indexExists = elasticSearchClient.admin().indices().prepareExists(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                  .execute().actionGet().isExists();
-          if (!indexExists) {
-            elasticSearchClient.admin().indices()
-                    .prepareCreate(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
-                    .addMapping(MEDIA_FILE_INDEX_TYPE,
-                            "path", "type=string,index=not_analyzed",
-                            "parentPath", "type=string,index=not_analyzed",
-                            "mediaType", "type=string,index=not_analyzed",
-                            "folder", "type=string,index=not_analyzed",
-                            "format", "type=string,index=not_analyzed",
-                            "genre", "type=string,index=not_analyzed",
-                            "albumArtist", "type=string,index=not_analyzed",
-                            "albumName", "type=string,index=not_analyzed",
-                            "coverArtPath", "type=string,index=not_analyzed",
-                            "created", "type=date",
-                            "changed", "type=date",
-                            "childrenLastUpdated", "type=date",
-                            "lastPlayed", "type=date",
-                            "lastScanned", "type=date",
-                            "starredDate", "type=date")
-                    .addMapping(ALBUM_INDEX_TYPE,
-                            "path", "type=string,index=not_analyzed",
-                            "name", "type=string,index=not_analyzed",
-                            "artist", "type=string,index=not_analyzed",
-                            "coverArtPath", "type=string,index=not_analyzed",
-                            "lastPlayed", "type=date",
-                            "created", "type=date",
-                            "lastScanned", "type=date")
-                    .execute().actionGet();
+          List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
+          for (MusicFolder folder : musicFolders) {
+            String indexName = folder.getName();
+            boolean indexExists = elasticSearchClient.admin().indices().prepareExists(indexName)
+                    .execute().actionGet().isExists();
+            if (!indexExists) {
+              elasticSearchClient.admin().indices()
+                      .prepareCreate(indexName)
+                      .addMapping(MEDIA_FILE_INDEX_TYPE,
+                              "path", "type=string,index=not_analyzed",
+                              "parentPath", "type=string,index=not_analyzed",
+                              "mediaType", "type=string,index=not_analyzed",
+                              "folder", "type=string,index=not_analyzed",
+                              "format", "type=string,index=not_analyzed",
+                              "genre", "type=string,index=not_analyzed",
+                              "albumArtist", "type=string,index=not_analyzed",
+                              "albumName", "type=string,index=not_analyzed",
+                              "coverArtPath", "type=string,index=not_analyzed",
+                              "created", "type=date",
+                              "changed", "type=date",
+                              "childrenLastUpdated", "type=date",
+                              "lastPlayed", "type=date",
+                              "lastScanned", "type=date",
+                              "starredDate", "type=date")
+                      .addMapping(ALBUM_INDEX_TYPE,
+                              "path", "type=string,index=not_analyzed",
+                              "name", "type=string,index=not_analyzed",
+                              "artist", "type=string,index=not_analyzed",
+                              "coverArtPath", "type=string,index=not_analyzed",
+                              "lastPlayed", "type=date",
+                              "created", "type=date",
+                              "lastScanned", "type=date")
+                      .execute().actionGet();
+            }
           }
-
         }
       }
     }
@@ -176,8 +189,13 @@ public class ElasticSearchDaoHelper {
    * @return
    */
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size, @Nullable List<MusicFolder> musicFolders,Class<T> type) {
-    // TODO prendre en compte le multi folders -> multi index.
-    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    List<MusicFolder> list = null;
+    if (musicFolders == null) {
+      list = musicFolderDao.getAllMusicFolders();
+    } else {
+      list = musicFolders;
+    }
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(musicFolderDao.getMusicFoldersNames(list))
             .setQuery(jsonSearch).setVersion(true);
     return extractMediaFiles(searchRequestBuilder,from,size,type);
   }

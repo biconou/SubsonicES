@@ -2,14 +2,14 @@ package com.github.biconou.subsonic.dao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import freemarker.template.TemplateException;
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.Album;
-import net.sourceforge.subsonic.domain.MediaFile;
+import net.sourceforge.subsonic.domain.MusicFolder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -25,6 +25,12 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
 
   private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
+  private MusicFolderDao musicFolderDao = null;
+
+  public void setMusicFolderDao(MusicFolderDao musicFolderDao) {
+    this.musicFolderDao = musicFolderDao;
+  }
+
   private SearchResponse searchAlbumByArtistAndName(String artist, String name) {
 
     Map<String,String> vars = new HashMap<>();
@@ -37,7 +43,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    return getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getAllMusicFoldersNames())
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
@@ -59,6 +65,20 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
 
   }
 
+  /**
+   *
+   * @param
+   * @return
+   */
+  private String resolveMusicFolderNameForAlbum(Album album) {
+    for (MusicFolder musicFolder : musicFolderDao.getAllMusicFolders()) {
+      if (musicFolder.getId().equals(album.getFolderId())) {
+        return musicFolder.getName();
+      }
+    }
+    return null;
+  }
+
   @Override
   public synchronized void createOrUpdateAlbum(Album album) {
     createOrUpdateAlbum(album, false);
@@ -70,19 +90,21 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     logger.debug("CreateOrUpdateAlbum for artist=["+album.getArtist()+"] and name=["+album.getName()+"]");
     SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
 
+    String indexName = resolveMusicFolderNameForAlbum(album);
+
 
     if (searchResponse == null || searchResponse.getHits().totalHits() == 0) {
       logger.debug("Album does not exist");
       try {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
-                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                indexName,
                 ElasticSearchDaoHelper.ALBUM_INDEX_TYPE)
                 .setSource(json).setVersionType(VersionType.INTERNAL).get();
         if (synchrone) {
           long l = 0;
           while (l == 0) {
-            l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            l = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
                     .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
           }
         }
@@ -98,14 +120,14 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
         logger.debug("Album exists with id=["+id+"] and version=["+version+"]. -> update with a new version.");
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
-                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                indexName,
                 ElasticSearchDaoHelper.ALBUM_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
         if (synchrone) {
           long newVersion = version;
           while (newVersion == version) {
-            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
                     .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
           }
         }

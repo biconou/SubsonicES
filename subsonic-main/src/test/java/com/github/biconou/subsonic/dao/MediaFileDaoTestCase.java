@@ -226,7 +226,7 @@ public class MediaFileDaoTestCase extends TestCase {
 
   public void testCreateOrUpdateMediaFile () {
 
-    ESClient.deleteIndex();
+    ESClient.deleteIndexes();
 
     String root = "C:\\TEST_BASE_STREAMING";
     String fichierMusique1Path = root + "\\Music\\Ravel\\Ravel - Complete Piano Works\\01 - Gaspard de la Nuit - i. Ondine.flac";

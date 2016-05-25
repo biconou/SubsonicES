@@ -1,6 +1,5 @@
 package com.github.biconou.subsonic.service;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.springframework.context.ApplicationContext;
@@ -44,7 +43,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
 
     // delete index
-    TestCaseUtils.deleteIndex(context);
+    TestCaseUtils.deleteIndexes(context);
   }
 
   private String resolveRealPath(String path) {

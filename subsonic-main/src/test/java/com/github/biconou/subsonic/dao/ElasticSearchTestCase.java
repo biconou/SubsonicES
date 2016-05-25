@@ -231,7 +231,7 @@ public class ElasticSearchTestCase extends TestCase {
 
   public void testIndexFile() throws Exception {
 
-    ESClient.deleteIndex();
+    ESClient.deleteIndexes();
 
     String root = "C:\\TEST_BASE_STREAMING";
     String fichierMusique1Path = root + "\\Music\\Ravel\\Ravel - Complete Piano Works\\01 - Gaspard de la Nuit - i. Ondine.flac";
@@ -242,7 +242,7 @@ public class ElasticSearchTestCase extends TestCase {
     String json = ESClient.getMapper().writeValueAsString(mediaFileMusique1);
 
     IndexRequestBuilder indexRequestBuilder = ESClient.getClient().prepareIndex(
-            ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+            "Music",
             mediaFileMusique1.getMediaType().toString())
             .setSource(json);
     IndexResponse indexResponse = ESClient.getClient().index(indexRequestBuilder.request()).get();
@@ -250,7 +250,7 @@ public class ElasticSearchTestCase extends TestCase {
 
     long l = 0;
     while (l==0) {
-      l = ESClient.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+      l = ESClient.getClient().prepareSearch("Music")
               .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
     }
 
@@ -269,7 +269,7 @@ public class ElasticSearchTestCase extends TestCase {
             "}";
 
 
-    SearchResponse searchResponse = ESClient.getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    SearchResponse searchResponse = ESClient.getClient().prepareSearch("Music")
             .setQuery(jsonSearch).execute().actionGet();
 
     Assert.assertNotNull(searchResponse);

@@ -22,18 +22,17 @@ public class MusicFolderDaoMock extends MusicFolderDao {
 
   public static String resolveMusicFolderPath() {
     return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music").replace("/","\\");
+    //return "Z:\\musique\\PCDM";
   }
 
   @Override
   public List<MusicFolder> getAllMusicFolders() {
-
     List<MusicFolder> liste = new ArrayList<>();
-
     File musicDir = new File(MusicFolderDaoMock.resolveMusicFolderPath());
-
     MusicFolder musicFolder = new MusicFolder(musicDir,"Music",true,new Date());
-
     liste.add(musicFolder);
+    MusicFolder musicFolder2 = new MusicFolder(new File((MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\")),"Music",true,new Date());
+    liste.add(musicFolder2);
     return liste;
   }
 }

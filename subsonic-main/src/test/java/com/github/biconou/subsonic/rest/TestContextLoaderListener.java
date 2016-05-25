@@ -19,7 +19,7 @@ public class TestContextLoaderListener extends ContextLoaderListener {
     ApplicationContext context = getContextLoader().getCurrentWebApplicationContext();
 
     // delete index
-    TestCaseUtils.deleteIndex(context);
+    TestCaseUtils.deleteIndexes(context);
 
     MediaScannerService mediaScannerService = (MediaScannerService) context.getBean("mediaScannerService");
     TestCaseUtils.execScan(mediaScannerService);

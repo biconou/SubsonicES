@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -27,6 +29,8 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaFileDao.class);
 
+  private MusicFolderDao musicFolderDao = null;
+
   private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
   public ElasticSearchDaoHelper getElasticSearchDaoHelper() {
     return elasticSearchDaoHelper;
@@ -34,6 +38,10 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   public void setElasticSearchDaoHelper(ElasticSearchDaoHelper elasticSearchDaoHelper) {
     this.elasticSearchDaoHelper = elasticSearchDaoHelper;
+  }
+
+  public void setMusicFolderDao(MusicFolderDao musicFolderDao) {
+    this.musicFolderDao = musicFolderDao;
   }
 
   /**
@@ -52,7 +60,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    return getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getAllMusicFoldersNames())
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
@@ -127,9 +135,26 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     //createOrUpdateMediaFile(file, true);
   }
 
+  /**
+   *
+   * @param mediaFile
+   * @return
+   */
+  private String resolveMusicFolderNameForMediaFile(MediaFile mediaFile) {
+    for (MusicFolder musicFolder : musicFolderDao.getAllMusicFolders()) {
+      if (musicFolder.getPath().equals(mediaFile.getFolder())) {
+        return musicFolder.getName();
+      }
+    }
+    return null;
+  }
+
+
   public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
 
     logger.debug("CreateOrUpdate MediaFile : "+file.getPath());
+
+    String indexName = resolveMusicFolderNameForMediaFile(file);
 
     SearchResponse searchResponse = searchMediaFileByPath(file.getPath());
 
@@ -137,13 +162,13 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       try {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
-                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                indexName,
                 ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
                 .setSource(json).setVersionType(VersionType.INTERNAL).get();
         if (synchrone) {
           long l = 0;
           while (l == 0) {
-            l = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            l = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
                     .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
           }
         }
@@ -158,14 +183,14 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
         long version = searchResponse.getHits().getAt(0).version();
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
         UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
-                ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME,
+                indexName,
                 ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
         if (synchrone) {
           long newVersion = version;
           while (newVersion == version) {
-            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
                     .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
           }
         }
@@ -360,8 +385,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       throw new RuntimeException(e);
     }
 
-    // TODO multifolders
-    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getMusicFoldersNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 
@@ -379,7 +403,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
 
     // TODO multifolders
-    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getMusicFoldersNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 
@@ -399,7 +423,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
 
     // TODO multifolders
-    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(ElasticSearchDaoHelper.SUBSONIC_MEDIA_INDEX_NAME)
+    return (int) getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getMusicFoldersNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 

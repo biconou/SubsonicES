@@ -57,9 +57,9 @@ public class TestCaseUtils {
     return new ClassPathXmlApplicationContext(configLocations);
   }
 
-  public static void deleteIndex(ApplicationContext context) {
+  public static void deleteIndexes(ApplicationContext context) {
     ElasticSearchDaoHelper elasticSearchDaoHelper = (ElasticSearchDaoHelper)context.getBean("elasticSearchDaoHelper");
-    elasticSearchDaoHelper.deleteIndex();
+    elasticSearchDaoHelper.deleteIndexes();
   }
 
 
