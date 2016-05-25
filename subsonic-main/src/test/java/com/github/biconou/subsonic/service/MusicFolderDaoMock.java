@@ -30,7 +30,7 @@ public class MusicFolderDaoMock extends MusicFolderDao {
     File musicDir = new File(MusicFolderDaoMock.resolveMusicFolderPath());
     MusicFolder musicFolder = new MusicFolder(1,musicDir,"Music",true,new Date());
     liste.add(musicFolder);
-    MusicFolder musicFolder2 = new MusicFolder(2,new File((MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\")),"Music",true,new Date());
+    MusicFolder musicFolder2 = new MusicFolder(2,new File((MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\")),"Music2",true,new Date());
     liste.add(musicFolder2);
     return liste;
   }

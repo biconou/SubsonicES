@@ -2,6 +2,8 @@ package com.github.biconou.subsonic.service;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import net.sourceforge.subsonic.domain.MusicFolder;
 import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -81,6 +83,16 @@ public class MediaScannerServiceTestCase extends TestCase {
       Assert.assertNotNull(mf);
       Assert.assertEquals("Baroque Instrumental",mf.getGenre());
     });
+
+    List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
+    musicFolders.remove(0);
+    listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolders);
+    Assert.assertEquals(0,listeSongs.size());
+
+    musicFolders = musicFolderDao.getAllMusicFolders();
+    musicFolders.remove(1);
+    listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolders);
+    Assert.assertEquals(2,listeSongs.size());
 
     ///
     String path = "/Céline Frisch- Café Zimmermann - Bach- Goldberg Variations, Canons [Disc 1]/01 - Bach- Goldberg Variations, BWV 988 - Aria.flac";
