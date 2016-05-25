@@ -1,20 +1,19 @@
 package com.github.biconou.subsonic.dao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import freemarker.template.TemplateException;
-import net.sourceforge.subsonic.dao.MusicFolderDao;
-import net.sourceforge.subsonic.domain.Album;
-import net.sourceforge.subsonic.domain.MusicFolder;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import freemarker.template.TemplateException;
+import net.sourceforge.subsonic.dao.MusicFolderDao;
+import net.sourceforge.subsonic.domain.Album;
+import net.sourceforge.subsonic.domain.MusicFolder;
 
 /**
  * Created by remi on 11/05/2016.
@@ -43,7 +42,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getAllMusicFoldersNames())
+    return getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getAllMusicFoldersLowerNames())
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
@@ -70,10 +69,10 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
    * @param
    * @return
    */
-  private String resolveMusicFolderNameForAlbum(Album album) {
+  private String resolveIndexNameForAlbum(Album album) {
     for (MusicFolder musicFolder : musicFolderDao.getAllMusicFolders()) {
       if (musicFolder.getId().equals(album.getFolderId())) {
-        return musicFolder.getName();
+        return musicFolder.getName().toLowerCase();
       }
     }
     return null;
@@ -90,7 +89,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     logger.debug("CreateOrUpdateAlbum for artist=["+album.getArtist()+"] and name=["+album.getName()+"]");
     SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
 
-    String indexName = resolveMusicFolderNameForAlbum(album);
+    String indexName = resolveIndexNameForAlbum(album);
 
 
     if (searchResponse == null || searchResponse.getHits().totalHits() == 0) {

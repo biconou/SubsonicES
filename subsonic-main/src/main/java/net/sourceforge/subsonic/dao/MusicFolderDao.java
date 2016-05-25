@@ -51,11 +51,10 @@ public class MusicFolderDao extends AbstractDao {
 
     /**
      *
-     * @param folders
      * @return
      */
-    public String[] getAllMusicFoldersNames() {
-        return getMusicFoldersNames(getAllMusicFolders());
+    public String[] getAllMusicFoldersLowerNames() {
+        return getMusicFoldersLowerNames(getAllMusicFolders());
     }
 
     /**
@@ -63,9 +62,9 @@ public class MusicFolderDao extends AbstractDao {
    * @param folders
    * @return
    */
-  public String[] getMusicFoldersNames(List<MusicFolder> folders) {
+  public String[] getMusicFoldersLowerNames(List<MusicFolder> folders) {
         if (folders != null) {
-            return folders.stream().map(folder -> folder.getName()).toArray(String[]::new);
+            return folders.stream().map(folder -> folder.getName().toLowerCase()).toArray(String[]::new);
         } else {
             return null;
         }

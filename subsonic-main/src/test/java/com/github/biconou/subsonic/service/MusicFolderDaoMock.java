@@ -1,12 +1,11 @@
 package com.github.biconou.subsonic.service;
 
-import net.sourceforge.subsonic.dao.MusicFolderDao;
-import net.sourceforge.subsonic.domain.MusicFolder;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import net.sourceforge.subsonic.dao.MusicFolderDao;
+import net.sourceforge.subsonic.domain.MusicFolder;
 
 /**
  * Created by remi on 06/05/2016.
@@ -29,9 +28,9 @@ public class MusicFolderDaoMock extends MusicFolderDao {
   public List<MusicFolder> getAllMusicFolders() {
     List<MusicFolder> liste = new ArrayList<>();
     File musicDir = new File(MusicFolderDaoMock.resolveMusicFolderPath());
-    MusicFolder musicFolder = new MusicFolder(musicDir,"Music",true,new Date());
+    MusicFolder musicFolder = new MusicFolder(1,musicDir,"Music",true,new Date());
     liste.add(musicFolder);
-    MusicFolder musicFolder2 = new MusicFolder(new File((MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\")),"Music",true,new Date());
+    MusicFolder musicFolder2 = new MusicFolder(2,new File((MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\")),"Music",true,new Date());
     liste.add(musicFolder2);
     return liste;
   }

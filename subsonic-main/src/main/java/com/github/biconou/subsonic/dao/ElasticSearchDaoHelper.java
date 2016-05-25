@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import net.sourceforge.subsonic.dao.MusicFolderDao;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -21,6 +19,7 @@ import com.sun.istack.Nullable;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MusicFolder;
 
 /**
@@ -54,9 +53,9 @@ public class ElasticSearchDaoHelper {
 
   public void deleteIndexes() {
     Client client = obtainESClient();
-    List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
-    for (MusicFolder folder : musicFolders) {
-      String indexName = folder.getName();
+    String[] musicFolders = musicFolderDao.getAllMusicFoldersLowerNames();
+    for (String folder : musicFolders) {
+      String indexName = folder;
       boolean indexExists = client.admin().indices().prepareExists(indexName).execute().actionGet().isExists();
       if (indexExists) {
         client.admin().indices().prepareDelete(indexName).execute().actionGet();
@@ -71,9 +70,9 @@ public class ElasticSearchDaoHelper {
         if (elasticSearchClient == null) {
           elasticSearchClient = obtainESClient();
 
-          List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
-          for (MusicFolder folder : musicFolders) {
-            String indexName = folder.getName();
+          String[] musicFolders = musicFolderDao.getAllMusicFoldersLowerNames();
+          for (String folder : musicFolders) {
+            String indexName = folder;
             boolean indexExists = elasticSearchClient.admin().indices().prepareExists(indexName)
                     .execute().actionGet().isExists();
             if (!indexExists) {
@@ -159,7 +158,7 @@ public class ElasticSearchDaoHelper {
 
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
                                                                       @Nullable Integer from, @Nullable Integer size, Class<T> type) {
-    return extractMediaFiles(queryName,vars,from,size,type);
+    return extractMediaFiles(queryName,vars,from,size,null,type);
   }
 
   /**
@@ -195,7 +194,7 @@ public class ElasticSearchDaoHelper {
     } else {
       list = musicFolders;
     }
-    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(musicFolderDao.getMusicFoldersNames(list))
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(list))
             .setQuery(jsonSearch).setVersion(true);
     return extractMediaFiles(searchRequestBuilder,from,size,type);
   }
