@@ -309,7 +309,11 @@ public class SecurityService implements UserDetailsService {
         file = file.replace('\\', '/');
         folder = folder.replace('\\', '/');
 
-        return file.toUpperCase().startsWith(folder.toUpperCase());
+        String suffixe = "";
+        if (file.length() > folder.length()) {
+            suffixe = "/";
+        }
+        return file.toUpperCase().startsWith(folder.toUpperCase()+suffixe);
     }
 
     public void setSettingsService(SettingsService settingsService) {

@@ -1,9 +1,11 @@
 package com.github.biconou.subsonic.service;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import net.sourceforge.subsonic.domain.MusicFolder;
+import net.sourceforge.subsonic.service.MediaFileService;
 import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -25,6 +27,7 @@ public class MediaScannerServiceTestCase extends TestCase {
   private final MetricRegistry metrics = new MetricRegistry();
 
   private MediaScannerService mediaScannerService = null;
+  private MediaFileService mediaFileService = null;
   private MediaFileDao mediaFileDao = null;
   private MusicFolderDao musicFolderDao = null;
 
@@ -43,6 +46,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
+    mediaFileService = (MediaFileService) context.getBean("mediaFileService");
 
     // delete index
     TestCaseUtils.deleteIndexes(context);
@@ -50,6 +54,10 @@ public class MediaScannerServiceTestCase extends TestCase {
 
   private String resolveRealPath(String path) {
     return MusicFolderDaoMock.resolveMusicFolderPath() + path.replace("/","\\");
+  }
+
+  private String resolveReal2Path(String path) {
+    return MusicFolderDaoMock.resolveMusic2FolderPath() + path.replace("/","\\");
   }
 
   public void testScanLibrary() {
@@ -71,6 +79,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
     reporter.report();
 
+
     ///
     List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
     Assert.assertEquals(3,liste.size());
@@ -84,17 +93,19 @@ public class MediaScannerServiceTestCase extends TestCase {
       Assert.assertEquals("Baroque Instrumental",mf.getGenre());
     });
 
+    //
     List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
     musicFolders.remove(0);
     listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolders);
     Assert.assertEquals(0,listeSongs.size());
 
+    //
     musicFolders = musicFolderDao.getAllMusicFolders();
     musicFolders.remove(1);
     listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental",0,0,musicFolders);
     Assert.assertEquals(2,listeSongs.size());
 
-    ///
+    //
     String path = "/Céline Frisch- Café Zimmermann - Bach- Goldberg Variations, Canons [Disc 1]/01 - Bach- Goldberg Variations, BWV 988 - Aria.flac";
     path = resolveRealPath(path);
     MediaFile mediaFile = mediaFileDao.getMediaFile(path);
@@ -106,6 +117,10 @@ public class MediaScannerServiceTestCase extends TestCase {
     Assert.assertEquals(MediaFile.MediaType.MUSIC,mediaFile.getMediaType());
     Assert.assertEquals("flac",mediaFile.getFormat());
 
+    //
+    String music2Path = resolveReal2Path("");
+    File music2File = new File(music2Path);
+    MediaFile music2mediaFile = mediaFileService.getMediaFile(music2File);
 
 
     System.out.print("End");

@@ -290,10 +290,7 @@ public class SearchService {
      * @return List of random albums.
      */
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
-
-        // TODO musicFolders ?
-
-        return getElasticSearchDaoHelper().extractMediaFiles("getRandomAlbums",null,0,count,MediaFile.class);
+        return getElasticSearchDaoHelper().extractMediaFiles("getRandomAlbums",null,0,count,musicFolders,MediaFile.class);
     }
 
     /**

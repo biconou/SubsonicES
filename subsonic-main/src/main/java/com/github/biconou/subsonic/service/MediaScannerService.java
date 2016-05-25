@@ -69,7 +69,9 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     logger.debug("BEGIN : scan directory [" + file.getPath() + "]");
 
     try {
-      mediaFileDao.createOrUpdateMediaFile(file);
+      if (!musicFolder.getPath().getPath().equals(file.getPath())) {
+        mediaFileDao.createOrUpdateMediaFile(file);
+      }
 
       if (file.isDirectory()) {
         List<File> children = mediaFileService.filterMediaFiles(FileUtil.listFiles(file.getFile()));
