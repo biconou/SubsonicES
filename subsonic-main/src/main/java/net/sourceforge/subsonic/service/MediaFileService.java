@@ -410,7 +410,6 @@ public class MediaFileService {
 
     private void updateChildren(MediaFile parent) {
 
-        System.out.println("************ updateChildren for "+parent.getPath());
         // Check timestamps.
         if (parent.getChildrenLastUpdated().getTime() >= parent.getChanged().getTime()) {
             return;
@@ -426,7 +425,6 @@ public class MediaFileService {
         for (File child : children) {
             if (storedChildrenMap.remove(child.getPath()) == null) {
                 // Add children that are not already stored.
-                System.out.println("************* add "+child.getName());
                 mediaFileDao.createOrUpdateMediaFile(createMediaFile(child));
             }
         }

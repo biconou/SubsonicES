@@ -158,6 +158,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     SearchResponse searchResponse = searchMediaFileByPath(file.getPath());
 
     if (searchResponse.getHits().totalHits() == 0) {
+      logger.debug("media files does not exist -> create");
       try {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
@@ -176,6 +177,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
         throw new RuntimeException("Error trying indexing mediaFile " + e);
       }
     } else {
+      logger.debug("media files exists -> update");
       // update the media file.
       try {
         String id = searchResponse.getHits().getAt(0).id();
@@ -206,7 +208,11 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     vars.put("id","" + id);
     List<MediaFile> list = getElasticSearchDaoHelper().extractMediaFiles("getMediaFile", vars, null, null, MediaFile.class);
     if (list != null && list.size() > 0) {
-      return list.get(0);
+      if (list.size() > 1) {
+        throw new RuntimeException("Multiple Ids");
+      } else {
+        return list.get(0);
+      }
     } else {
       return null;
     }

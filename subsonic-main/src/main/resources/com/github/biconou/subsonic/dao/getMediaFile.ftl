@@ -3,7 +3,7 @@
         "filter" : {
             "bool" : {
                 "must" : [
-                    {"term" : {"_id" : "${id}"}},
+                    {"term" : {"id" : "${id}"}},
                     {"type" : { "value" : "MEDIA_FILE" }}
                 ]
             }

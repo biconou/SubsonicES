@@ -115,7 +115,7 @@ public class MediaFile implements Serializable,SubsonicESDomainObject {
     }
 
     public int getId() {
-        return id;
+        return getPath().hashCode();
     }
 
     public void setId(int id) {
