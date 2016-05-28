@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+
+
+    <bean id="restController" class="net.sourceforge.subsonic.controller.RESTController" init-method="init">
+        <property name="settingsService" ref="settingsService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="playerService" ref="playerService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="lastFmService" ref="lastFmService"/>
+        <property name="musicIndexService" ref="musicIndexService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+        <property name="statusService" ref="statusService"/>
+        <property name="searchService" ref="searchService"/>
+        <property name="jukeboxService" ref="jukeboxService"/>
+        <property name="audioScrobblerService" ref="audioScrobblerService"/>
+        <property name="playlistService" ref="playlistService"/>
+        <property name="playQueueService" ref="ajaxPlayQueueService"/>
+        <property name="ratingService" ref="ratingService"/>
+        <property name="chatService" ref="ajaxChatService"/>
+        <property name="lyricsService" ref="ajaxLyricsService"/>
+        <property name="podcastService" ref="podcastService"/>
+        <property name="shareService" ref="shareService"/>
+        <property name="mediaFileDao" ref="mediaFileDao"/>
+        <property name="artistDao" ref="artistDao"/>
+        <property name="albumDao" ref="albumDao"/>
+        <property name="bookmarkDao" ref="bookmarkDao"/>
+        <property name="playQueueDao" ref="playQueueDao"/>
+        <property name="downloadController" ref="downloadController"/>
+        <property name="streamController" ref="streamController"/>
+        <property name="hlsController" ref="hlsController"/>
+        <property name="coverArtController" ref="coverArtController"/>
+        <property name="avatarController" ref="avatarController"/>
+        <property name="userSettingsController" ref="userSettingsController"/>
+        <property name="artistsController" ref="artistsController"/>
+    </bean>
+
+    <bean id="downloadController" class="net.sourceforge.subsonic.controller.DownloadController">
+        <property name="playerService" ref="playerService"/>
+        <property name="statusService" ref="statusService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="playlistService" ref="playlistService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+    </bean>
+
+    <bean id="streamController" class="net.sourceforge.subsonic.controller.StreamController">
+        <property name="playerService" ref="playerService"/>
+        <property name="playlistService" ref="playlistService"/>
+        <property name="statusService" ref="statusService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="searchService" ref="searchService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+        <property name="audioScrobblerService" ref="audioScrobblerService"/>
+    </bean>
+
+    <bean id="hlsController" class="net.sourceforge.subsonic.controller.HLSController">
+        <property name="playerService" ref="playerService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="securityService" ref="securityService"/>
+    </bean>
+
+    <bean id="coverArtController" class="net.sourceforge.subsonic.controller.CoverArtController" init-method="init">
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="playlistService" ref="playlistService"/>
+        <property name="podcastService" ref="podcastService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="artistDao" ref="artistDao"/>
+        <property name="albumDao" ref="albumDao"/>
+    </bean>
+
+
+    <bean id="userSettingsController" class="net.sourceforge.subsonic.controller.UserSettingsController">
+        <property name="sessionForm" value="true"/>
+        <property name="commandClass" value="net.sourceforge.subsonic.command.UserSettingsCommand"/>
+        <property name="validator" ref="userSettingsValidator"/>
+        <property name="successView" value="userSettings"/>
+        <property name="formView" value="userSettings"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="transcodingService" ref="transcodingService"/>
+    </bean>
+
+    <bean id="artistsController" class="net.sourceforge.subsonic.controller.ArtistsController">
+        <property name="viewName" value="artists"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
+        <property name="mediaScannerService" ref="mediaScannerService"/>
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+        <property name="musicIndexService" ref="musicIndexService"/>
+        <property name="playerService" ref="playerService"/>
+    </bean>
+
+
+
+    <bean id="avatarController" class="net.sourceforge.subsonic.controller.AvatarController">
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+
+
+    <bean id="premiumSettingsValidator" class="net.sourceforge.subsonic.validator.PremiumSettingsValidator">
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+    <bean id="userSettingsValidator" class="net.sourceforge.subsonic.validator.UserSettingsValidator">
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+    <bean id="passwordSettingsValidator" class="net.sourceforge.subsonic.validator.PasswordSettingsValidator"/>
+    <bean id="CMusController" class="com.github.biconou.subsonic.service.CMusController">
+        <property name="cmusService" ref="cmusService"/>
+    </bean>
+
+    <bean id="urlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="alwaysUseFullPath" value="true"/>
+        <property name="mappings">
+            <props>
+                <prop key="/rest/**">restController</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basename" value="net.sourceforge.subsonic.i18n.ResourceBundle"/>
+    </bean>
+
+    <bean id="themeSource" class="net.sourceforge.subsonic.theme.SubsonicThemeSource">
+        <property name="basenamePrefix" value="net.sourceforge.subsonic.theme."/>
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+    <bean id="themeResolver" class="net.sourceforge.subsonic.theme.SubsonicThemeResolver">
+        <property name="securityService" ref="securityService"/>
+        <property name="settingsService" ref="settingsService"/>
+    </bean>
+
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+</beans>
+

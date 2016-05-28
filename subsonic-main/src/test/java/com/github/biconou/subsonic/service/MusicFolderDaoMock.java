@@ -22,6 +22,7 @@ public class MusicFolderDaoMock extends MusicFolderDao {
 
   public static String resolveMusicFolderPath() {
     return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music").replace("/","\\");
+    //return "Z:\\musique\\PCDM";
   }
 
   @Override
