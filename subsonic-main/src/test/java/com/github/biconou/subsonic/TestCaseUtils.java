@@ -26,7 +26,7 @@ public class TestCaseUtils {
     FileUtils.copyDirectory(new File(initDbDir),dbDirectory,true);
 
     // delete logs
-    String[] filesToDelete = new String[]{"subsonic.log","subsonic.properties","cmus.log","mediaScanner.log"};
+   /* String[] filesToDelete = new String[]{"subsonic.log","subsonic.properties","cmus.log","mediaScanner.log"};
     Arrays.stream(filesToDelete).forEach(f -> {
       File file = new File(baseDir + f);
       if (file.exists()) {
@@ -36,7 +36,7 @@ public class TestCaseUtils {
           throw new RuntimeException(e);
         }
       }
-    });
+    }); */
 
   }
 
