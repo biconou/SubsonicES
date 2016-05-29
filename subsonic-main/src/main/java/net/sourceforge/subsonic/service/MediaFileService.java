@@ -108,7 +108,7 @@ public class MediaFileService {
         // Secondly, look in database.
         result = mediaFileDao.getMediaFile(file.getPath());
         if (result != null) {
-            result = checkLastModified(result, useFastCache);
+            //result = checkLastModified(result, useFastCache);
             putInMemoryCache(file, result);
             return result;
         }
@@ -157,7 +157,8 @@ public class MediaFileService {
             throw new SecurityException("Access denied to file " + mediaFile);
         }
 
-        return checkLastModified(mediaFile, settingsService.isFastCacheEnabled());
+        //return checkLastModified(mediaFile, settingsService.isFastCacheEnabled());
+        return mediaFile;
     }
 
     public MediaFile getParentOf(MediaFile mediaFile) {
@@ -194,13 +195,13 @@ public class MediaFileService {
         }
 
         // Make sure children are stored and up-to-date in the database.
-        if (!useFastCache) {
+      /*  if (!useFastCache) {
             updateChildren(parent);
-        }
+        } */
 
         List<MediaFile> result = new ArrayList<MediaFile>();
         for (MediaFile child : mediaFileDao.getChildrenOf(parent.getPath())) {
-            child = checkLastModified(child, useFastCache);
+            //child = checkLastModified(child, useFastCache);
             if (child.isDirectory() && includeDirectories) {
                 result.add(child);
             }
