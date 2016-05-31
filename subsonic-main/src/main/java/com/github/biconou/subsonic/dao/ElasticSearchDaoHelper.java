@@ -3,6 +3,7 @@ package com.github.biconou.subsonic.dao;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -11,8 +12,13 @@ import java.util.stream.Collectors;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.search.SearchHit;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.istack.Nullable;
@@ -47,8 +53,13 @@ public class ElasticSearchDaoHelper {
   }
 
   private Client obtainESClient() {
+
     return TransportClient.builder().build()
-            .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
+             .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
+    /* Map<String,String> settings = new HashMap<>();
+    settings.put("path.home","/software/elasticsearch-2.3.3");
+    Node node = NodeBuilder.nodeBuilder().client(true).settings(Settings.builder().put(settings)).node();
+    return node.client(); */
   }
 
   public void deleteIndexes() {

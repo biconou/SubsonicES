@@ -15,17 +15,17 @@ public class MusicFolderDaoMock extends MusicFolderDao {
   private static String baseResources = "/MEDIAS/";
 
   public static String resolveBaseMediaPath() {
-    String baseDir = MusicFolderDaoMock.class.getResource(baseResources).toString().replace("file:/","");
+    String baseDir = MusicFolderDaoMock.class.getResource(baseResources).toString().replace("file:","");
     return baseDir;
   }
 
   public static String resolveMusicFolderPath() {
-    return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music").replace("/","\\");
+    return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music");
     //return "Z:\\musique\\PCDM";
   }
 
   public static String resolveMusic2FolderPath() {
-    return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music2").replace("/","\\");
+    return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music2");
     //return "Z:\\musique\\PCDM";
   }
 
