@@ -1,6 +1,8 @@
 package com.github.biconou.subsonic.service;
 
+import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.*;
@@ -33,11 +35,19 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
   protected void setUp() throws Exception {
     super.setUp();
 
+    TestCaseUtils.setSubsonicHome(baseResources);
+
+    reporter = ConsoleReporter.forRegistry(metrics)
+            .convertRatesTo(TimeUnit.SECONDS.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .build();
+
+    jmxReporter = JmxReporter.forRegistry(metrics).build();
+    jmxReporter.start();
 
     // Prepare database
     TestCaseUtils.prepareDataBase(baseResources);
 
-    TestCaseUtils.setSubsonicHome(baseResources);
 
     // load spring context
     ApplicationContext context = TestCaseUtils.loadSpringApplicationContext(baseResources);
@@ -47,40 +57,49 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
     searchService = (SearchService) context.getBean("searchService");
     mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
+
+    // delete index
+    TestCaseUtils.deleteIndex(context);
   }
 
 
 
 
-  public void testPerformaceAlbumBrowse() {
+  /**
+   *
+   */
+  public void testPerformanceRandomAlbumBrowse() {
 
-    Timer globalTimer = metrics.timer(MetricRegistry.name(this.getClass(), "Global.scan"));
-    Timer.Context globalTimerContext =  globalTimer.time();
+    Timer globalTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.global"));
+    Timer loopTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.loop"));
+    Timer fetchSongsTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.fetchSongs"));
+    Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.randomAlbums"));
+    Timer scanTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.scan"));
 
-    Timer loopTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.loop"));
-    Timer fetchSongsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.fetchSongs"));
-    Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"));
-    //Timer randomAlbumsTimer = metrics.register(MetricRegistry.name(PerformanceServiceTestCase.class, "Timer.randomAlbums"),new Timer(new UniformReservoir()));
+    Timer.Context globalTimerContext = globalTimer.time();
+
+    Timer.Context scanTimerContext = scanTimer.time();
+    TestCaseUtils.execScan(mediaScannerService);
+    scanTimerContext.stop();
+
 
     int i = 0;
-    while (i < 100000) {
+    while (i <= 1000) {
 
-      final boolean fisrtIteration = i==0;
+      final boolean fisrtIteration = i == 0;
 
       Timer.Context loopTimerContext = null;
       if (!fisrtIteration) {
-         loopTimerContext = loopTimer.time();
+        loopTimerContext = loopTimer.time();
       }
 
-      // TODO mediaFolders ?
       Timer.Context randomAlbumsTimerContext = null;
       // We do not take in consideration the time of the first iteration
       // because it could be much more slow than the other ones
-      // due to the loading of the FreeMarker query templates.
       if (!fisrtIteration) {
         randomAlbumsTimerContext = randomAlbumsTimer.time();
       }
-      List<MediaFile> foundAlbums = searchService.getRandomAlbums(10,null);
+      List<MediaFile> foundAlbums = searchService.getRandomAlbums(10, musicFolderDao.getAllMusicFolders());
       if (!fisrtIteration) {
         randomAlbumsTimerContext.stop();
       }
@@ -91,8 +110,7 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
         if (!fisrtIteration) {
           fetchSongsTimerContext = fetchSongsTimer.time();
         }
-        mediaFileDao.getSongsForAlbum(album.getArtist(),album.getAlbumName())
-                .stream().forEach(song -> System.out.println(song.getName()));
+        mediaFileDao.getSongsForAlbum(album.getArtist(), album.getAlbumName()).forEach(mediaFile -> System.out.println(mediaFile.getPath()));
         if (!fisrtIteration) {
           fetchSongsTimerContext.stop();
         }
@@ -104,10 +122,32 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
       i++;
     }
 
+    // browse all folders recursively
+
+    Timer getChildrenTimer = metrics.timer(MetricRegistry.name("directoriesBrowse", "Timer.getChildren"));
+
+    musicFolderDao.getAllMusicFolders().forEach(musicFolder -> {
+      File musicFolderPath = musicFolder.getPath();
+      mediaFileDao.getChildrenOf(musicFolderPath.getPath()).forEach(mediaFile -> {
+        browseMediaFile(mediaFile, getChildrenTimer);
+      });
+    });
+
     globalTimerContext.stop();
     reporter.report();
-
     System.out.print("End");
+  }
+
+
+  /**
+   * @param mediaFile
+   */
+  private void browseMediaFile(MediaFile mediaFile, Timer timer) {
+    if (mediaFile.getMediaType().equals(MediaFile.MediaType.ALBUM) || mediaFile.getMediaType().equals(MediaFile.MediaType.DIRECTORY)) {
+      Timer.Context context = timer.time();
+      mediaFileDao.getChildrenOf(mediaFile.getPath()).forEach(mediaFile1 -> browseMediaFile(mediaFile1, timer));
+      context.stop();
+    }
   }
 
 }

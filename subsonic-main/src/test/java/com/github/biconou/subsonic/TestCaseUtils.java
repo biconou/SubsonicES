@@ -17,7 +17,7 @@ public class TestCaseUtils {
 
 
   public static void prepareDataBase(String baseResources) throws IOException {
-    String baseDir = TestCaseUtils.class.getResource(baseResources).toString().replace("file:/","");
+    String baseDir = basePath(baseResources);
     String initDbDir = baseDir + "init_db";
     String dbDir = baseDir + "db";
     File dbDirectory = new File(dbDir);
@@ -42,8 +42,16 @@ public class TestCaseUtils {
   }
 
   public static void setSubsonicHome(String baseResources) {
-    String subsoncicHome = TestCaseUtils.class.getResource(baseResources).toString().replace("file:/","");
+    String subsoncicHome = basePath(baseResources);
     System.setProperty("subsonic.home",subsoncicHome);
+  }
+
+  private static String basePath(String baseResources) {
+    String basePath = TestCaseUtils.class.getResource(baseResources).toString();
+    if (basePath.startsWith("file:")) {
+      return TestCaseUtils.class.getResource(baseResources).toString().replace("file:","");
+    }
+    return basePath;
   }
 
   public static ApplicationContext loadSpringApplicationContext(String baseResources) {

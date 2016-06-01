@@ -5,6 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="elasticSearchDaoHelper" class="com.github.biconou.subsonic.dao.ElasticSearchDaoHelper">
+        <property name="musicFolderDao" ref="musicFolderDao"/>
     </bean>
 
     <!-- DAO's -->

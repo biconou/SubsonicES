@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import net.sourceforge.subsonic.dao.MusicFolderDao;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -32,6 +34,7 @@ public class ElasticSearchDaoHelper {
 
 
   private Client elasticSearchClient = null;
+  private MusicFolderDao musicFolderDao = null;
   private ObjectMapper mapper = new ObjectMapper();
   private Map<String,Template> queryTemplates = new HashMap<>();
   private Configuration freeMarkerConfiguration = null;
@@ -39,6 +42,15 @@ public class ElasticSearchDaoHelper {
   public ElasticSearchDaoHelper() {
     freeMarkerConfiguration = new Configuration(Configuration.VERSION_2_3_23);
     freeMarkerConfiguration.setClassForTemplateLoading(this.getClass(), "/com/github/biconou/subsonic/dao");
+  }
+
+
+  public MusicFolderDao getMusicFolderDao() {
+    return musicFolderDao;
+  }
+
+  public void setMusicFolderDao(MusicFolderDao musicFolderDao) {
+    this.musicFolderDao = musicFolderDao;
   }
 
   private Client obtainESClient() {
@@ -146,7 +158,7 @@ public class ElasticSearchDaoHelper {
 
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
                                                                       @Nullable Integer from, @Nullable Integer size, Class<T> type) {
-    return extractMediaFiles(queryName,vars,from,size,type);
+    return extractMediaFiles(queryName,vars,from,size,getMusicFolderDao().getAllMusicFolders(),type);
   }
 
   /**
