@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import net.sourceforge.subsonic.domain.MediaFile;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -27,6 +30,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MusicFolder;
+import org.elasticsearch.search.sort.SortOrder;
 
 /**
  * Created by remi on 26/04/2016.
@@ -167,9 +171,16 @@ public class ElasticSearchDaoHelper {
     return target;
   }
 
+
+
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName, Map<String, String> vars, Class<T> type) {
+    return extractMediaFiles(queryName, vars, null,null,null,type);
+  }
+
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
-                                                                      @Nullable Integer from, @Nullable Integer size, Class<T> type) {
-    return extractMediaFiles(queryName,vars,from,size,null,type);
+                                                                      @Nullable Integer from, @Nullable Integer size,
+                                                                      @Nullable Map<String,SortOrder> sortClause, Class<T> type) {
+    return extractMediaFiles(queryName,vars,from,size,sortClause,null,type);
   }
 
   /**
@@ -178,8 +189,10 @@ public class ElasticSearchDaoHelper {
    * @param size
    * @return
    */
-  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName,@Nullable Map<String,String> vars,
-                                                                      @Nullable Integer from, @Nullable Integer size, @Nullable List<MusicFolder> musicFolders,Class<T> type) {
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName, @Nullable Map<String,String> vars,
+                                                                      @Nullable Integer from, @Nullable Integer size,
+                                                                      @Nullable  Map<String,SortOrder> sortClause,
+                                                                      @Nullable List<MusicFolder> musicFolders, Class<T> type) {
     String jsonQuery;
     try {
       jsonQuery = getQuery(queryName,vars);
@@ -187,7 +200,7 @@ public class ElasticSearchDaoHelper {
       throw new RuntimeException(e);
     }
 
-    return extractMediaFiles(jsonQuery, null, null, musicFolders,type);
+    return extractMediaFiles(jsonQuery, from, size, sortClause, musicFolders,type);
   }
 
 
@@ -198,7 +211,9 @@ public class ElasticSearchDaoHelper {
    * @param size
    * @return
    */
-  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size, @Nullable List<MusicFolder> musicFolders,Class<T> type) {
+  public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size,
+                                                                      @Nullable Map<String,SortOrder> sortClause,
+                                                                      @Nullable List<MusicFolder> musicFolders,Class<T> type) {
     List<MusicFolder> list = null;
     if (musicFolders == null) {
       list = musicFolderDao.getAllMusicFolders();
@@ -207,7 +222,7 @@ public class ElasticSearchDaoHelper {
     }
     SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(list))
             .setQuery(jsonSearch).setVersion(true);
-    return extractMediaFiles(searchRequestBuilder,from,size,type);
+    return extractMediaFiles(searchRequestBuilder,from,size,sortClause,type);
   }
 
   /**
@@ -218,12 +233,16 @@ public class ElasticSearchDaoHelper {
    * @return
    */
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(SearchRequestBuilder searchRequestBuilder,
-                                                                      @Nullable Integer from, @Nullable Integer size,Class<T> type) {
+                                                                      @Nullable Integer from, @Nullable Integer size,
+                                                                      @Nullable Map<String,SortOrder> sortClause, Class<T> type) {
     if (from != null) {
       searchRequestBuilder.setFrom(from);
     }
     if (size != null) {
       searchRequestBuilder.setSize(size);
+    }
+    if (sortClause != null) {
+      sortClause.keySet().forEach(sortField -> searchRequestBuilder.addSort(sortField,sortClause.get(sortField)));
     }
     SearchResponse response = searchRequestBuilder.execute().actionGet();
     List<T> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(hit,type)).collect(Collectors.toList());

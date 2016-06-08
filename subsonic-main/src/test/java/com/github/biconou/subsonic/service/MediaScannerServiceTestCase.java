@@ -53,11 +53,23 @@ public class MediaScannerServiceTestCase extends TestCase {
   }
 
   private String resolveRealPath(String path) {
-    return MusicFolderDaoMock.resolveMusicFolderPath() + path.replace("/","\\");
+    String returnPath = MusicFolderDaoMock.resolveMusicFolderPath();
+    String modifiedPath = path;
+    if (returnPath.contains("\\")) {
+      modifiedPath = modifiedPath.replace("/","\\");
+    }
+    returnPath += modifiedPath;
+    return  returnPath;
   }
 
   private String resolveReal2Path(String path) {
-    return MusicFolderDaoMock.resolveMusic2FolderPath() + path.replace("/","\\");
+    String returnPath = MusicFolderDaoMock.resolveMusic2FolderPath();
+    String modifiedPath = path;
+    if (returnPath.contains("\\")) {
+      modifiedPath = modifiedPath.replace("/","\\");
+    }
+    returnPath += modifiedPath;
+    return  returnPath;
   }
 
   public void testScanLibrary() {
@@ -122,6 +134,8 @@ public class MediaScannerServiceTestCase extends TestCase {
     File music2File = new File(music2Path);
     MediaFile music2mediaFile = mediaFileService.getMediaFile(music2File);
 
+    //
+    List<MediaFile> newestAlbums = mediaFileDao.getNewestAlbums(0,10,musicFolderDao.getAllMusicFolders());
 
     System.out.print("End");
   }

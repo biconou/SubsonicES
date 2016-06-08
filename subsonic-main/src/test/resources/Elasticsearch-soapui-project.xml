@@ -110,4 +110,25 @@
 }
 
 	
+}</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request><con:request name="getNewestAlbums" id="c70f2b33-a7ae-400a-8fa5-50f6e4dc3d63" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request>{
+	"version" : "true",
+	"sort" : [
+        { "created" : {"order" : "desc"}}
+     ],
+	"query" : 
+	
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : { "mediaType" : "ALBUM" }},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ]
+            }
+        }
+    }
+}
+
+	
 }</con:request><con:originalUri>http://localhost/subsonic_media/_search</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource><con:resource name="_mapping" path="/subsonic_media/_mapping" id="fc1bf2af-ef32-474c-84a3-f1308717ae00"><con:settings/><con:parameters/><con:method name="Method 1" id="8c0d69fa-8515-48e4-b3fb-15614df27ed6" method="GET"><con:settings/><con:parameters/><con:representation type="FAULT"><con:mediaType>application/json; charset=UTF-8</con:mediaType><con:status>404</con:status><con:params/><con:element xmlns:_map="http://localhost/subsonic/_mapping">_map:Fault</con:element></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json; charset=UTF-8</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:_map="http://localhost/subsonic/_mapping">_map:Response</con:element></con:representation><con:request name="Request 1" id="f1151d8f-1b23-49a7-9330-0839fea7e3e0" mediaType="application/json"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:9200</con:endpoint><con:request/><con:originalUri>http://localhost/subsonic/_mapping</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource></con:interface><con:interface xsi:type="con:RestService" id="d9d593ae-8e42-4778-919e-f074c2181ad8" wadlVersion="http://wadl.dev.java.net/2009/02" name="Elasticsearch" type="rest" definitionUrl="ravel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache/><con:endpoints/></con:interface><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
