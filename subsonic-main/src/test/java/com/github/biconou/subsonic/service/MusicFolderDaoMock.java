@@ -22,12 +22,12 @@ public class MusicFolderDaoMock extends MusicFolderDao {
 
   public static String resolveMusicFolderPath() {
     return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music");
-    //return "Z:\\musique\\PCDM";
+    //return "/mnt/NAS/REMI/musique/PCDM";
   }
 
   public static String resolveMusic2FolderPath() {
     return (MusicFolderDaoMock.resolveBaseMediaPath() + "Music2");
-    //return "Z:\\musique\\PCDM";
+    //return "/mnt/NAS/REMI/musique/PCDM";
   }
 
   @Override
