@@ -166,9 +166,13 @@ public class ElasticSearchDaoHelper {
    * @return
    */
   private String escapeForJson(String source) {
-    String target = source.replace("\\","\\\\");
-    target = target.replace("\"","\\\"");
-    return target;
+    if (source == null) {
+      return "";
+    } else {
+      String target = source.replace("\\", "\\\\");
+      target = target.replace("\"", "\\\"");
+      return target;
+    }
   }
 
 
