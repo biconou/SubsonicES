@@ -74,6 +74,7 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
     Timer loopTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.loop"));
     Timer fetchSongsTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.fetchSongs"));
     Timer randomAlbumsTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.randomAlbums"));
+    Timer newestAlbumsTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.newestAlbums"));
     Timer scanTimer = metrics.timer(MetricRegistry.name("randomAlbumBrowse", "Timer.scan"));
 
     Timer.Context globalTimerContext = globalTimer.time();
@@ -86,37 +87,47 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
     int i = 0;
     while (i <= 1000) {
 
-      final boolean fisrtIteration = i == 0;
+      final boolean firstIteration = i == 0;
 
       Timer.Context loopTimerContext = null;
-      if (!fisrtIteration) {
+      if (!firstIteration) {
         loopTimerContext = loopTimer.time();
       }
 
       Timer.Context randomAlbumsTimerContext = null;
       // We do not take in consideration the time of the first iteration
       // because it could be much more slow than the other ones
-      if (!fisrtIteration) {
+      if (!firstIteration) {
         randomAlbumsTimerContext = randomAlbumsTimer.time();
       }
       List<MediaFile> foundAlbums = searchService.getRandomAlbums(10, musicFolderDao.getAllMusicFolders());
-      if (!fisrtIteration) {
+      if (!firstIteration) {
         randomAlbumsTimerContext.stop();
       }
 
       foundAlbums.stream().forEach(album -> {
 
         Timer.Context fetchSongsTimerContext = null;
-        if (!fisrtIteration) {
+        if (!firstIteration) {
           fetchSongsTimerContext = fetchSongsTimer.time();
         }
         mediaFileDao.getSongsForAlbum(album.getArtist(), album.getAlbumName()).forEach(mediaFile -> System.out.println(mediaFile.getPath()));
-        if (!fisrtIteration) {
+        if (!firstIteration) {
           fetchSongsTimerContext.stop();
         }
       });
 
-      if (!fisrtIteration) {
+      //
+      Timer.Context newestAlbumsTimerContext = null;
+      if (!firstIteration) {
+        newestAlbumsTimerContext = newestAlbumsTimer.time();
+      }
+      mediaFileDao.getNewestAlbums(0,10,musicFolderDao.getAllMusicFolders());
+      if (!firstIteration) {
+        newestAlbumsTimerContext.stop();
+      }
+
+      if (!firstIteration) {
         loopTimerContext.stop();
       }
       i++;
@@ -133,6 +144,9 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
       });
     });
 
+
+
+    //
     globalTimerContext.stop();
     reporter.report();
     System.out.print("End");
