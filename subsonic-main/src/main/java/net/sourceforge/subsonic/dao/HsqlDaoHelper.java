@@ -112,9 +112,25 @@ public class HsqlDaoHelper implements DaoHelper {
         File subsonicHome = SettingsService.getSubsonicHome();
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName("org.hsqldb.jdbcDriver");
-        ds.setUrl("jdbc:hsqldb:file:" + subsonicHome.getPath() + "/db/subsonic");
-        ds.setUsername("sa");
-        ds.setPassword("");
+
+        String serverDBUrl = System.getProperty("com.github.biconou.serverDB.url");
+        if (serverDBUrl == null) {
+            LOG.info("No server DataBase configured in system properties. Using default local file database");
+            ds.setUrl("jdbc:hsqldb:file:" + subsonicHome.getPath() + "/db/subsonic");
+            ds.setUsername("sa");
+            ds.setPassword("");
+        } else {
+            LOG.info("Server DataBase configured in system properties.");
+            // URL for using a server HSQLDB
+            ds.setUrl(serverDBUrl);
+            String serverDBUserName=System.getProperty("com.github.biconou.serverDB.username");
+            ds.setUsername(serverDBUserName);
+            String serverDBPassword=System.getProperty("com.github.biconou.serverDB.password");
+            if (serverDBPassword == null) {
+                serverDBPassword = "";
+            }
+            ds.setPassword(serverDBPassword);
+        }
 
         return ds;
     }
