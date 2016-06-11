@@ -158,9 +158,14 @@ public class PerformanceServiceTestCase extends AbstractTestCase {
    */
   private void browseMediaFile(MediaFile mediaFile, Timer timer) {
     if (mediaFile.getMediaType().equals(MediaFile.MediaType.ALBUM) || mediaFile.getMediaType().equals(MediaFile.MediaType.DIRECTORY)) {
-      Timer.Context context = timer.time();
+      Timer.Context context = null;
+      if (mediaFile.getMediaType().equals(MediaFile.MediaType.ALBUM)) {
+        context = timer.time();
+      }
       mediaFileDao.getChildrenOf(mediaFile.getPath()).forEach(mediaFile1 -> browseMediaFile(mediaFile1, timer));
-      context.stop();
+      if (mediaFile.getMediaType().equals(MediaFile.MediaType.ALBUM)) {
+        context.stop();
+      }
     }
   }
 
