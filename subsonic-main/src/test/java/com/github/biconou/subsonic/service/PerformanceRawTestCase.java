@@ -99,6 +99,9 @@ public class PerformanceRawTestCase extends TestCase {
     Timer fetchNewestAlbumsQueryTimer = metrics.timer(MetricRegistry.name("Timer.fetchNewestAlbumsQuery"));
     Timer fetchSongsForAlbumQueryTimer = metrics.timer(MetricRegistry.name("Timer.fetchSongsForAlbumQuery"));
 
+    Timer readRSNewestAlbumsQueryTimer = metrics.timer(MetricRegistry.name("Timer.readRSNewestAlbumsQuery"));
+    Timer readRSSongsForAlbumQueryTimer = metrics.timer(MetricRegistry.name("Timer.readRSSongsForAlbumQuery"));
+
     Timer.Context globalTimerContext = globalTimer.time();
 
     Timer.Context scanTimerContext = scanTimer.time();
@@ -110,14 +113,12 @@ public class PerformanceRawTestCase extends TestCase {
 
     int i = 0;
     boolean stop = false;
+
     while (!stop) {
 
 
       Timer.Context execNewestAlbumsQueryTimerContext = execNewestAlbumsQueryTimer.time();
-/*      String query = "select " + COLUMNS + " from media_file where type = 'ALBUM' and folder in ('Music','Music2') and present " +
-              "order by created desc limit 10 offset "+i*10;
-              */
-      String query = "select " + COLUMNS + " from media_file where type = 'ALBUM' and folder in ('/develop/biconouSubsonic_master/subsonic-main/target/test-classes/MEDIAS/Music2','/develop/biconouSubsonic_master/subsonic-main/target/test-classes/MEDIAS/Music') and present " +
+      String query = "select " + COLUMNS + " from media_file where type = 'ALBUM' and folder in ('"+MusicFolderDaoMock.resolveMusicFolderPath()+"','"+MusicFolderDaoMock.resolveMusic2FolderPath()+"') and present " +
               "order by created desc limit 10 offset "+i*10;
       Statement stmt = cnx.createStatement();
       ResultSet rs = stmt.executeQuery(query);
@@ -131,8 +132,17 @@ public class PerformanceRawTestCase extends TestCase {
         fetch1Context.stop();
         if (rsOk) {
           stop = false;
+          Timer.Context readRS1Context = readRSNewestAlbumsQueryTimer.time();
           String album = rs.getString("album").replace("'", "''");
-          String album_artist = rs.getString("artist").replace("'", "''");
+          String album_artist = rs.getString("artist");
+          readRS1Context.stop();
+          if (album_artist == null) {
+            album_artist = "";
+          } else {
+            album_artist = album_artist.replace("'", "''");
+          }
+
+
 
           Timer.Context execSongsForAlbumQueryTimerContext = execSongsForAlbumQueryTimer.time();
           String query2 = "select " + COLUMNS + " from media_file where album_artist='" + album_artist + "' and album='" + album + "' and present " +
@@ -143,11 +153,13 @@ public class PerformanceRawTestCase extends TestCase {
 
 
           while (true) {
-            Timer.Context fetch2Context = fetchNewestAlbumsQueryTimer.time();
+            Timer.Context fetch2Context = fetchSongsForAlbumQueryTimer.time();
             boolean rs2Ok = rs2.next();
             fetch2Context.stop();
             if (rs2Ok) {
+              Timer.Context readRS2Context = readRSSongsForAlbumQueryTimer.time();
               String path = rs2.getString("path");
+              readRS2Context.stop();
               System.out.println(path);
             } else {
               break;
