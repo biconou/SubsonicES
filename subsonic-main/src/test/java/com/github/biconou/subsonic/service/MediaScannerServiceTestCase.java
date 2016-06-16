@@ -137,6 +137,11 @@ public class MediaScannerServiceTestCase extends TestCase {
     //
     List<MediaFile> newestAlbums = mediaFileDao.getNewestAlbums(0,10,musicFolderDao.getAllMusicFolders());
 
+    //
+    MediaFile ravelArtist = mediaFileDao.getArtistByName("Ravel",musicFolderDao.getAllMusicFolders());
+    Assert.assertEquals("Ravel",ravelArtist.getArtist());
+
+
     System.out.print("End");
   }
 
