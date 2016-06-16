@@ -51,8 +51,9 @@ public class PerformanceRawTestCase extends TestCase {
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build();
 
-    jmxReporter = JmxReporter.forRegistry(metrics).build();
+    /* jmxReporter = JmxReporter.forRegistry(metrics).build();
     jmxReporter.start();
+    */
 
 
     // Prepare database
@@ -73,6 +74,20 @@ public class PerformanceRawTestCase extends TestCase {
 
   }
 
+  /**
+   *
+   * @param source
+   * @return
+   */
+  private String escapeForJson(String source) {
+    if (source == null) {
+      return "";
+    } else {
+      String target = source.replace("\\", "\\\\");
+      target = target.replace("\"", "\\\"");
+      return target;
+    }
+  }
 
   /**
    *
@@ -119,14 +134,16 @@ public class PerformanceRawTestCase extends TestCase {
         "    }\n" +
         "}";
 
-      SearchRequestBuilder searchRequestBuilder = daoHelper.getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(musicFolderDao.getAllMusicFolders()))
+      SearchRequestBuilder searchRequestBuilder = daoHelper.getClient().prepareSearch(musicFolderDao.getAllMusicFoldersLowerNames())
         .setQuery(jsonSearch).setVersion(true).setFrom(i * 10).setSize(10).addSort("created", SortOrder.DESC);
       SearchResponse response = searchRequestBuilder.execute().actionGet();
       SearchHits hits = response.getHits();
       execNewestAlbumsQueryTimerContext.stop();
 
-      stop = true;
       Iterator<SearchHit> hitIt = hits.iterator();
+      if (!hitIt.hasNext()) {
+        stop = true;
+      }
       while (hitIt.hasNext()) {
 
         Timer.Context fetch1Context = fetchNewestAlbumsQueryTimer.time();
@@ -134,8 +151,8 @@ public class PerformanceRawTestCase extends TestCase {
         fetch1Context.stop();
 
         Timer.Context readRS1Context = readRSNewestAlbumsQueryTimer.time();
-        String album = oneHit.field("album").value().toString().replace("'", "''");
-        String album_artist = oneHit.field("artist").toString();
+        String album = oneHit.getSource().get("albumName").toString();
+        String album_artist = oneHit.getSource().get("artist").toString();
         readRS1Context.stop();
         if (album_artist == null) {
           album_artist = "";
@@ -152,8 +169,8 @@ public class PerformanceRawTestCase extends TestCase {
           "        \"filter\" : {\n" +
           "            \"bool\" : {\n" +
           "                \"must\" : [\n" +
-          "                    {\"term\" : {\"albumArtist\" : \"" + album_artist + "\"}},\n" +
-          "                    {\"term\" : {\"albumName\" : \"" + album + "\"}},\n" +
+          "                    {\"term\" : {\"albumArtist\" : \"" + escapeForJson(album_artist) + "\"}},\n" +
+          "                    {\"term\" : {\"albumName\" : \"" + escapeForJson(album) + "\"}},\n" +
           "                    {\"type\" : { \"value\" : \"MEDIA_FILE\" }}\n" +
           "                ],\n" +
           "                \"should\" : [\n" +
@@ -169,7 +186,7 @@ public class PerformanceRawTestCase extends TestCase {
         SearchRequestBuilder searchRequestBuilderSongsForAlbum = daoHelper.getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(musicFolderDao.getAllMusicFolders()))
           .setQuery(jsonSongsForAlbum).setVersion(true);
         SearchResponse responseSongsForAlbum = searchRequestBuilderSongsForAlbum.execute().actionGet();
-        SearchHits hitsSongsForAlbum = response.getHits();
+        SearchHits hitsSongsForAlbum = responseSongsForAlbum.getHits();
         Iterator<SearchHit> itSongsForAlbum = hitsSongsForAlbum.iterator();
         execSongsForAlbumQueryTimerContext.stop();
 
@@ -179,7 +196,7 @@ public class PerformanceRawTestCase extends TestCase {
           SearchHit songHit = itSongsForAlbum.next();
           fetch2Context.stop();
 
-          String path = songHit.field("path").toString();
+          String path = songHit.getSource().get("path").toString();
           System.out.println(path);
 
         }
