@@ -2,10 +2,19 @@ package com.github.biconou.subsonic.service;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.service.MediaFileService;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.filters.Filters;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -30,6 +39,7 @@ public class MediaScannerServiceTestCase extends TestCase {
   private MediaFileService mediaFileService = null;
   private MediaFileDao mediaFileDao = null;
   private MusicFolderDao musicFolderDao = null;
+  ElasticSearchDaoHelper elasticSearchDaoHelper = null;
 
   @Override
   protected void setUp() throws Exception {
@@ -47,6 +57,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
     mediaFileService = (MediaFileService) context.getBean("mediaFileService");
+    elasticSearchDaoHelper = (ElasticSearchDaoHelper)context.getBean("elasticSearchDaoHelper");
 
     // delete index
     TestCaseUtils.deleteIndexes(context);
@@ -141,6 +152,22 @@ public class MediaScannerServiceTestCase extends TestCase {
     MediaFile ravelArtist = mediaFileDao.getArtistByName("Ravel",musicFolderDao.getAllMusicFolders());
     Assert.assertEquals("Ravel",ravelArtist.getArtist());
 
+
+    //
+    SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch()
+            .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
+            .addAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType")
+            .subAggregation(AggregationBuilders.terms("genre_agg").field("genre"))).setSize(0).get();
+
+
+    StringTerms mediaTypeAgg = genresResponse.getAggregations().get("mediaType_agg");
+    for (Terms.Bucket entry : mediaTypeAgg.getBuckets()) {
+      String key = entry.getKeyAsString();            // bucket key
+      long docCount = entry.getDocCount();            // Doc count
+      StringTerms genreAgg = entry.getAggregations().get("genre_agg");
+    }
+
+    Aggregation genreAgg = genresResponse.getAggregations().asMap().get("genre_agg");
 
     System.out.print("End");
   }

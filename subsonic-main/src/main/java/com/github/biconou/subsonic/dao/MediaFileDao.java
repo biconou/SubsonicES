@@ -242,8 +242,8 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       return null;
     }
     Map<String,String> vars = new HashMap<>();
-    vars.put("name",name);
-    List<MediaFile> list = getElasticSearchDaoHelper().extractMediaFiles("getArtistByName", null, null, null, musicFolders, MediaFile.class);
+    vars.put("artist",name);
+    List<MediaFile> list = getElasticSearchDaoHelper().extractMediaFiles("getArtistByName", vars,null, null, null, musicFolders, MediaFile.class);
     if (list != null && list.size() > 0) {
       return list.get(0);
     } else {
