@@ -2,17 +2,17 @@ package com.github.biconou.subsonic.dao;
 
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -259,8 +259,58 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
   @Override
   public List<Genre> getGenres(boolean sortByAlbum) {
-    // TODO
-    throw new UnsupportedOperationException("com.github.biconou.subsonic.dao.MediaFileDao.getGenres");
+
+    Map<String,Genre> genresMap = new Hashtable();
+
+    SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch()
+            .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
+            .addAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType")
+                    .subAggregation(AggregationBuilders.terms("genre_agg").field("genre"))).setSize(0).get();
+
+
+    StringTerms mediaTypeAgg = genresResponse.getAggregations().get("mediaType_agg");
+    for (Terms.Bucket entry : mediaTypeAgg.getBuckets()) {
+      String mediaTypeKey = entry.getKeyAsString();
+      StringTerms genreAgg = entry.getAggregations().get("genre_agg");
+      for (Terms.Bucket genreEntry : genreAgg.getBuckets()) {
+        Genre genre = genresMap.get(genreEntry.getKeyAsString());
+        if (genre == null) {
+          genre = new Genre(genreEntry.getKeyAsString());
+          genresMap.put(genre.getName(),genre);
+        }
+        if ("ALBUM".equals(mediaTypeKey)) {
+          genre.setAlbumCount((int)genreEntry.getDocCount());
+        }
+        if ("MUSIC".equals(mediaTypeKey)) {
+          genre.setSongCount((int)genreEntry.getDocCount());
+        }
+      }
+    }
+
+    List<Genre> genres = new ArrayList<>();
+    genresMap.keySet().forEach(genreKey -> genres.add(genresMap.get(genreKey)));
+    if (sortByAlbum) {
+      genres.sort((o1, o2) -> {
+        if (o1.getAlbumCount() > o2.getAlbumCount()) {
+          return -1;
+        }
+        if (o1.getAlbumCount() < o2.getAlbumCount()) {
+          return 1;
+        }
+        return 0;
+      });
+    } else {
+      genres.sort((o1, o2) -> {
+        if (o1.getSongCount() > o2.getSongCount()) {
+          return -1;
+        }
+        if (o1.getSongCount() < o2.getSongCount()) {
+          return 1;
+        }
+        return 0;
+      });
+    }
+    return genres;
   }
 
   @Override

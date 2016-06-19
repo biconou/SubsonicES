@@ -102,6 +102,13 @@ public class MediaScannerServiceTestCase extends TestCase {
 
     reporter.report();
 
+    // Wait for end of index
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
 
     ///
     List<MediaFile> liste = mediaFileDao.getChildrenOf(musicFolderPath);
@@ -154,20 +161,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
 
     //
-    SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch()
-            .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
-            .addAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType")
-            .subAggregation(AggregationBuilders.terms("genre_agg").field("genre"))).setSize(0).get();
-
-
-    StringTerms mediaTypeAgg = genresResponse.getAggregations().get("mediaType_agg");
-    for (Terms.Bucket entry : mediaTypeAgg.getBuckets()) {
-      String key = entry.getKeyAsString();            // bucket key
-      long docCount = entry.getDocCount();            // Doc count
-      StringTerms genreAgg = entry.getAggregations().get("genre_agg");
-    }
-
-    Aggregation genreAgg = genresResponse.getAggregations().asMap().get("genre_agg");
+    mediaFileDao.getGenres(false);
 
     System.out.print("End");
   }
