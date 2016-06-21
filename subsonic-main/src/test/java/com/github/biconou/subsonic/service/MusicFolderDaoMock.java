@@ -16,6 +16,10 @@ public class MusicFolderDaoMock extends MusicFolderDao {
 
   public static String resolveBaseMediaPath() {
     String baseDir = MusicFolderDaoMock.class.getResource(baseResources).toString().replace("file:","");
+    if (baseDir.startsWith("/C:/")) {
+      baseDir = baseDir.substring(1);
+      baseDir = baseDir.replace("/","\\");
+    }
     return baseDir;
   }
 
