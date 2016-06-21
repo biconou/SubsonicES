@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
@@ -98,13 +99,17 @@ public class MediaScannerServiceTestCase extends TestCase {
     //File destDir = new File(MediaScannerServiceTestCase.class.getResource("/MEDIAS/Music2/chrome hoof - Album added").getFile());
     File destDir = null;
     try {
-      destDir = new File(new URI(MediaScannerServiceTestCase.class.getResource("/MEDIAS/Music2/chrome hoof - Album added").toString()).getPath());
+      URL url = MediaScannerServiceTestCase.class.getResource("/MEDIAS/Music2/chrome hoof - Album added");
+      if (url != null) {
+        URI uri = new URI(url.toString());
+        destDir = new File(new URI(MediaScannerServiceTestCase.class.getResource("/MEDIAS/Music2/chrome hoof - Album added").toString()).getPath());
+      }
     }
     catch (URISyntaxException e) {
       // TODO: Le traitement de cette exception a été générée automatiquement. Merci de vérifier
       e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
     }
-    if (destDir.exists()) {
+    if (destDir != null && destDir.exists()) {
       FileUtils.deleteDirectory(destDir);
     }
   }
@@ -155,7 +160,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     }
 
     // Count the number of media_files
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch()
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
       .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
 
     assertEquals(20,countResponse.getHits().getTotalHits());

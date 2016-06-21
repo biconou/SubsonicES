@@ -134,7 +134,7 @@ public class PerformanceRawTestCase extends TestCase {
         "    }\n" +
         "}";
 
-      SearchRequestBuilder searchRequestBuilder = daoHelper.getClient().prepareSearch(musicFolderDao.getAllMusicFoldersLowerNames())
+      SearchRequestBuilder searchRequestBuilder = daoHelper.getClient().prepareSearch(daoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
         .setQuery(jsonSearch).setVersion(true).setFrom(i * 10).setSize(10).addSort("created", SortOrder.DESC);
       SearchResponse response = searchRequestBuilder.execute().actionGet();
       SearchHits hits = response.getHits();
@@ -183,7 +183,7 @@ public class PerformanceRawTestCase extends TestCase {
           "    }\n" +
           "}";
 
-        SearchRequestBuilder searchRequestBuilderSongsForAlbum = daoHelper.getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(musicFolderDao.getAllMusicFolders()))
+        SearchRequestBuilder searchRequestBuilderSongsForAlbum = daoHelper.getClient().prepareSearch(daoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
           .setQuery(jsonSongsForAlbum).setVersion(true);
         SearchResponse responseSongsForAlbum = searchRequestBuilderSongsForAlbum.execute().actionGet();
         SearchHits hitsSongsForAlbum = responseSongsForAlbum.getHits();

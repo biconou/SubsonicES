@@ -49,26 +49,6 @@ public class MusicFolderDao extends AbstractDao {
         return query(sql, rowMapper);
     }
 
-    /**
-     *
-     * @return
-     */
-    public String[] getAllMusicFoldersLowerNames() {
-        return getMusicFoldersLowerNames(getAllMusicFolders());
-    }
-
-    /**
-   *
-   * @param folders
-   * @return
-   */
-  public String[] getMusicFoldersLowerNames(List<MusicFolder> folders) {
-        if (folders != null) {
-            return folders.stream().map(folder -> folder.getName().toLowerCase()).toArray(String[]::new);
-        } else {
-            return null;
-        }
-    }
 
     /**
      * Creates a new music folder.

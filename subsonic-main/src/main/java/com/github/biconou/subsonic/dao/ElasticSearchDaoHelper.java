@@ -3,26 +3,18 @@ package com.github.biconou.subsonic.dao;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import net.sourceforge.subsonic.domain.MediaFile;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.LocalTransportAddress;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.istack.Nullable;
 import freemarker.template.Configuration;
@@ -30,7 +22,6 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MusicFolder;
-import org.elasticsearch.search.sort.SortOrder;
 
 /**
  * Created by remi on 26/04/2016.
@@ -68,7 +59,7 @@ public class ElasticSearchDaoHelper {
 
   public void deleteIndexes() {
     Client client = obtainESClient();
-    String[] musicFolders = musicFolderDao.getAllMusicFoldersLowerNames();
+    String[] musicFolders = indexNames(musicFolderDao.getAllMusicFolders());
     for (String folder : musicFolders) {
       String indexName = folder;
       boolean indexExists = client.admin().indices().prepareExists(indexName).execute().actionGet().isExists();
@@ -85,9 +76,8 @@ public class ElasticSearchDaoHelper {
         if (elasticSearchClient == null) {
           elasticSearchClient = obtainESClient();
 
-          String[] musicFolders = musicFolderDao.getAllMusicFoldersLowerNames();
-          for (String folder : musicFolders) {
-            String indexName = folder;
+          String[] indexNames = indexNames(musicFolderDao.getAllMusicFolders());
+          for (String indexName : indexNames) {
             boolean indexExists = elasticSearchClient.admin().indices().prepareExists(indexName)
                     .execute().actionGet().isExists();
             if (!indexExists) {
@@ -128,6 +118,20 @@ public class ElasticSearchDaoHelper {
 
   public ObjectMapper getMapper() {
     return mapper;
+  }
+
+
+  /**
+   *
+   * @param folders
+   * @return
+   */
+  public String[] indexNames(List<MusicFolder> folders) {
+    if (folders != null) {
+      return folders.stream().map(folder -> folder.getName().toLowerCase()).toArray(String[]::new);
+    } else {
+      return null;
+    }
   }
 
   /**
@@ -208,6 +212,8 @@ public class ElasticSearchDaoHelper {
   }
 
 
+
+
   /**
    *
    * @param jsonSearch
@@ -224,7 +230,7 @@ public class ElasticSearchDaoHelper {
     } else {
       list = musicFolders;
     }
-    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(musicFolderDao.getMusicFoldersLowerNames(list))
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames(list))
             .setQuery(jsonSearch).setVersion(true);
     return extractMediaFiles(searchRequestBuilder,from,size,sortClause,type);
   }

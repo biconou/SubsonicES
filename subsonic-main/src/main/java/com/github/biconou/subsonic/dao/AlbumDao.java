@@ -42,7 +42,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(musicFolderDao.getAllMusicFoldersLowerNames())
+    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames(musicFolderDao.getAllMusicFolders()))
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
