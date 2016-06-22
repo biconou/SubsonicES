@@ -227,6 +227,14 @@ public class MediaScannerServiceTestCase extends TestCase {
     //
 
 
+    //
+    // Count the number of media_files
+    SearchResponse countResponseAfterCopy = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+      .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
+
+    assertEquals(20,countResponseAfterCopy.getHits().getTotalHits());
+
+
     System.out.print("End");
   }
 

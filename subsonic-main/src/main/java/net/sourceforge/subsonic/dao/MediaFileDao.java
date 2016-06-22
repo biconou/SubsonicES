@@ -540,10 +540,12 @@ public class MediaFileDao extends AbstractDao {
         return queryForDate("select created from starred_media_file where media_file_id=? and username=?", null, id, username);
     }
 
+  @Deprecated
     public void markPresent(String path, Date lastScanned) {
         update("update media_file set present=?, last_scanned=? where path=?", true, lastScanned, path);
     }
 
+  @Deprecated
     public void markNonPresent(Date lastScanned) {
         int minId = queryForInt("select top 1 id from media_file where last_scanned != ? and present", 0, lastScanned);
         int maxId = queryForInt("select max(id) from media_file where last_scanned != ? and present", 0, lastScanned);
@@ -556,6 +558,7 @@ public class MediaFileDao extends AbstractDao {
         }
     }
 
+  @Deprecated
     public void expunge() {
         int minId = queryForInt("select top 1 id from media_file where not present", 0);
         int maxId = queryForInt("select max(id) from media_file where not present", 0);

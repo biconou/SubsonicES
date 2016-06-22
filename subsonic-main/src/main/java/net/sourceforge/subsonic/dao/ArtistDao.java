@@ -18,13 +18,6 @@
  */
 package net.sourceforge.subsonic.dao;
 
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.domain.Artist;
-import net.sourceforge.subsonic.domain.MusicFolder;
-
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -32,6 +25,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
+import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.domain.Artist;
+import net.sourceforge.subsonic.domain.MusicFolder;
 
 /**
  * Provides database services for artists.
@@ -161,10 +159,12 @@ public class ArtistDao extends AbstractDao {
                           rowMapper, args);
     }
 
+  @Deprecated
     public void markPresent(String artistName, Date lastScanned) {
         update("update artist set present=?, last_scanned=? where name=?", true, lastScanned, artistName);
     }
 
+  @Deprecated
     public void markNonPresent(Date lastScanned) {
         int minId = queryForInt("select top 1 id from artist where last_scanned != ? and present", 0, lastScanned);
         int maxId = queryForInt("select max(id) from artist where last_scanned != ? and present", 0, lastScanned);

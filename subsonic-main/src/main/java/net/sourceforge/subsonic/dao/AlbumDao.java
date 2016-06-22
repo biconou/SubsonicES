@@ -312,6 +312,7 @@ public class AlbumDao extends AbstractDao {
         }
     }
 
+  @Deprecated
     public void markNonPresent(Date lastScanned) {
         int minId = queryForInt("select top 1 id from album where last_scanned != ? and present", 0, lastScanned);
         int maxId = queryForInt("select max(id) from album where last_scanned != ? and present", 0, lastScanned);
@@ -322,6 +323,7 @@ public class AlbumDao extends AbstractDao {
         }
     }
 
+  @Deprecated
     public void expunge() {
         int minId = queryForInt("select top 1 id from album where not present", 0);
         int maxId = queryForInt("select max(id) from album where not present", 0);
