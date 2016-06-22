@@ -118,7 +118,16 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
     logger.debug("BEGIN : scanDirectory [" + dirPath + "]");
 
-    MusicFolder owningFolder = settingsService.getAllMusicFolders().stream().filter(folder -> dirPath.startsWith(folder.getPath().getAbsolutePath())).iterator().next();
+    MusicFolder owningFolder = settingsService.getAllMusicFolders().stream().filter(folder -> {
+      String folderPath = folder.getPath().getAbsolutePath();
+      if (folderPath.contains("\\")) {
+        folderPath += "\\";
+      }
+      else {
+        folderPath += "/";
+      }
+      return dirPath.startsWith(folderPath);
+    }).iterator().next();
 
     if (owningFolder == null) {
       logger.warn("The file [" + dirPath + "] does not belong to any music folder");

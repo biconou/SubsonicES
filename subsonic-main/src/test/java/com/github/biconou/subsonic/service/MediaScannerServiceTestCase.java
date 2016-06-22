@@ -225,14 +225,23 @@ public class MediaScannerServiceTestCase extends TestCase {
     copyAddedMedias();
 
     //
+    String newDirToScan = resolveReal2Path("/chrome hoof - Album added");
+    mediaScannerService.scanDirectory(newDirToScan);
 
+
+    // Wait for end of index
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     //
     // Count the number of media_files
     SearchResponse countResponseAfterCopy = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
       .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
 
-    assertEquals(20,countResponseAfterCopy.getHits().getTotalHits());
+    assertEquals(23,countResponseAfterCopy.getHits().getTotalHits());
 
 
     System.out.print("End");
