@@ -160,11 +160,15 @@ public class MediaScannerServiceTestCase extends TestCase {
     }
 
     // Count the number of media_files
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
-      .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
 
-    assertEquals(20,countResponse.getHits().getTotalHits());
-
+    long countMediaFiles = mediaFileDao.countMediaFiles(musicFolderDao.getAllMusicFolders());
+    assertEquals(20,countMediaFiles);
+    long countMediaFileMusic = mediaFileDao.countMediaFileMusic(musicFolderDao.getAllMusicFolders());
+    assertEquals(11,countMediaFileMusic);
+    long countMediaFileAlbum = mediaFileDao.countMediaFileAlbum(musicFolderDao.getAllMusicFolders());
+    assertEquals(5,countMediaFileAlbum);
+    long countMediaFileDirectory = mediaFileDao.countMediaFileDirectory(musicFolderDao.getAllMusicFolders());
+    assertEquals(4,countMediaFileDirectory);
 
 
     ///
@@ -237,12 +241,14 @@ public class MediaScannerServiceTestCase extends TestCase {
     }
 
     //
-    // Count the number of media_files
-    SearchResponse countResponseAfterCopy = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
-      .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
-
-    assertEquals(23,countResponseAfterCopy.getHits().getTotalHits());
-
+    //countMediaFiles = mediaFileDao.countMediaFiles(musicFolderDao.getAllMusicFolders());
+    //assertEquals(20,countMediaFiles);
+    countMediaFileMusic = mediaFileDao.countMediaFileMusic(musicFolderDao.getAllMusicFolders());
+    assertEquals(13,countMediaFileMusic);
+    countMediaFileAlbum = mediaFileDao.countMediaFileAlbum(musicFolderDao.getAllMusicFolders());
+    assertEquals(6,countMediaFileAlbum);
+    countMediaFileDirectory = mediaFileDao.countMediaFileDirectory(musicFolderDao.getAllMusicFolders());
+    assertEquals(4,countMediaFileDirectory);
 
     System.out.print("End");
   }

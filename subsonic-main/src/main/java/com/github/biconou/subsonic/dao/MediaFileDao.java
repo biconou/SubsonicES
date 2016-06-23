@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+
+import com.sun.istack.NotNull;
+import org.apache.commons.lang.ObjectUtils;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -539,4 +542,41 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     // TODO
     throw new UnsupportedOperationException("com.github.biconou.subsonic.dao.MediaFileDao.getArtistNames");
   }
+
+  public long countMediaFiles(List<MusicFolder> folders) {
+    if (folders == null) {
+      throw new NullPointerException();
+    }
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+            .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
+    return countResponse.getHits().totalHits();
+  }
+
+  public long countMediaFileMusic(List<MusicFolder> folders) {
+    if (folders == null) {
+      throw new NullPointerException();
+    }
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+            .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","MUSIC"))).get();
+    return countResponse.getHits().totalHits();
+  }
+
+  public long countMediaFileAlbum(List<MusicFolder> folders) {
+    if (folders == null) {
+      throw new NullPointerException();
+    }
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+            .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","ALBUM"))).get();
+    return countResponse.getHits().totalHits();
+  }
+
+  public long countMediaFileDirectory(List<MusicFolder> folders) {
+    if (folders == null) {
+      throw new NullPointerException();
+    }
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+            .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","DIRECTORY"))).get();
+    return countResponse.getHits().totalHits();
+  }
+
 }
