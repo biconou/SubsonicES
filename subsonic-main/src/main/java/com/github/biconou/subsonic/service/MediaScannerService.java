@@ -18,17 +18,18 @@
  */
 package com.github.biconou.subsonic.service;
 
-import java.io.File;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.slf4j.LoggerFactory;
 import com.github.biconou.service.media.scan.QueueSender;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.util.FileUtil;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  */
@@ -76,8 +77,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
       // Recurse through all files on disk.
       for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
-        MediaFile root = mediaFileService.getMediaFile(musicFolder.getPath(), false);
-        scanFileOrDirectory(root, musicFolder, lastScanned);
+        scanFileOrDirectory(musicFolder.getPath(), musicFolder, lastScanned);
       }
 
       // TODO traiter les podcasts
@@ -141,35 +141,32 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
       logger.warn("File [" + dirPath + "] does not exist.");
     }
     else {
-      MediaFile dirMediaFile = mediaFileService.getMediaFile(file, false);
-      scanFileOrDirectory(dirMediaFile,owningFolder,new Date());
+      scanFileOrDirectory(file,owningFolder,new Date());
     }
   }
 
   /**
    * Override behavior of scanFile with pre dans post process.
    *
-   * @param file
    * @param musicFolder
    * @param lastScanned
    */
-  protected void scanFileOrDirectory(MediaFile file, MusicFolder musicFolder, Date lastScanned) {
+  protected void scanFileOrDirectory(File file, MusicFolder musicFolder, Date lastScanned) {
 
-    logger.debug("BEGIN : scan directory [" + file.getPath() + "]");
+    MediaFile mediaFile = mediaFileService.getMediaFile(file, false);
+
+    logger.debug("BEGIN : scan directory [" + mediaFile.getPath() + "]");
 
     try {
-      if (!musicFolder.getPath().getPath().equals(file.getPath())) {
-        mediaFileDao.createOrUpdateMediaFile(file);
-      }
+      mediaFileDao.createOrUpdateMediaFile(mediaFile);
 
-      if (file.isDirectory()) {
-        List<File> children = mediaFileService.filterMediaFiles(FileUtil.listFiles(file.getFile()));
+      if (mediaFile.isDirectory()) {
+        List<File> children = mediaFileService.filterMediaFiles(FileUtil.listFiles(mediaFile.getFile()));
 
         // Recursively scan sub directories
         for (File child : children) {
           if (child.isDirectory()) {
-            MediaFile childMediaFile = mediaFileService.createMediaFile(child);
-            scanFileOrDirectory(childMediaFile, musicFolder, lastScanned);
+            scanFileOrDirectory(child, musicFolder, lastScanned);
           }
         }
 
@@ -207,20 +204,20 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
               album.setDurationSeconds(0);
               album.setSongCount(0);
             }
-            if (file.getDurationSeconds() != null) {
-              album.setDurationSeconds(album.getDurationSeconds() + file.getDurationSeconds());
+            if (mediaFile.getDurationSeconds() != null) {
+              album.setDurationSeconds(album.getDurationSeconds() + mediaFile.getDurationSeconds());
             }
-            if (file.isAudio()) {
+            if (mediaFile.isAudio()) {
               album.setSongCount(album.getSongCount() + 1);
             }
             album.setLastScanned(lastScanned);
             album.setPresent(true);
-            // TODO gérer cover art
+            // TODO gï¿½rer cover art
         /* MediaFile parent = mediaFileService.getParentOf(file);
         if (parent != null && parent.getCoverArtPath() != null) {
             album.setCoverArtPath(parent.getCoverArtPath());
         } */
-            // TODO on fait pas ça. Qu'est-ce que ça implique ?
+            // TODO on fait pas ï¿½a. Qu'est-ce que ï¿½a implique ?
             // Update the file's album artist, if necessary.
                 /* if (!ObjectUtils.equals(album.getArtist(), file.getAlbumArtist())) {
                     file.setAlbumArtist(album.getArtist());
@@ -238,7 +235,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
       logger.error("Error while library scanning. ",e);
     }
 
-    logger.debug("END : scan directory [" + file.getPath() + "]");
+    logger.debug("END : scan directory [" + mediaFile.getPath() + "]");
 
         /*
         if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {

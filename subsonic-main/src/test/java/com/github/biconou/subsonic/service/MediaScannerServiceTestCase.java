@@ -1,16 +1,5 @@
 package com.github.biconou.subsonic.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.springframework.context.ApplicationContext;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -23,6 +12,16 @@ import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.service.MediaFileService;
+import org.apache.commons.io.FileUtils;
+import org.springframework.context.ApplicationContext;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by remi on 01/05/2016.
@@ -224,7 +223,6 @@ public class MediaScannerServiceTestCase extends TestCase {
     //
     mediaFileDao.getGenres(false);
 
-
     //
     copyAddedMedias();
 
@@ -241,8 +239,8 @@ public class MediaScannerServiceTestCase extends TestCase {
     }
 
     //
-    //countMediaFiles = mediaFileDao.countMediaFiles(musicFolderDao.getAllMusicFolders());
-    //assertEquals(20,countMediaFiles);
+    countMediaFiles = mediaFileDao.countMediaFiles(musicFolderDao.getAllMusicFolders());
+    assertEquals(23,countMediaFiles);
     countMediaFileMusic = mediaFileDao.countMediaFileMusic(musicFolderDao.getAllMusicFolders());
     assertEquals(13,countMediaFileMusic);
     countMediaFileAlbum = mediaFileDao.countMediaFileAlbum(musicFolderDao.getAllMusicFolders());
