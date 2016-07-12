@@ -23,6 +23,12 @@
     
     <dependencies>
 
+        <dependency>
+            <groupId>org.github.biconou</groupId>
+            <artifactId>inotifywait-java</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+
 		<!--  slf4j for logging -->
 		<dependency>
     		<groupId>org.slf4j</groupId>

@@ -18,6 +18,9 @@
  */
 package com.github.biconou.subsonic.service;
 
+import com.github.biconou.inotify.DefaultInotifywaitEventListener;
+import com.github.biconou.inotify.DirectoryTreeWatcher;
+import com.github.biconou.inotify.InotifywaitEvent;
 import com.github.biconou.service.media.scan.QueueSender;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.MediaFile;
@@ -26,10 +29,7 @@ import net.sourceforge.subsonic.util.FileUtil;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  */
@@ -38,6 +38,56 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaScannerService.class);
   private QueueSender queueSender = null;
 
+
+    private static class MusicFolderChangedInotifywaitEventListener extends DefaultInotifywaitEventListener {
+
+        private MediaScannerService mediaScannerService = null;
+        private Map<String,Date> directoriesToBeScanned = new Hashtable<>();
+        Thread tDirectoriesToBeScanned = null;
+        private final static long timeToWait = 60000;
+
+        public MusicFolderChangedInotifywaitEventListener(MediaScannerService mediaScannerService) {
+            this.mediaScannerService = mediaScannerService;
+        }
+
+        @Override
+        public void doModify(InotifywaitEvent event) {
+            registerDirectoryToScan(event);
+        }
+
+        @Override
+        public void doCreate(InotifywaitEvent event) {
+            registerDirectoryToScan(event);
+        }
+
+        private void registerDirectoryToScan(InotifywaitEvent event) {
+            synchronized (directoriesToBeScanned) {
+                directoriesToBeScanned.put(event.getPath(),new Date());
+                if (tDirectoriesToBeScanned == null) {
+                    tDirectoriesToBeScanned = new Thread(() -> {
+                        while (directoriesToBeScanned.keySet().size() > 0) {
+                            try {
+                                Thread.sleep(timeToWait);
+                            } catch (InterruptedException e) {
+                                // Nothing to do
+                            }
+                            directoriesToBeScanned.keySet().forEach(path -> {
+                                Date now = new Date();
+                                if (now.compareTo(new Date(directoriesToBeScanned.get(path).getTime()+timeToWait)) > 0) {
+                                    mediaScannerService.scanDirectory(path);
+                                    synchronized (directoriesToBeScanned) {
+                                        directoriesToBeScanned.remove(path);
+                                    }
+                                }
+                            });
+                        }
+                        tDirectoriesToBeScanned = null;
+                    });
+                    tDirectoriesToBeScanned.start();
+                }
+            }
+        }
+    }
 
   /**
    * Constructor needed for Spring 2.5 without annotations
@@ -58,7 +108,21 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
   }
 
 
-  @Override
+    @Override
+    public void init() {
+
+        // Watch each music folder directory
+        settingsService.getAllMusicFolders().forEach(musicFolder -> {
+            String folderPath = musicFolder.getPath().getAbsolutePath();
+
+            DirectoryTreeWatcher directoryTreeWatcher = new DirectoryTreeWatcher(folderPath)
+                    .addEventListener(new MusicFolderChangedInotifywaitEventListener(this));
+            directoryTreeWatcher.startWatch();
+        });
+    }
+
+
+    @Override
   protected void doScanLibrary() {
     logger.info("Starting to scan media library.");
 
