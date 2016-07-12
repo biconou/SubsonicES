@@ -37,6 +37,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaScannerService.class);
   private QueueSender queueSender = null;
+    private List<DirectoryTreeWatcher> directoryTreeWatchers = new ArrayList<>();
 
 
     private static class MusicFolderChangedInotifywaitEventListener extends DefaultInotifywaitEventListener {
@@ -61,31 +62,31 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
         }
 
         private void registerDirectoryToScan(InotifywaitEvent event) {
-            synchronized (directoriesToBeScanned) {
-                directoriesToBeScanned.put(event.getPath(),new Date());
-                if (tDirectoriesToBeScanned == null) {
-                    tDirectoriesToBeScanned = new Thread(() -> {
-                        while (directoriesToBeScanned.keySet().size() > 0) {
-                            try {
-                                Thread.sleep(timeToWait);
-                            } catch (InterruptedException e) {
-                                // Nothing to do
-                            }
-                            directoriesToBeScanned.keySet().forEach(path -> {
-                                Date now = new Date();
-                                if (now.compareTo(new Date(directoriesToBeScanned.get(path).getTime()+timeToWait)) > 0) {
-                                    mediaScannerService.scanDirectory(path);
-                                    synchronized (directoriesToBeScanned) {
-                                        directoriesToBeScanned.remove(path);
-                                    }
+                synchronized (directoriesToBeScanned) {
+                    directoriesToBeScanned.put(event.getPath(), new Date());
+                    if (tDirectoriesToBeScanned == null) {
+                        tDirectoriesToBeScanned = new Thread(() -> {
+                            while (directoriesToBeScanned.keySet().size() > 0) {
+                                try {
+                                    Thread.sleep(timeToWait);
+                                } catch (InterruptedException e) {
+                                    // Nothing to do
                                 }
-                            });
-                        }
-                        tDirectoriesToBeScanned = null;
-                    });
-                    tDirectoriesToBeScanned.start();
+                                directoriesToBeScanned.keySet().forEach(path -> {
+                                    Date now = new Date();
+                                    if (now.compareTo(new Date(directoriesToBeScanned.get(path).getTime() + timeToWait)) > 0) {
+                                        mediaScannerService.scanDirectory(path);
+                                        synchronized (directoriesToBeScanned) {
+                                            directoriesToBeScanned.remove(path);
+                                        }
+                                    }
+                                });
+                            }
+                            tDirectoriesToBeScanned = null;
+                        });
+                        tDirectoriesToBeScanned.start();
+                    }
                 }
-            }
         }
     }
 
@@ -118,6 +119,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
             DirectoryTreeWatcher directoryTreeWatcher = new DirectoryTreeWatcher(folderPath)
                     .addEventListener(new MusicFolderChangedInotifywaitEventListener(this));
             directoryTreeWatcher.startWatch();
+            directoryTreeWatchers.add(directoryTreeWatcher);
         });
     }
 
@@ -127,6 +129,10 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     logger.info("Starting to scan media library.");
 
     try {
+
+        scanning = true;
+        directoryTreeWatchers.forEach(w -> w.stopWatch());
+
       Date lastScanned = new Date();
 
       // Maps from artist name to album count.
@@ -170,6 +176,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
     } finally {
       mediaFileService.setMemoryCacheEnabled(true);
       scanning = false;
+        directoryTreeWatchers.forEach(w -> w.startWatch());
     }
   }
 
