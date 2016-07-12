@@ -35,15 +35,15 @@ import java.util.*;
  */
 public class MediaScannerService extends net.sourceforge.subsonic.service.MediaScannerService {
 
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaScannerService.class);
-  private QueueSender queueSender = null;
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MediaScannerService.class);
+    private QueueSender queueSender = null;
     private List<DirectoryTreeWatcher> directoryTreeWatchers = new ArrayList<>();
 
 
     private static class MusicFolderChangedInotifywaitEventListener extends DefaultInotifywaitEventListener {
 
         private MediaScannerService mediaScannerService = null;
-        private Map<String,Date> directoriesToBeScanned = new Hashtable<>();
+        private Map<String, Date> directoriesToBeScanned = new Hashtable<>();
         Thread tDirectoriesToBeScanned = null;
         private final static long timeToWait = 60000;
 
@@ -62,51 +62,51 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
         }
 
         private void registerDirectoryToScan(InotifywaitEvent event) {
-                synchronized (directoriesToBeScanned) {
-                    directoriesToBeScanned.put(event.getPath(), new Date());
-                    if (tDirectoriesToBeScanned == null) {
-                        tDirectoriesToBeScanned = new Thread(() -> {
-                            while (directoriesToBeScanned.keySet().size() > 0) {
-                                try {
-                                    Thread.sleep(timeToWait);
-                                } catch (InterruptedException e) {
-                                    // Nothing to do
-                                }
-                                directoriesToBeScanned.keySet().forEach(path -> {
-                                    Date now = new Date();
-                                    if (now.compareTo(new Date(directoriesToBeScanned.get(path).getTime() + timeToWait)) > 0) {
-                                        mediaScannerService.scanDirectory(path);
-                                        synchronized (directoriesToBeScanned) {
-                                            directoriesToBeScanned.remove(path);
-                                        }
-                                    }
-                                });
+            synchronized (directoriesToBeScanned) {
+                directoriesToBeScanned.put(event.getPath(), new Date());
+                if (tDirectoriesToBeScanned == null) {
+                    tDirectoriesToBeScanned = new Thread(() -> {
+                        while (directoriesToBeScanned.keySet().size() > 0) {
+                            try {
+                                Thread.sleep(timeToWait);
+                            } catch (InterruptedException e) {
+                                // Nothing to do
                             }
-                            tDirectoriesToBeScanned = null;
-                        });
-                        tDirectoriesToBeScanned.start();
-                    }
+                            directoriesToBeScanned.keySet().forEach(path -> {
+                                Date now = new Date();
+                                if (now.compareTo(new Date(directoriesToBeScanned.get(path).getTime() + timeToWait)) > 0) {
+                                    mediaScannerService.scanDirectory(path);
+                                    synchronized (directoriesToBeScanned) {
+                                        directoriesToBeScanned.remove(path);
+                                    }
+                                }
+                            });
+                        }
+                        tDirectoriesToBeScanned = null;
+                    });
+                    tDirectoriesToBeScanned.start();
                 }
+            }
         }
     }
 
-  /**
-   * Constructor needed for Spring 2.5 without annotations
-   *
-   * @return
-   */
-  public QueueSender getQueueSender() {
-    return queueSender;
-  }
+    /**
+     * Constructor needed for Spring 2.5 without annotations
+     *
+     * @return
+     */
+    public QueueSender getQueueSender() {
+        return queueSender;
+    }
 
-  /**
-   * Sets the queue sender
-   *
-   * @param queueSender
-   */
-  public void setQueueSender(QueueSender queueSender) {
-    this.queueSender = queueSender;
-  }
+    /**
+     * Sets the queue sender
+     *
+     * @param queueSender
+     */
+    public void setQueueSender(QueueSender queueSender) {
+        this.queueSender = queueSender;
+    }
 
 
     @Override
@@ -125,181 +125,177 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
 
     @Override
-  protected void doScanLibrary() {
-    logger.info("Starting to scan media library.");
+    protected void doScanLibrary() {
+        logger.info("Starting to scan media library.");
 
-    try {
+        try {
 
-        scanning = true;
-        directoryTreeWatchers.forEach(w -> w.stopWatch());
+            scanning = true;
+            directoryTreeWatchers.forEach(w -> w.stopWatch());
 
-      Date lastScanned = new Date();
+            Date lastScanned = new Date();
 
-      // Maps from artist name to album count.
-      Map<String, Integer> albumCount = new HashMap<String, Integer>();
+            // Maps from artist name to album count.
+            Map<String, Integer> albumCount = new HashMap<String, Integer>();
 
-      scanCount = 0;
+            scanCount = 0;
 
-      mediaFileService.setMemoryCacheEnabled(false);
+            mediaFileService.setMemoryCacheEnabled(false);
 
-      mediaFileService.clearMemoryCache();
+            mediaFileService.clearMemoryCache();
 
-      // Recurse through all files on disk.
-      for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
-        scanFileOrDirectory(musicFolder.getPath(), musicFolder, lastScanned,true);
-      }
+            // Recurse through all files on disk.
+            for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
+                scanFileOrDirectory(musicFolder.getPath(), musicFolder, lastScanned, true);
+            }
 
-      // TODO traiter les podcasts
-      // Scan podcast folder.
+            // TODO traiter les podcasts
+            // Scan podcast folder.
       /* File podcastFolder = new File(settingsService.getPodcastFolder());
       if (podcastFolder.exists()) {
         scanFile(mediaFileService.getMediaFile(podcastFolder), new MusicFolder(podcastFolder, null, true, null),
           lastScanned, albumCount, genres, true);
       } */
 
-      logger.info("Scanned media library with " + scanCount + " entries.");
+            logger.info("Scanned media library with " + scanCount + " entries.");
 
 
-      settingsService.setLastScanned(lastScanned);
-      settingsService.save(false);
-      logger.info("Completed media library scan.");
+            settingsService.setLastScanned(lastScanned);
+            settingsService.save(false);
+            logger.info("Completed media library scan.");
 
-    } catch (Throwable x) {
-      logger.error("Failed to scan media library.", x);
-    } finally {
-      mediaFileService.setMemoryCacheEnabled(true);
-      scanning = false;
-        directoryTreeWatchers.forEach(w -> w.startWatch());
-    }
-  }
-
-
-  /**
-   *
-   * @param dirPath
-   */
-  public void scanDirectory(String dirPath) {
-
-    logger.debug("BEGIN : scanDirectory [" + dirPath + "]");
-
-    MusicFolder owningFolder = settingsService.getAllMusicFolders().stream().filter(folder -> {
-      String folderPath = folder.getPath().getAbsolutePath();
-      if (folderPath.contains("\\")) {
-        folderPath += "\\";
-      }
-      else {
-        folderPath += "/";
-      }
-      return dirPath.startsWith(folderPath);
-    }).iterator().next();
-
-    if (owningFolder == null) {
-      logger.warn("The file [" + dirPath + "] does not belong to any music folder");
-    }
-    else {
-      logger.info("Will scan [" + dirPath + "] that belongs to music folder [" + owningFolder.getName() + "]");
+        } catch (Throwable x) {
+            logger.error("Failed to scan media library.", x);
+        } finally {
+            mediaFileService.setMemoryCacheEnabled(true);
+            scanning = false;
+            directoryTreeWatchers.forEach(w -> w.startWatch());
+        }
     }
 
-    File file = new File(dirPath);
-    if (!file.exists()) {
-      logger.warn("File [" + dirPath + "] does not exist.");
-    }
-    else {
-      scanFileOrDirectory(file,owningFolder,new Date(),false);
-    }
-  }
 
-  /**
-   * Override behavior of scanFile with pre dans post process.
-   *
-   * @param musicFolder
-   * @param lastScanned
-   */
-  protected void scanFileOrDirectory(File file, MusicFolder musicFolder, Date lastScanned, boolean recursive) {
+    /**
+     * @param dirPath
+     */
+    public void scanDirectory(String dirPath) {
 
-    MediaFile mediaFile = mediaFileService.getMediaFile(file, false);
+        logger.debug("BEGIN : scanDirectory [" + dirPath + "]");
 
-    logger.debug("BEGIN : scan directory [" + mediaFile.getPath() + "]");
+        MusicFolder owningFolder = settingsService.getAllMusicFolders().stream().filter(folder -> {
+            String folderPath = folder.getPath().getAbsolutePath();
+            if (folderPath.contains("\\")) {
+                folderPath += "\\";
+            } else {
+                folderPath += "/";
+            }
+            return dirPath.startsWith(folderPath);
+        }).iterator().next();
 
-    try {
-      mediaFileDao.createOrUpdateMediaFile(mediaFile);
-
-      if (mediaFile.isDirectory()) {
-        List<File> children = mediaFileService.filterMediaFiles(FileUtil.listFiles(mediaFile.getFile()));
-
-        // Recursively scan sub directories
-        for (File child : children) {
-          if (child.isDirectory() && recursive) {
-            scanFileOrDirectory(child, musicFolder, lastScanned, recursive);
-          }
+        if (owningFolder == null) {
+            logger.warn("The file [" + dirPath + "] does not belong to any music folder");
+        } else {
+            logger.info("Will scan [" + dirPath + "] that belongs to music folder [" + owningFolder.getName() + "]");
         }
 
-        // create media files and album
-        Album album = null;
-        boolean firstEncounter = true;
-        for (File child : children) {
-          if (!child.isDirectory()) {
-            MediaFile childMediaFile = mediaFileService.createMediaFile(child);
-            mediaFileDao.createOrUpdateMediaFile(childMediaFile);
-            String artist = childMediaFile.getAlbumArtist() != null ? childMediaFile.getAlbumArtist() : childMediaFile.getArtist();
-            if (album == null) {
-              album = new Album();
-              album.setPath(childMediaFile.getParentPath());
-              album.setFolderId(musicFolder.getId());
-            }
-            if (album.getName() == null) {
-              album.setName(childMediaFile.getAlbumName());
-            }
-            if (album.getArtist() == null) {
-              album.setArtist(artist);
-            }
-            if (album.getCreated() == null) {
-              album.setCreated(childMediaFile.getChanged());
-            }
+        File file = new File(dirPath);
+        if (!file.exists()) {
+            logger.warn("File [" + dirPath + "] does not exist.");
+        } else {
+            scanFileOrDirectory(file, owningFolder, new Date(), false);
+        }
+    }
 
-            if (album.getYear() == null) {
-              album.setYear(childMediaFile.getYear());
-            }
-            if (album.getGenre() == null) {
-              album.setGenre(childMediaFile.getGenre());
-            }
+    /**
+     * Override behavior of scanFile with pre dans post process.
+     *
+     * @param musicFolder
+     * @param lastScanned
+     */
+    protected void scanFileOrDirectory(File file, MusicFolder musicFolder, Date lastScanned, boolean recursive) {
 
-            if (firstEncounter) {
-              album.setDurationSeconds(0);
-              album.setSongCount(0);
-            }
-            if (mediaFile.getDurationSeconds() != null) {
-              album.setDurationSeconds(album.getDurationSeconds() + mediaFile.getDurationSeconds());
-            }
-            if (mediaFile.isAudio()) {
-              album.setSongCount(album.getSongCount() + 1);
-            }
-            album.setLastScanned(lastScanned);
-            album.setPresent(true);
-            // TODO g�rer cover art
+        MediaFile mediaFile = mediaFileService.getMediaFile(file, false);
+
+        logger.debug("BEGIN : scan directory [" + mediaFile.getPath() + "]");
+
+        try {
+            mediaFileDao.createOrUpdateMediaFile(mediaFile);
+
+            if (mediaFile.isDirectory()) {
+                List<File> children = mediaFileService.filterMediaFiles(FileUtil.listFiles(mediaFile.getFile()));
+
+                // Recursively scan sub directories
+                for (File child : children) {
+                    if (child.isDirectory() && recursive) {
+                        scanFileOrDirectory(child, musicFolder, lastScanned, recursive);
+                    }
+                }
+
+                // create media files and album
+                Album album = null;
+                boolean firstEncounter = true;
+                for (File child : children) {
+                    if (!child.isDirectory()) {
+                        MediaFile childMediaFile = mediaFileService.createMediaFile(child);
+                        mediaFileDao.createOrUpdateMediaFile(childMediaFile);
+                        String artist = childMediaFile.getAlbumArtist() != null ? childMediaFile.getAlbumArtist() : childMediaFile.getArtist();
+                        if (album == null) {
+                            album = new Album();
+                            album.setPath(childMediaFile.getParentPath());
+                            album.setFolderId(musicFolder.getId());
+                        }
+                        if (album.getName() == null) {
+                            album.setName(childMediaFile.getAlbumName());
+                        }
+                        if (album.getArtist() == null) {
+                            album.setArtist(artist);
+                        }
+                        if (album.getCreated() == null) {
+                            album.setCreated(childMediaFile.getChanged());
+                        }
+
+                        if (album.getYear() == null) {
+                            album.setYear(childMediaFile.getYear());
+                        }
+                        if (album.getGenre() == null) {
+                            album.setGenre(childMediaFile.getGenre());
+                        }
+
+                        if (firstEncounter) {
+                            album.setDurationSeconds(0);
+                            album.setSongCount(0);
+                        }
+                        if (mediaFile.getDurationSeconds() != null) {
+                            album.setDurationSeconds(album.getDurationSeconds() + mediaFile.getDurationSeconds());
+                        }
+                        if (mediaFile.isAudio()) {
+                            album.setSongCount(album.getSongCount() + 1);
+                        }
+                        album.setLastScanned(lastScanned);
+                        album.setPresent(true);
+                        // TODO g�rer cover art
         /* MediaFile parent = mediaFileService.getParentOf(file);
         if (parent != null && parent.getCoverArtPath() != null) {
             album.setCoverArtPath(parent.getCoverArtPath());
         } */
-            // TODO on fait pas �a. Qu'est-ce que �a implique ?
-            // Update the file's album artist, if necessary.
+                        // TODO on fait pas �a. Qu'est-ce que �a implique ?
+                        // Update the file's album artist, if necessary.
                 /* if (!ObjectUtils.equals(album.getArtist(), file.getAlbumArtist())) {
                     file.setAlbumArtist(album.getArtist());
                     mediaFileDao.createOrUpdateMediaFile(file);
                 } */
 
-            firstEncounter = false;
-          }
+                        firstEncounter = false;
+                    }
+                }
+                if (album != null && album.getName() != null && album.getArtist() != null) {
+                    albumDao.createOrUpdateAlbum(album);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error while library scanning. ", e);
         }
-        if (album != null && album.getName() != null && album.getArtist() != null) {
-          albumDao.createOrUpdateAlbum(album);
-        }
-      }
-    } catch (Exception e) {
-      logger.error("Error while library scanning. ",e);
-    }
 
-    logger.debug("END : scan directory [" + mediaFile.getPath() + "]");
+        logger.debug("END : scan directory [" + mediaFile.getPath() + "]");
 
         /*
         if (file.getMediaType().equals(MediaFile.MediaType.VIDEO)) {
@@ -307,7 +303,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
         }
         */
 
-  }
+    }
 
 
 }
