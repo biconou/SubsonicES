@@ -141,7 +141,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
       // Recurse through all files on disk.
       for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
-        scanFileOrDirectory(musicFolder.getPath(), musicFolder, lastScanned);
+        scanFileOrDirectory(musicFolder.getPath(), musicFolder, lastScanned,true);
       }
 
       // TODO traiter les podcasts
@@ -205,7 +205,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
       logger.warn("File [" + dirPath + "] does not exist.");
     }
     else {
-      scanFileOrDirectory(file,owningFolder,new Date());
+      scanFileOrDirectory(file,owningFolder,new Date(),false);
     }
   }
 
@@ -215,7 +215,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
    * @param musicFolder
    * @param lastScanned
    */
-  protected void scanFileOrDirectory(File file, MusicFolder musicFolder, Date lastScanned) {
+  protected void scanFileOrDirectory(File file, MusicFolder musicFolder, Date lastScanned, boolean recursive) {
 
     MediaFile mediaFile = mediaFileService.getMediaFile(file, false);
 
@@ -229,8 +229,8 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
         // Recursively scan sub directories
         for (File child : children) {
-          if (child.isDirectory()) {
-            scanFileOrDirectory(child, musicFolder, lastScanned);
+          if (child.isDirectory() && recursive) {
+            scanFileOrDirectory(child, musicFolder, lastScanned, recursive);
           }
         }
 
