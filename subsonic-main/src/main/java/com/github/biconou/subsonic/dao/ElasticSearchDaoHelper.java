@@ -110,6 +110,20 @@ public class ElasticSearchDaoHelper {
                       .execute().actionGet();
             }
           }
+
+          // Create musicFolders index
+          boolean indexExists = elasticSearchClient.admin().indices().prepareExists("musicfolders")
+                  .execute().actionGet().isExists();
+          if (!indexExists) {
+            elasticSearchClient.admin().indices()
+                    .prepareCreate("musicfolders")
+                    .addMapping("MUSIC_FOLDER",
+                            "path", "type=string,index=not_analyzed",
+                            "name", "type=string,index=not_analyzed",
+                            "enabled", "type=boolean",
+                            "changed", "type=date")
+                    .execute().actionGet();
+          }
         }
       }
     }
