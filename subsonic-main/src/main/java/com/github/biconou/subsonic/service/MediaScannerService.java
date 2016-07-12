@@ -139,7 +139,6 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
       Map<String, Integer> albumCount = new HashMap<String, Integer>();
 
       scanCount = 0;
-      statistics.reset();
 
       mediaFileService.setMemoryCacheEnabled(false);
 
@@ -160,13 +159,7 @@ public class MediaScannerService extends net.sourceforge.subsonic.service.MediaS
 
       logger.info("Scanned media library with " + scanCount + " entries.");
 
-      // Update statistics
-      statistics.incrementArtists(albumCount.size());
-      for (Integer albums : albumCount.values()) {
-        statistics.incrementAlbums(albums);
-      }
 
-      settingsService.setMediaLibraryStatistics(statistics);
       settingsService.setLastScanned(lastScanned);
       settingsService.save(false);
       logger.info("Completed media library scan.");

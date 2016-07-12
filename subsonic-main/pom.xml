@@ -24,7 +24,7 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.github.biconou</groupId>
+            <groupId>com.github.biconou</groupId>
             <artifactId>inotifywait-java</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>

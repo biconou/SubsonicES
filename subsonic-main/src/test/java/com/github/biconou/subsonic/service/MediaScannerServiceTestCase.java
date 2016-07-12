@@ -228,12 +228,12 @@ public class MediaScannerServiceTestCase extends TestCase {
 
     //
     String newDirToScan = resolveReal2Path("/chrome hoof - Album added");
-    mediaScannerService.scanDirectory(newDirToScan);
+    //mediaScannerService.scanDirectory(newDirToScan);
 
 
     // Wait for end of index
     try {
-      Thread.sleep(2000);
+      Thread.sleep(180000);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
