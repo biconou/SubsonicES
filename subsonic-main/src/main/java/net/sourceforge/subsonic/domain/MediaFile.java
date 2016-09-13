@@ -73,6 +73,10 @@ public class MediaFile implements Serializable,SubsonicESDomainObject {
     private Date childrenLastUpdated;
     private boolean present;
     private int version;
+    private int songCount;
+    private Integer folderId;
+
+
 
     public MediaFile(int id, String path, String folder, MediaType mediaType, String format, String title,
                      String albumName, String artist, String albumArtist, Integer discNumber, Integer trackNumber, Integer year, String genre, Integer bitRate,
@@ -118,6 +122,7 @@ public class MediaFile implements Serializable,SubsonicESDomainObject {
         return getPath().hashCode();
     }
 
+    @Deprecated
     public void setId(int id) {
         this.id = id;
     }
@@ -471,6 +476,22 @@ public class MediaFile implements Serializable,SubsonicESDomainObject {
     public File getCoverArtFile() {
         // TODO: Optimize
         return coverArtPath == null ? null : new File(coverArtPath);
+    }
+
+    public int getSongCount() {
+        return songCount;
+    }
+
+    public void setSongCount(int songCount) {
+        this.songCount = songCount;
+    }
+
+    public Integer getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(Integer folderId) {
+        this.folderId = folderId;
     }
 
     @Override

@@ -29,6 +29,7 @@ import net.sourceforge.subsonic.domain.MusicFolder;
 public class ElasticSearchDaoHelper {
 
   public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
+  @Deprecated
   public static final String ALBUM_INDEX_TYPE = "ALBUM";
 
   private MusicFolderDao musicFolderDao = null;
@@ -59,7 +60,7 @@ public class ElasticSearchDaoHelper {
 
   public void deleteIndexes() {
     Client client = obtainESClient();
-    String[] musicFolders = indexNames(musicFolderDao.getAllMusicFolders());
+    String[] musicFolders = indexNames();
     for (String folder : musicFolders) {
       String indexName = folder;
       boolean indexExists = client.admin().indices().prepareExists(indexName).execute().actionGet().isExists();
@@ -76,7 +77,7 @@ public class ElasticSearchDaoHelper {
         if (elasticSearchClient == null) {
           elasticSearchClient = obtainESClient();
 
-          String[] indexNames = indexNames(musicFolderDao.getAllMusicFolders());
+          String[] indexNames = indexNames();
           for (String indexName : indexNames) {
             boolean indexExists = elasticSearchClient.admin().indices().prepareExists(indexName)
                     .execute().actionGet().isExists();
@@ -92,6 +93,7 @@ public class ElasticSearchDaoHelper {
                               "genre", "type=string,index=not_analyzed",
                               "albumArtist", "type=string,index=not_analyzed",
                               "albumName", "type=string,index=not_analyzed",
+                              "name", "type=string,index=not_analyzed",
                               "coverArtPath", "type=string,index=not_analyzed",
                               "created", "type=date",
                               "changed", "type=date",
@@ -141,12 +143,21 @@ public class ElasticSearchDaoHelper {
    * @return
    */
   public String[] indexNames(List<MusicFolder> folders) {
-    if (folders != null) {
-      return folders.stream().map(folder -> folder.getName().toLowerCase()).toArray(String[]::new);
+
+    List<MusicFolder> list;
+    if (folders == null || folders.size() == 0) {
+      list = musicFolderDao.getAllMusicFolders();
     } else {
-      return null;
+      list = folders;
     }
+
+    return list.stream().map(folder -> folder.getName().toLowerCase()).toArray(String[]::new);
   }
+
+  public String[] indexNames() {
+    return indexNames(null);
+  }
+
 
   /**
    *
@@ -238,13 +249,7 @@ public class ElasticSearchDaoHelper {
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String jsonSearch, @Nullable Integer from, @Nullable Integer size,
                                                                       @Nullable Map<String,SortOrder> sortClause,
                                                                       @Nullable List<MusicFolder> musicFolders,Class<T> type) {
-    List<MusicFolder> list = null;
-    if (musicFolders == null) {
-      list = musicFolderDao.getAllMusicFolders();
-    } else {
-      list = musicFolders;
-    }
-    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames(list))
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames(musicFolders))
             .setQuery(jsonSearch).setVersion(true);
     return extractMediaFiles(searchRequestBuilder,from,size,sortClause,type);
   }

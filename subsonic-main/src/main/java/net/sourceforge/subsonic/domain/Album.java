@@ -47,6 +47,12 @@ public class Album implements SubsonicESDomainObject {
     private Date lastScanned;
     private boolean present;
     private Integer folderId;
+    private Date changed;
+    private Date childrenLastUpdated;
+    private String folder;
+    private String parentPath;
+
+
 
     public Album() {
     }
@@ -73,9 +79,10 @@ public class Album implements SubsonicESDomainObject {
     }
 
     public int getId() {
-        return id;
+        return getPath().hashCode();
     }
 
+    @Deprecated
     public void setId(int id) {
         this.id = id;
     }
@@ -92,8 +99,21 @@ public class Album implements SubsonicESDomainObject {
         return name;
     }
 
+    public String getAlbumName() {
+        return getName();
+    }
+
+
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Date getChanged() {
+        return changed;
+    }
+
+    public void setChanged(Date changed) {
+        this.changed = changed;
     }
 
     public String getArtist() {
@@ -207,6 +227,34 @@ public class Album implements SubsonicESDomainObject {
 
     public void setESId(String ESId) {
         this.ESId = ESId;
+    }
+
+    public Date getChildrenLastUpdated() {
+        return childrenLastUpdated;
+    }
+
+    public void setChildrenLastUpdated(Date childrenLastUpdated) {
+        this.childrenLastUpdated = childrenLastUpdated;
+    }
+
+    public String getFolder() {
+        return folder;
+    }
+
+    public void setFolder(String folder) {
+        this.folder = folder;
+    }
+
+    public String getParentPath() {
+        return parentPath;
+    }
+
+    public void setParentPath(String parentPath) {
+        this.parentPath = parentPath;
+    }
+
+    public MediaFile.MediaType getMediaType() {
+        return MediaFile.MediaType.ALBUM;
     }
 
 }

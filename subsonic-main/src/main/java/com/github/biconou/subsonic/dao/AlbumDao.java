@@ -42,7 +42,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames(musicFolderDao.getAllMusicFolders()))
+    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames())
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
@@ -98,7 +98,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
                 indexName,
-                ElasticSearchDaoHelper.ALBUM_INDEX_TYPE)
+                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
                 .setSource(json).setVersionType(VersionType.INTERNAL).get();
         if (synchrone) {
           long l = 0;
@@ -120,7 +120,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
         String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
         UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
                 indexName,
-                ElasticSearchDaoHelper.ALBUM_INDEX_TYPE, id)
+                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
                 .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
                 .get();
         if (synchrone) {

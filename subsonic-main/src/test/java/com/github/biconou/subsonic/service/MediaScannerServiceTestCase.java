@@ -8,7 +8,9 @@ import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
 import com.github.biconou.subsonic.dao.MediaFileDao;
 import junit.framework.Assert;
 import junit.framework.TestCase;
+import net.sourceforge.subsonic.dao.ArtistDao;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
+import net.sourceforge.subsonic.domain.Artist;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.service.MediaFileService;
@@ -20,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +39,8 @@ public class MediaScannerServiceTestCase extends TestCase {
   private MediaFileService mediaFileService = null;
   private MediaFileDao mediaFileDao = null;
   private MusicFolderDao musicFolderDao = null;
-  ElasticSearchDaoHelper elasticSearchDaoHelper = null;
+  private ElasticSearchDaoHelper elasticSearchDaoHelper = null;
+  private ArtistDao artistDao = null;
 
   @Override
   protected void setUp() throws Exception {
@@ -53,6 +57,7 @@ public class MediaScannerServiceTestCase extends TestCase {
     mediaScannerService = (MediaScannerService)context.getBean("mediaScannerService");
     mediaFileDao = (MediaFileDao)context.getBean("mediaFileDao");
     musicFolderDao = (MusicFolderDao) context.getBean("musicFolderDao");
+    artistDao = (ArtistDao) context.getBean("artistDao");
     mediaFileService = (MediaFileService) context.getBean("mediaFileService");
     elasticSearchDaoHelper = (ElasticSearchDaoHelper)context.getBean("elasticSearchDaoHelper");
 
@@ -223,11 +228,16 @@ public class MediaScannerServiceTestCase extends TestCase {
     //
     mediaFileDao.getGenres(false);
 
+    // List of artists
+    List<Artist> listOfAllArtists = artistDao.getAlphabetialArtists(0,0,new ArrayList<>());
+    listOfAllArtists.forEach(artist -> {System.out.println(artist.getName()+"-> "+artist.getAlbumCount()+" album(s)");});
+
+
     //
     copyAddedMedias();
 
     //
-    String newDirToScan = resolveReal2Path("/chrome hoof - Album added");
+    //String newDirToScan = resolveReal2Path("/chrome hoof - Album added");
     //mediaScannerService.scanDirectory(newDirToScan);
 
 

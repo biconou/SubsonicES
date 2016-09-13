@@ -67,7 +67,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       throw new RuntimeException(e);
     }
 
-    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames(musicFolderDao.getAllMusicFolders()))
+    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames())
             .setQuery(jsonQuery).setVersion(true).execute().actionGet();
   }
 
@@ -157,22 +157,23 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   }
 
 
-  public synchronized void createOrUpdateMediaFile(MediaFile file, boolean synchrone) {
+  public synchronized void createOrUpdateMediaFile(MediaFile mediaFile, boolean synchrone) {
 
-    logger.debug("CreateOrUpdate MediaFile : "+file.getPath());
+    logger.debug("CreateOrUpdate MediaFile : "+mediaFile.getPath());
 
-    String indexName = resolveIndexNameForMediaFile(file);
+    String indexName = resolveIndexNameForMediaFile(mediaFile);
 
-    SearchResponse searchResponse = searchMediaFileByPath(file.getPath());
+    SearchResponse searchResponse = searchMediaFileByPath(mediaFile.getPath());
 
     if (searchResponse.getHits().totalHits() == 0) {
       logger.debug("media files does not exist -> create");
       try {
-        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+        // Convert the MediaFile object to a json string representation.
+        String mediaFileAsJson = getElasticSearchDaoHelper().getMapper().writeValueAsString(mediaFile);
         IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
                 indexName,
                 ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
-                .setSource(json).setVersionType(VersionType.INTERNAL).get();
+                .setSource(mediaFileAsJson).setVersionType(VersionType.INTERNAL).get();
         if (synchrone) {
           long l = 0;
           while (l == 0) {
@@ -190,7 +191,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       try {
         String id = searchResponse.getHits().getAt(0).id();
         long version = searchResponse.getHits().getAt(0).version();
-        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(file);
+        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(mediaFile);
         UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
                 indexName,
                 ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
@@ -547,7 +548,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (folders == null) {
       throw new NullPointerException();
     }
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames())
             .setQuery(QueryBuilders.typeQuery("MEDIA_FILE")).get();
     return countResponse.getHits().totalHits();
   }
@@ -556,7 +557,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (folders == null) {
       throw new NullPointerException();
     }
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames())
             .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","MUSIC"))).get();
     return countResponse.getHits().totalHits();
   }
@@ -565,7 +566,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (folders == null) {
       throw new NullPointerException();
     }
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames())
             .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","ALBUM"))).get();
     return countResponse.getHits().totalHits();
   }
@@ -574,7 +575,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     if (folders == null) {
       throw new NullPointerException();
     }
-    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolderDao.getAllMusicFolders()))
+    SearchResponse countResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames())
             .setQuery(QueryBuilders.boolQuery().must(QueryBuilders.typeQuery("MEDIA_FILE")).must(QueryBuilders.termQuery("mediaType","DIRECTORY"))).get();
     return countResponse.getHits().totalHits();
   }

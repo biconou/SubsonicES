@@ -20,8 +20,9 @@
         <property name="musicFolderDao" ref="musicFolderDao"/>
     </bean>
 
-    <bean id="artistDao" class="net.sourceforge.subsonic.dao.ArtistDao">
+    <bean id="artistDao" class="com.github.biconou.subsonic.dao.ArtistDao">
         <property name="daoHelper" ref="daoHelper"/>
+        <property name="elasticSearchDaoHelper" ref="elasticSearchDaoHelper"/>
     </bean>
 
     <bean id="albumDao" class="com.github.biconou.subsonic.dao.AlbumDao">

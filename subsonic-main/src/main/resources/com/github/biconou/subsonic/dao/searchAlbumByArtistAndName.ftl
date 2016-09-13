@@ -5,7 +5,8 @@
                 "must" : [
                     {"term" : {"artist" : "${artist}"}},
                     {"term" : {"name" : "${name}"}},
-                    {"type" : { "value" : "ALBUM" }}
+                    {"term" : {"mediaType" : "ALBUM"}},
+                    {"type" : { "value" : "MEDIA_FILE" }}
                 ]
             }
         }
