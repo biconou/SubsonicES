@@ -11,4 +11,7 @@ public interface SubsonicESDomainObject {
 
   public void setESId(String ESId);
 
+  public int getVersion();
+
+  public void setVersion(int version);
 }

@@ -453,7 +453,12 @@ public class MediaFile implements Serializable,SubsonicESDomainObject {
         return version;
     }
 
-  @JsonIgnore
+    @Override
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    @JsonIgnore
     public String getESId() {
       return ESId;
     }

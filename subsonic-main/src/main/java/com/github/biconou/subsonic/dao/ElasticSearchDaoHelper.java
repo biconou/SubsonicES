@@ -8,11 +8,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import net.sourceforge.subsonic.domain.MediaFile;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,11 +29,14 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MusicFolder;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by remi on 26/04/2016.
  */
 public class ElasticSearchDaoHelper {
+
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ElasticSearchDaoHelper.class);
 
   public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
   @Deprecated
@@ -204,7 +214,99 @@ public class ElasticSearchDaoHelper {
     }
   }
 
+  /**
+   *
+   * @param hit
+   * @return
+   * @throws RuntimeException
+   */
+  private <T extends SubsonicESDomainObject> T convertFromHit(SearchHit hit, Class<T> type) throws RuntimeException {
+    T object = null;
 
+    if (hit != null) {
+      String hitSource = hit.getSourceAsString();
+      try {
+        object = getMapper().readValue(hitSource,type);
+        object.setESId(hit.id());
+        object.setVersion((int)hit.getVersion());
+      } catch (IOException e) {
+        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
+      }
+    }
+    return object;
+  }
+
+
+  public void createObject(SubsonicESDomainObject obj, String indexName, boolean synchrone) {
+    logger.debug("Object does not exist -> create");
+    try {
+      // Convert the object to a json string representation.
+      String mediaFileAsJson = getMapper().writeValueAsString(obj);
+      IndexResponse indexResponse = getClient().prepareIndex(
+              indexName,
+              ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
+              .setSource(mediaFileAsJson).setVersionType(VersionType.INTERNAL).get();
+      if (synchrone) {
+        long l = 0;
+        while (l == 0) {
+          l = getClient().prepareSearch(indexName)
+                  .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
+        }
+      }
+
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error trying indexing object " + e);
+    }
+  }
+
+  public void updateObject(SubsonicESDomainObject allReadyExistsMediaFile, SubsonicESDomainObject obj, String indexName, boolean synchrone) {
+    logger.debug("media files exists -> update");
+    // update the media file.
+    try {
+      String esId = allReadyExistsMediaFile.getESId();
+      int version = allReadyExistsMediaFile.getVersion();
+      String json = getMapper().writeValueAsString(obj);
+      UpdateResponse response = getClient().prepareUpdate(
+              indexName,
+              ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, esId)
+              .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
+              .get();
+      if (synchrone) {
+        long newVersion = version;
+        while (newVersion == version) {
+          newVersion = getClient().prepareSearch(indexName)
+                  .setQuery(QueryBuilders.idsQuery().addIds(esId)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
+        }
+      }
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error trying indexing mediaFile " + e);
+    }
+  }
+
+
+
+
+  public <T extends SubsonicESDomainObject> T extractUnique(String queryName, Map<String, String> vars, Class<T> type) {
+    String jsonQuery;
+    try {
+      jsonQuery = getQuery(queryName,vars);
+    } catch (IOException |TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames())
+            .setQuery(jsonQuery).setVersion(true);
+    SearchResponse response = searchRequestBuilder.execute().actionGet();
+
+    long totalHits = response == null ? 0 : response.getHits().totalHits();
+    if (totalHits == 0) {
+      return null;
+    } else if (totalHits > 1) {
+      throw new RuntimeException("Document is not unique "+type.getName()+" "+vars);
+    } else {
+      return convertFromHit(response.getHits().getHits()[0],type);
+    }
+  }
 
   public <T extends SubsonicESDomainObject> List<T> extractMediaFiles(String queryName, Map<String, String> vars, Class<T> type) {
     return extractMediaFiles(queryName, vars, null,null,null,type);
@@ -278,25 +380,8 @@ public class ElasticSearchDaoHelper {
     return returnedSongs;
   }
 
-  /**
-   *
-   * @param hit
-   * @return
-   * @throws RuntimeException
-   */
-  public <T extends SubsonicESDomainObject> T convertFromHit(SearchHit hit, Class<T> type) throws RuntimeException {
-    T object = null;
 
-    if (hit != null) {
-      String hitSource = hit.getSourceAsString();
-      try {
-        object = getMapper().readValue(hitSource,type);
-        object.setESId(hit.id());
-      } catch (IOException e) {
-        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
-      }
-    }
-    return object;
+  public ElasticSearchDaoHelper getElasticSearchDaoHelper(MediaFileDao mediaFileDao) {
+    return this;
   }
-
 }

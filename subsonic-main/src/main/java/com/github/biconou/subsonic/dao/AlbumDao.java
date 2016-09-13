@@ -1,23 +1,13 @@
 package com.github.biconou.subsonic.dao;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.Album;
 import net.sourceforge.subsonic.domain.MusicFolder;
+import org.slf4j.LoggerFactory;
 
-/**
- * Created by remi on 11/05/2016.
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AlbumDao.class);
@@ -30,38 +20,14 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     this.musicFolderDao = musicFolderDao;
   }
 
-  private SearchResponse searchAlbumByArtistAndName(String artist, String name) {
-
-    Map<String,String> vars = new HashMap<>();
-    vars.put("artist",artist);
-    vars.put("name",name);
-    String jsonQuery = null;
-    try {
-      jsonQuery = getElasticSearchDaoHelper().getQuery("searchAlbumByArtistAndName",vars);
-    } catch (IOException|TemplateException e) {
-      throw new RuntimeException(e);
-    }
-
-    return getElasticSearchDaoHelper().getClient().prepareSearch(getElasticSearchDaoHelper().indexNames())
-            .setQuery(jsonQuery).setVersion(true).execute().actionGet();
-  }
-
 
   @Override
   public Album getAlbum(String artistName, String albumName) {
-    SearchResponse response = searchAlbumByArtistAndName(artistName,albumName);
+    Map<String,String> vars = new HashMap<>();
+    vars.put("artist",artistName);
+    vars.put("name",albumName);
 
-    long nbFound = response.getHits().getTotalHits();
-    if (nbFound > 1) {
-      throw new RuntimeException("Index incoherence. more than one album found for artist "+artistName+" and name "+albumName);
-    }
-
-    if (nbFound == 0) {
-      return null;
-    } else {
-      return getElasticSearchDaoHelper().convertFromHit(response.getHits().getHits()[0],Album.class);
-    }
-
+    return elasticSearchDaoHelper.extractUnique("searchAlbumByArtistAndName",vars,Album.class);
   }
 
   /**
@@ -78,61 +44,19 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     return null;
   }
 
+
   @Override
   public synchronized void createOrUpdateAlbum(Album album) {
-    createOrUpdateAlbum(album, false);
-    //createOrUpdateMediaFile(file, true);
-  }
-
-  public synchronized void createOrUpdateAlbum(Album album, boolean synchrone) {
-
-    logger.debug("CreateOrUpdateAlbum for artist=["+album.getArtist()+"] and name=["+album.getName()+"]");
-    SearchResponse searchResponse = searchAlbumByArtistAndName(album.getArtist(),album.getName());
 
     String indexName = resolveIndexNameForAlbum(album);
+    logger.debug("CreateOrUpdateAlbum for artist=["+album.getArtist()+"] and name=["+album.getName()+"] into index ["+indexName+"]");
 
+    Album allReadyExistsAlbum = getAlbum(album.getArtist(),album.getName());
 
-    if (searchResponse == null || searchResponse.getHits().totalHits() == 0) {
-      logger.debug("Album does not exist");
-      try {
-        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
-        IndexResponse indexResponse = getElasticSearchDaoHelper().getClient().prepareIndex(
-                indexName,
-                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
-                .setSource(json).setVersionType(VersionType.INTERNAL).get();
-        if (synchrone) {
-          long l = 0;
-          while (l == 0) {
-            l = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
-                    .setQuery(QueryBuilders.idsQuery().addIds(indexResponse.getId())).execute().actionGet().getHits().totalHits();
-          }
-        }
-
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException("Error trying indexing mediaFile "+e);
-      }
+    if (allReadyExistsAlbum == null) {
+      elasticSearchDaoHelper.createObject(album, indexName, false);
     }  else {
-      // update the media file.
-      try {
-        String id = searchResponse.getHits().getAt(0).id();
-        long version  = searchResponse.getHits().getAt(0).version();
-        logger.debug("Album exists with id=["+id+"] and version=["+version+"]. -> update with a new version.");
-        String json = getElasticSearchDaoHelper().getMapper().writeValueAsString(album);
-        UpdateResponse response = getElasticSearchDaoHelper().getClient().prepareUpdate(
-                indexName,
-                ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, id)
-                .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
-                .get();
-        if (synchrone) {
-          long newVersion = version;
-          while (newVersion == version) {
-            newVersion = getElasticSearchDaoHelper().getClient().prepareSearch(indexName)
-                    .setQuery(QueryBuilders.idsQuery().addIds(id)).setVersion(true).execute().actionGet().getHits().getAt(0).version();
-          }
-        }
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException("Error trying indexing mediaFile "+e);
-      }
+      elasticSearchDaoHelper.updateObject(allReadyExistsAlbum, album, indexName, false);
     }
   }
 

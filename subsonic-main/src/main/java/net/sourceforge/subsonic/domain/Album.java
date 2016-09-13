@@ -51,6 +51,7 @@ public class Album implements SubsonicESDomainObject {
     private Date childrenLastUpdated;
     private String folder;
     private String parentPath;
+    private int version;
 
 
 
@@ -257,4 +258,11 @@ public class Album implements SubsonicESDomainObject {
         return MediaFile.MediaType.ALBUM;
     }
 
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
 }
