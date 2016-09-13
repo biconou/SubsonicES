@@ -237,7 +237,7 @@ public class ElasticSearchDaoHelper {
   }
 
 
-  public void createObject(SubsonicESDomainObject obj, String indexName, boolean synchrone) {
+  public void indexObject(SubsonicESDomainObject obj, String indexName, boolean synchrone) {
     logger.debug("Object does not exist -> create");
     try {
       // Convert the object to a json string representation.

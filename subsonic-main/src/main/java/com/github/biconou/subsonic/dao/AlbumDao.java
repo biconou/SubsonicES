@@ -54,7 +54,7 @@ public class AlbumDao extends net.sourceforge.subsonic.dao.AlbumDao {
     Album allReadyExistsAlbum = getAlbum(album.getArtist(),album.getName());
 
     if (allReadyExistsAlbum == null) {
-      elasticSearchDaoHelper.createObject(album, indexName, false);
+      elasticSearchDaoHelper.indexObject(album, indexName, false);
     }  else {
       elasticSearchDaoHelper.updateObject(allReadyExistsAlbum, album, indexName, false);
     }

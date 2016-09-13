@@ -10,17 +10,13 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.Genre;
@@ -129,7 +125,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     MediaFile allReadyExistsMediaFile = getMediaFile(mediaFile.getPath());
 
     if (allReadyExistsMediaFile == null) {
-      elasticSearchDaoHelper.createObject(mediaFile, indexName, false);
+      elasticSearchDaoHelper.indexObject(mediaFile, indexName, false);
     } else {
       elasticSearchDaoHelper.updateObject(allReadyExistsMediaFile, mediaFile, indexName, false);
     }
