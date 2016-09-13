@@ -63,7 +63,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   public List<MediaFile> getChildrenOf(String path) {
     Map<String,String> vars = new HashMap<>();
     vars.put("path",path);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getChildrenOf",vars,MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getChildrenOf",vars,MediaFile.class);
   }
 
   @Override
@@ -71,7 +71,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     Map<String,String> vars = new HashMap<>();
     vars.put("artist",artist);
     vars.put("album",album);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getSongsForAlbum",vars,MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getSongsForAlbum",vars,MediaFile.class);
   }
 
   /**
@@ -96,7 +96,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       size = count;
     }
 
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getSongsByGenre",vars, offset, size,null,musicFolders,MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getSongsByGenre",vars, offset, size,null,musicFolders,MediaFile.class);
   }
 
 
@@ -137,7 +137,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
   public MediaFile getMediaFile(int id) {
     Map<String,String> vars = new HashMap<>();
     vars.put("id","" + id);
-    List<MediaFile> list = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getMediaFile", vars, MediaFile.class);
+    List<MediaFile> list = elasticSearchDaoHelper.extractMediaFiles("getMediaFile", vars, MediaFile.class);
     if (list != null && list.size() > 0) {
       if (list.size() > 1) {
         throw new RuntimeException("Multiple Ids");
@@ -161,7 +161,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,SortOrder> sortClause = new Hashtable<>();
     sortClause.put("title",SortOrder.ASC);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getVideos", null, offset, count,sortClause,musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getVideos", null, offset, count,sortClause,musicFolders, MediaFile.class);
   }
 
   @Override
@@ -171,7 +171,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,String> vars = new HashMap<>();
     vars.put("artist",name);
-    List<MediaFile> list = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getArtistByName", vars,null, null, null, musicFolders, MediaFile.class);
+    List<MediaFile> list = elasticSearchDaoHelper.extractMediaFiles("getArtistByName", vars,null, null, null, musicFolders, MediaFile.class);
     if (list != null && list.size() > 0) {
       return list.get(0);
     } else {
@@ -254,7 +254,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,SortOrder> sortClause = new Hashtable<>();
     sortClause.put("playCount",SortOrder.DESC);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getMostFrequentlyPlayedAlbums", null, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getMostFrequentlyPlayedAlbums", null, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
@@ -264,7 +264,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,SortOrder> sortClause = new Hashtable<>();
     sortClause.put("lastPlayed",SortOrder.DESC);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getMostRecentlyPlayedAlbums", null, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getMostRecentlyPlayedAlbums", null, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
@@ -275,7 +275,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     Map<String,SortOrder> sortClause = new HashMap<>();
     sortClause.put("created",SortOrder.DESC);
 
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getNewestAlbums", null, offset, count, sortClause,musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getNewestAlbums", null, offset, count, sortClause,musicFolders, MediaFile.class);
   }
 
   @Override
@@ -288,7 +288,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
       sortClause.put("artist",SortOrder.ASC);
     }
     sortClause.put("albumName",SortOrder.ASC);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getAlphabeticalAlbums", null, offset, count, sortClause,musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getAlphabeticalAlbums", null, offset, count, sortClause,musicFolders, MediaFile.class);
   }
 
   @Override
@@ -300,7 +300,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     Map<String,String> vars = new HashMap<>();
     vars.put("fromYear","" + fromYear);
     vars.put("toYear","" + toYear);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getAlbumsByYear", vars, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getAlbumsByYear", vars, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
@@ -310,14 +310,14 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,String> vars = new HashMap<>();
     vars.put("genre",genre);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getAlbumsByGenre", vars, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getAlbumsByGenre", vars, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
   public List<MediaFile> getSongsByArtist(String artist, int offset, int count) {
     Map<String,String> vars = new HashMap<>();
     vars.put("artist","" + artist);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getSongsByArtist", vars, offset,count,null, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getSongsByArtist", vars, offset,count,null, MediaFile.class);
   }
 
   @Override
@@ -328,7 +328,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     Map<String,String> vars = new HashMap<>();
     vars.put("artist",artist);
     vars.put("title",title);
-    List<MediaFile> list = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getSongByArtistAndTitle", vars, null, null, null,musicFolders, MediaFile.class);
+    List<MediaFile> list = elasticSearchDaoHelper.extractMediaFiles("getSongByArtistAndTitle", vars, null, null, null,musicFolders, MediaFile.class);
     if (list != null && list.size() > 0) {
       return list.get(0);
     } else {
@@ -343,7 +343,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,String> vars = new HashMap<>();
     vars.put("username",username);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getStarredAlbums", vars, offset, count, null,musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getStarredAlbums", vars, offset, count, null,musicFolders, MediaFile.class);
   }
 
   @Override
@@ -353,7 +353,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,String> vars = new HashMap<>();
     vars.put("username",username);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getStarredDirectories", vars, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getStarredDirectories", vars, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
@@ -363,7 +363,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     }
     Map<String,String> vars = new HashMap<>();
     vars.put("username",username);
-    return elasticSearchDaoHelper.getElasticSearchDaoHelper(this).extractMediaFiles("getStarredFiles", vars, offset, count,null, musicFolders, MediaFile.class);
+    return elasticSearchDaoHelper.extractMediaFiles("getStarredFiles", vars, offset, count,null, musicFolders, MediaFile.class);
   }
 
   @Override
@@ -374,12 +374,12 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
     String jsonQuery = null;
     try {
-      jsonQuery = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getQuery("getAlbumCount",null);
+      jsonQuery = elasticSearchDaoHelper.getQuery("getAlbumCount",null);
     } catch (IOException|TemplateException e) {
       throw new RuntimeException(e);
     }
 
-    return (int) elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getClient().prepareSearch(elasticSearchDaoHelper.getElasticSearchDaoHelper(this).indexNames(musicFolders))
+    return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 
@@ -391,13 +391,13 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
     String jsonQuery = null;
     try {
-      jsonQuery = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getQuery("getPlayedAlbumCount",null);
+      jsonQuery = elasticSearchDaoHelper.getQuery("getPlayedAlbumCount",null);
     } catch (IOException|TemplateException e) {
       throw new RuntimeException(e);
     }
 
     // TODO multifolders
-    return (int) elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getClient().prepareSearch(elasticSearchDaoHelper.getElasticSearchDaoHelper(this).indexNames(musicFolders))
+    return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 
@@ -411,13 +411,13 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
     vars.put("username",username);
     String jsonQuery = null;
     try {
-      jsonQuery = elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getQuery("getStarredAlbumCount",vars);
+      jsonQuery = elasticSearchDaoHelper.getQuery("getStarredAlbumCount",vars);
     } catch (IOException|TemplateException e) {
       throw new RuntimeException(e);
     }
 
     // TODO multifolders
-    return (int) elasticSearchDaoHelper.getElasticSearchDaoHelper(this).getClient().prepareSearch(elasticSearchDaoHelper.getElasticSearchDaoHelper(this).indexNames(musicFolders))
+    return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
       .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
   }
 

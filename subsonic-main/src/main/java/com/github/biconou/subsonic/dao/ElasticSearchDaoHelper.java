@@ -39,8 +39,6 @@ public class ElasticSearchDaoHelper {
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ElasticSearchDaoHelper.class);
 
   public static final String MEDIA_FILE_INDEX_TYPE = "MEDIA_FILE";
-  @Deprecated
-  public static final String ALBUM_INDEX_TYPE = "ALBUM";
 
   private MusicFolderDao musicFolderDao = null;
 
@@ -62,10 +60,6 @@ public class ElasticSearchDaoHelper {
 
     return TransportClient.builder().build()
              .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
-    /* Map<String,String> settings = new HashMap<>();
-    settings.put("path.home","/software/elasticsearch-2.3.3");
-    Node node = NodeBuilder.nodeBuilder().client(true).settings(Settings.builder().put(settings)).node();
-    return node.client(); */
   }
 
   public void deleteIndexes() {
@@ -101,6 +95,7 @@ public class ElasticSearchDaoHelper {
                               "folder", "type=string,index=not_analyzed",
                               "format", "type=string,index=not_analyzed",
                               "genre", "type=string,index=not_analyzed",
+                              "artist", "type=string,index=not_analyzed",
                               "albumArtist", "type=string,index=not_analyzed",
                               "albumName", "type=string,index=not_analyzed",
                               "name", "type=string,index=not_analyzed",
@@ -111,14 +106,6 @@ public class ElasticSearchDaoHelper {
                               "lastPlayed", "type=date",
                               "lastScanned", "type=date",
                               "starredDate", "type=date")
-                      .addMapping(ALBUM_INDEX_TYPE,
-                              "path", "type=string,index=not_analyzed",
-                              "name", "type=string,index=not_analyzed",
-                              "artist", "type=string,index=not_analyzed",
-                              "coverArtPath", "type=string,index=not_analyzed",
-                              "lastPlayed", "type=date",
-                              "created", "type=date",
-                              "lastScanned", "type=date")
                       .execute().actionGet();
             }
           }
@@ -378,10 +365,5 @@ public class ElasticSearchDaoHelper {
     SearchResponse response = searchRequestBuilder.execute().actionGet();
     List<T> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(hit,type)).collect(Collectors.toList());
     return returnedSongs;
-  }
-
-
-  public ElasticSearchDaoHelper getElasticSearchDaoHelper(MediaFileDao mediaFileDao) {
-    return this;
   }
 }

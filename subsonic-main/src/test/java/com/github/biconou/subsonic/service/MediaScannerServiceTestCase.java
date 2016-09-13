@@ -158,7 +158,7 @@ public class MediaScannerServiceTestCase extends TestCase {
 
     // Wait for end of index
     try {
-      Thread.sleep(2000);
+      Thread.sleep(4000);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
