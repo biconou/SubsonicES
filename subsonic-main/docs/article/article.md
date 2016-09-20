@@ -57,7 +57,7 @@ But, in Subsonic, the scanner service inserts media files informations in the ME
 
 #Index and mapping design
 
-As I explained before, Subsonic significant "besiness" data is located in few tables.
+As I explained before, Subsonic significant "business" data is located in few tables.
 The main one is the MEDIA_FILE table. This table actually assembles 3 kind of records. 
 - the media files themselves
 - the directories
@@ -65,14 +65,137 @@ The main one is the MEDIA_FILE table. This table actually assembles 3 kind of re
 Each of these records is identified by a technical unique id, but also by the file/folder path on file system.
 
 Beside, a list of musical genres settle in the GENRE table and a list of artists in the ARTIST table.
-You must have also noticed there is an ALBUM table despite the fact that album also reside in the MEDIA_FILE table. We will see later why.
+You must have also noticed there is an ALBUM table despite the fact that album already reside in the MEDIA_FILE table. We will see later why.
 
 Because ElasticSearch indices are a very flexible structure (remember it's a kind of No-Sql technology), I decided to have only one unique index to represent all of these tables. It seems to me it better fits the ElasticSearch philosophy. I then break the RDBMS relational logic.
-A media library is a buch of documents (the audio files) and all information about them will reside in a unique index. 
+A media library is a bunch of documents (the audio files) and all information about them will reside in a that index. 
 We'll see later that the ElasticSearch search capabilities will help us get rid of the other tables.
 
 Note that this index will both replace the database and the lucene index Subsonic creates for search.
 
+In subsonic, one can declare several "media folders". A media folder is a subset of the media library starting at a specified root directory.
+It is then possible to grant or not a user to certain media folders, thus this user will only be able to see media files in the media folders he has been granted to.
+ElasticSearch has a very convenient feature that allow to run a same query over one or more indices. 
+In my new design, each media folder will be stored into a different index so each query will be run for a special user over the indices corresponding the media folders the user is allowed to browse.
+
 
 #Rewriting of the DAO layer
 
+The DAO layer deals with both the model objects and the backend database.
+In subsonic, the DAO layer is composed of a set of DAO classes and a utility class called DaoHelper. 
+Each model object has it's own DAO class that reads and writes objects from and to the database.
+For example, the MEDIA_FILE table is represented in the java world by the MediaFile model class and the MediaFileDao DAO class.
+
+To turn the DAO layer to ElasticSearch, the goal is to rewrite the DAO classes without changing the model classes.
+The new DAO classes will use specific ElasticSearch techniques to read and write objects (we should also say documents) from and to ElasticSearch indices.
+I used a combination of the java ElasticSearch client and the query DSL based on Json.
+
+##The DAO utility class
+
+As subsonic implements utilities to access the database in the DaoHelper class, I created an equivalent ElasticSearchDaoHelper. 
+The ElasticSearchDaoHelper class creates the indices and provide some tools to run queries against the ElasticSearch server in a unified manner.
+ 
+When first used, the ElasticSearchDaoHelper will create explicitly exactly one index for each media folder as shown below.
+
+```java
+          String[] indexNames = indexNames();
+          for (String indexName : indexNames) {
+            boolean indexExists = elasticSearchClient.admin().indices().prepareExists(indexName)
+                    .execute().actionGet().isExists();
+            if (!indexExists) {
+              elasticSearchClient.admin().indices()
+                      .prepareCreate(indexName)
+                      .addMapping(MEDIA_FILE_INDEX_TYPE,
+                              "path", "type=string,index=not_analyzed",
+                              "parentPath", "type=string,index=not_analyzed",
+                              "mediaType", "type=string,index=not_analyzed",
+                              "folder", "type=string,index=not_analyzed",
+                              "format", "type=string,index=not_analyzed",
+                              "genre", "type=string,index=not_analyzed",
+                              "artist", "type=string,index=not_analyzed",
+                              "albumArtist", "type=string,index=not_analyzed",
+                              "albumName", "type=string,index=not_analyzed",
+                              "name", "type=string,index=not_analyzed",
+                              "coverArtPath", "type=string,index=not_analyzed",
+                              "created", "type=date",
+                              "changed", "type=date",
+                              "childrenLastUpdated", "type=date",
+                              "lastPlayed", "type=date",
+                              "lastScanned", "type=date",
+                              "starredDate", "type=date")
+                      .execute().actionGet();
+            }
+          }
+
+```
+
+The `indexNames` array is actually a set of all the media folders names; thus this code  snippet will create identical indexes for each media folder.
+Each field declared correspond to a property in the MediaFile model object and is typed. 
+You can see that most of these fields are `not_analyzed`. That's important to be able to search records (documents) with exact value of these fields (remember that, here, ElasticSearch is used as a kind of database). 
+
+Then, the ElasticSearchDaoHelper contains a set of utility methods to access these indices.
+
+###Indexing media files
+
+Media files objects are added to the ElasticSearch backend server during the Subsonic scanning process by the scanner service. Actually this consists of indexing new documents into the proper index.
+This is the job of the `indexObject` method.
+
+```java
+  public void indexObject(SubsonicESDomainObject obj, String indexName) {
+    try {
+      // Convert the object to a json string representation.
+      String mediaFileAsJson = getMapper().writeValueAsString(obj);
+      IndexResponse indexResponse = getClient().prepareIndex(
+              indexName,
+              ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE)
+              .setSource(mediaFileAsJson).setVersionType(VersionType.INTERNAL).get();
+      }
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error trying indexing object " + e);
+    }
+  }
+
+```
+ 
+The `indexName` parameter passed to the method is the actual name of the index (and thus of the media folder) in which the document must be created.  
+The `obj` parameter must mach a model object that can be stored in the index. Such objects are of class MediaFile or Album for instance.
+You can notice that the object is serialized to Json using Jackson prior to be indexed (`getMapper().writeValueAsString(obj)` where getMapper refers to the `com.fasterxml.jackson.databind.ObjectMapper` class).
+
+To achieve this, a slight modification is done on the model objects classes. 
+
+Each model object class implements an interface called `SubsonicESDomainObject` that enhances it with the special fields `ESId` and `version` that represent the special fields _id and _version in the ElasticSearch index.
+
+```java
+public interface SubsonicESDomainObject {
+
+  public String getESId();
+
+  public void setESId(String ESId);
+
+  public int getVersion();
+
+  public void setVersion(int version);
+}
+```
+
+###Updating media files
+
+The ElasticSearchDaoHelper class also has a method that can update an object.
+
+```java
+  public void updateObject(SubsonicESDomainObject allReadyExistsMediaFile, SubsonicESDomainObject obj, String indexName) {
+    // update the media file.
+    try {
+      String esId = allReadyExistsMediaFile.getESId();
+      int version = allReadyExistsMediaFile.getVersion();
+      String json = getMapper().writeValueAsString(obj);
+      UpdateResponse response = getClient().prepareUpdate(
+              indexName,
+              ElasticSearchDaoHelper.MEDIA_FILE_INDEX_TYPE, esId)
+              .setDoc(json).setVersion(version).setVersionType(VersionType.INTERNAL)
+              .get();
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error trying indexing mediaFile " + e);
+    }
+  }
+```
