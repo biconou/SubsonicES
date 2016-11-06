@@ -5,6 +5,7 @@ The media files informations are stored in a database but the medias themselves 
 
 Here is overall Subsonic architecture.
 
+![](Subsonic_architecture.png)
 
 The subsonic database is a simple HSQLDB instance embedded in the Subsonic web application. The main downside of this is that an embedded database is difficult to administrate. You can not access the database from a third party application and it is difficult to backup. In addition, a HsqlDB database needs to be periodically compacted or it will be less and less efficient. 
 On the other hand, an embedded HsqlDB database is very quick.
@@ -199,3 +200,321 @@ The ElasticSearchDaoHelper class also has a method that can update an object.
     }
   }
 ```
+
+###Performing queries
+
+The `ElasticSearchDaoHelper` contains a set of methods to facilitate querying over the indices.
+
+To execute queries, the ElasticSearch java client is used but each query is specified as Json and is placed in a separate resource file (indeed, I hate embedding my string queries in java classes).
+In fact, each file containing a query is actually a FreeMarker templates that contains some variables used as parameters for the query.
+
+For instance, this is the ```searchMediaFileByPath.flt``` file that contains a query to find a media file identified by it's unique path.
+  
+```json
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : {"path" : "${path}"}},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ]
+            }
+        }
+    }
+}
+```
+
+And here is the helper method that retrieves an object by its unique identifier.
+
+```java
+  public <T extends SubsonicESDomainObject> T extractUnique(String queryName, Map<String, String> vars, Class<T> type) {
+    String jsonQuery;
+    try {
+      jsonQuery = getQuery(queryName,vars);
+    } catch (IOException | TemplateException e) {
+      throw new RuntimeException(e);
+    }
+
+    SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames())
+            .setQuery(jsonQuery).setVersion(true);
+    SearchResponse response = searchRequestBuilder.execute().actionGet();
+
+    long totalHits = response == null ? 0 : response.getHits().totalHits();
+    if (totalHits == 0) {
+      return null;
+    } else if (totalHits > 1) {
+      throw new RuntimeException("Document is not unique "+type.getName()+" "+vars);
+    } else {
+      return convertFromHit(response.getHits().getHits()[0],type);
+    }
+  }
+```
+
+The method convertFromHit is responsible for creating an object from the _source field of a document (ie. it's json representation). 
+
+```java
+  private <T extends SubsonicESDomainObject> T convertFromHit(SearchHit hit, Class<T> type) throws RuntimeException {
+    T object = null;
+
+    if (hit != null) {
+      String hitSource = hit.getSourceAsString();
+      try {
+        object = getMapper().readValue(hitSource,type);
+        object.setESId(hit.id());
+        object.setVersion((int)hit.getVersion());
+      } catch (IOException e) {
+        throw new RuntimeException("Error while reading MediaFile object from index. ", e);
+      }
+    }
+    return object;
+  }
+```
+
+And then here is a set of methods called ```extractObjects``` whose goal is to extract subsonic domain objects from indices using a query.
+
+```java
+    /**
+     * Extract objects from indices of certain music folders using a named query.
+     *
+     * @param queryName The name of the query to use. It refers to the name of a .ftl file that 
+     *                  contains the query expressed in json.
+     * @param vars A map of parameters and their value to bind to the query (can be null if the 
+     *             query has no parameter.
+     * @param from The offset index of the first object to extract from the query results. 
+     * @param size The number of objects to extract.
+     * @param sortClause A sort clause to apply to the query.
+     * @param musicFolders The list of music folders and thus indices to consider for the query.
+     * @param type The exact type of object being extracted.
+     * @param <T> The exact type of object being extracted.
+     * @return A list of all extracted objects. may be empty. The size is equal to size or less.
+     */
+    public <T extends SubsonicESDomainObject> List<T> extractObjects(String queryName, Map<String, String> vars,
+                                                                     Integer from, Integer size,
+                                                                     Map<String, SortOrder> sortClause,
+                                                                     List<MusicFolder> musicFolders, Class<T> type) {
+        String jsonQuery;
+        try {
+            jsonQuery = getQuery(queryName, vars);
+        } catch (IOException | TemplateException e) {
+            throw new RuntimeException(e);
+        }
+
+        return extractObjects(jsonQuery, from, size, sortClause, musicFolders, type);
+    }
+
+
+    /**
+     * Extract objects from indices of certain music folders using a json query.
+     * 
+     * @param jsonSearch A query expressed in json.
+     * @param from The offset index of the first object to extract from the query results. 
+     * @param size The number of objects to extract.
+     * @param sortClause A sort clause to apply to the query.
+     * @param musicFolders The list of music folders and thus indices to consider for the query.
+     * @param type The exact type of object being extracted.
+     * @param <T> The exact type of object being extracted.
+     * @return A list of all extracted objects. may be empty. The size is equal to size or less.
+     */
+    public <T extends SubsonicESDomainObject> List<T> extractObjects(String jsonSearch, Integer from, Integer size,
+                                                                     Map<String, SortOrder> sortClause,
+                                                                     List<MusicFolder> musicFolders, Class<T> type) {
+        SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames(musicFolders))
+                .setQuery(jsonSearch).setVersion(true);
+        return extractObjects(searchRequestBuilder, from, size, sortClause, type);
+    }
+
+    /**
+     * Extract objects from indices of certain music folders using a searchRequestBuilder.
+     *
+     * @param searchRequestBuilder A searchRequestBuilder that represents a query.
+     * @param from The offset index of the first object to extract from the query results. 
+     * @param size The number of objects to extract.
+     * @param sortClause A sort clause to apply to the query.
+     * @param type The exact type of object being extracted.
+     * @param <T> The exact type of object being extracted.
+     * @return A list of all extracted objects. may be empty. The size is equal to size or less.
+     */
+    public <T extends SubsonicESDomainObject> List<T> extractObjects(SearchRequestBuilder searchRequestBuilder,
+                                                                     Integer from, Integer size,
+                                                                     Map<String, SortOrder> sortClause, Class<T> type) {
+        if (from != null) {
+            searchRequestBuilder.setFrom(from);
+        }
+        if (size != null) {
+            searchRequestBuilder.setSize(size);
+        }
+        if (sortClause != null) {
+            sortClause.keySet().forEach(sortField -> searchRequestBuilder.addSort(sortField, sortClause.get(sortField)));
+        }
+        SearchResponse response = searchRequestBuilder.execute().actionGet();
+        List<T> returnedSongs = Arrays.stream(response.getHits().getHits()).map(hit -> convertFromHit(hit, type)).collect(Collectors.toList());
+        return returnedSongs;
+    }
+```
+
+You have noticed that all these methods are named the same because they all do the same thing but using a different signature. 
+Then it is possible to extract objects using a template file containing a query, a json query or a "compiled" query using an ElasticSearch ```SearchRequestBuilder```.
+
+The ```mediaFolders``` parameter specifies over which indices the query will be run (because each media folder has its own index).
+ 
+##The MediaFileDao class
+
+The ```MediaFileDao``` class is the main component of the DAO layer because the MediaFile object is the main object in Subsonic.
+This class has methods to retrieve MediaFile objects from a primary key or search criteria. 
+Let's examine to of these methods. 
+
+###Retrieving a MediaFile from its unique path
+
+A mediaFile can be identified by its file path on the file system.
+
+Subsonic based on HSQLDB retrieves a MediaFile Object this way :
+
+```java
+
+    private static final String COLUMNS = "id, path, folder, type, format, title, album, artist, album_artist, disc_number, " +
+                                          "track_number, year, genre, bit_rate, variable_bit_rate, duration_seconds, file_size, width, height, cover_art_path, " +
+                                          "parent_path, play_count, last_played, comment, created, changed, last_scanned, children_last_updated, present, version";
+
+    private final RowMapper rowMapper = new MediaFileMapper();
+
+    /**
+     * Returns the media file for the given path.
+     *
+     * @param path The path.
+     * @return The media file or null.
+     */
+    public MediaFile getMediaFile(String path) {
+        return queryOne("select " + COLUMNS + " from media_file where path=?", rowMapper, path);
+    }
+
+```
+Where MediaFileMapper is :
+
+```java
+    private static class MediaFileMapper implements ParameterizedRowMapper<MediaFile> {
+        public MediaFile mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new MediaFile(
+                    rs.getInt(1),
+                    rs.getString(2),
+                    rs.getString(3),
+                    MediaType.valueOf(rs.getString(4)),
+                    rs.getString(5),
+                    rs.getString(6),
+                    rs.getString(7),
+                    rs.getString(8),
+                    rs.getString(9),
+                    rs.getInt(10) == 0 ? null : rs.getInt(10),
+                    rs.getInt(11) == 0 ? null : rs.getInt(11),
+                    rs.getInt(12) == 0 ? null : rs.getInt(12),
+                    rs.getString(13),
+                    rs.getInt(14) == 0 ? null : rs.getInt(14),
+                    rs.getBoolean(15),
+                    rs.getInt(16) == 0 ? null : rs.getInt(16),
+                    rs.getLong(17) == 0 ? null : rs.getLong(17),
+                    rs.getInt(18) == 0 ? null : rs.getInt(18),
+                    rs.getInt(19) == 0 ? null : rs.getInt(19),
+                    rs.getString(20),
+                    rs.getString(21),
+                    rs.getInt(22),
+                    rs.getTimestamp(23),
+                    rs.getString(24),
+                    rs.getTimestamp(25),
+                    rs.getTimestamp(26),
+                    rs.getTimestamp(27),
+                    rs.getTimestamp(28),
+                    rs.getBoolean(29),
+                    rs.getInt(30));
+        }
+    }
+```
+
+This is a classic find by primary key SQL query written with the help of Spring Jdbc.
+
+Now, with the ElasticSearch DAO layer this becomes : 
+
+```java
+  /**
+   * Retrieve a MediaFile identified by a path.
+   *
+   * @param path The path.
+   * @return
+   */
+  @Override
+  public MediaFile getMediaFile(String path) {
+    Map<String,String> vars = new HashMap<>();
+    vars.put("path",path);
+
+    return elasticSearchDaoHelper.extractUnique("searchMediaFileByPath",vars,MediaFile.class);
+  }
+```
+
+Where the ElasticSearch query named ```searchMediaFileByPath``` is stored in a file named searchMediaFileByPath.ftl as follows : 
+
+```json
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : {"path" : "${path}"}},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ]
+            }
+        }
+    }
+}
+```
+
+You can notice the ```${path}``` parameter in the query passed to the ```extractUnique``` method invocation.
+There is no "RawMapper" here; remember that the object returned is constructed from the _source json representation of the document unmarshalled using jackson.
+
+###Retrieving all songs for an album
+
+The ```getSongsForAlbum``` method retrieves all songs of an album. 
+
+The Subsonic classic implementation is : 
+
+```java
+    public List<MediaFile> getSongsForAlbum(String artist, String album) {
+        return query("select " + COLUMNS + " from media_file where album_artist=? and album=? and present " +
+                     "and type in (?,?,?) order by disc_number, track_number", rowMapper,
+                     artist, album, MUSIC.name(), AUDIOBOOK.name(), PODCAST.name());
+    }
+```
+
+And here is the ElasticSearch DAO layer implementation :
+
+```java
+  @Override
+  public List<MediaFile> getSongsForAlbum(String artist, String album) {
+    Map<String,String> vars = new HashMap<>();
+    vars.put("artist",artist);
+    vars.put("album",album);
+    return elasticSearchDaoHelper.extractObjects("getSongsForAlbum",vars,MediaFile.class);
+  }
+```
+
+With the query : 
+
+```json
+{
+    "constant_score" : {
+        "filter" : {
+            "bool" : {
+                "must" : [
+                    {"term" : {"albumArtist" : "${artist}"}},
+                    {"term" : {"albumName" : "${album}"}},
+                    {"type" : { "value" : "MEDIA_FILE" }}
+                ],
+                "should" : [
+                    {"term" : {"mediaType" : "MUSIC"}},
+                    {"term" : {"mediaType" : "AUDIOBOOK"}},
+                    {"term" : {"mediaType" : "PODCAST"}}
+                ]
+            }
+        }
+    }
+}
+```
+

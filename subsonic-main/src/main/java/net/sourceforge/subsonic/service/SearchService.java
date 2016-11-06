@@ -19,7 +19,6 @@
 package net.sourceforge.subsonic.service;
 
 import com.github.biconou.subsonic.dao.ElasticSearchDaoHelper;
-import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.AlbumDao;
 import net.sourceforge.subsonic.dao.ArtistDao;
@@ -28,7 +27,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -290,7 +288,7 @@ public class SearchService {
      * @return List of random albums.
      */
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
-        return getElasticSearchDaoHelper().extractMediaFiles("getRandomAlbums",null,0,count,null,musicFolders,MediaFile.class);
+        return getElasticSearchDaoHelper().extractObjects("getRandomAlbums",null,0,count,null,musicFolders,MediaFile.class);
     }
 
     /**
