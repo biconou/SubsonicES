@@ -518,3 +518,24 @@ With the query :
 }
 ```
 
+#Playing this the datas
+
+Now we have rewritten the mediaFile DAO layer as well as the scannnig process thus we have and index off documents representing both the songs and the albums. 
+Then we can go further with the extraordinary capabilities of ElasticSearch to exploit these data. 
+At the beginning of that article I mentioned that Subsonic maintain more tables containing important business information : the GENRE and ARTIST tables.
+These tables are used to identify the different musical genres and artists contained in the media files.
+But actualy, genre and artist are also informations owned by the mediaFiles and album objects themselves. This is a typical database point of view. 
+But from the point of view of documents we would just have a look at these documents to know which genres and artists are present in the music collection. 
+
+Let's say you own a collection of records; and tha't probably true because you can remember that in the passed, every one owned a more or less collection of music records.
+As a music lover, you generally are able to tell what kind of genre and what artits compose your collection. But a very few personals have constructed the exact list of these artists on a sheet of paper. 
+Instead of that, you probably wanted to order your records collection by genre and then by artist. Or may be it is a mess.
+With ElasticSearch, we don't need to maintain a list of all artits or genres nor we have to order the records. 
+We just need to aggregate music datas when we want to know what is its distribution.
+
+The Subsonic API must respond to questions like :  
+ - what are the different genres in the collection and how many songs and album for this genre ?
+ - what are the different artists and how many albums of each (and please, can the list of artist be alphabetically ordered ?) ?
+ 
+To respond to this we will play with the documents we got in the index using the ElasticSearch aggregation framework.
+ 

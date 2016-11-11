@@ -71,29 +71,6 @@ public class ArtistDao extends net.sourceforge.subsonic.dao.ArtistDao {
             }
         }
 
-      /*  List<Genre> genres = new ArrayList<>();
-        artistsMap.keySet().forEach(genreKey -> genres.add(artistsMap.get(genreKey)));
-        if (sortByAlbum) {
-            genres.sort((o1, o2) -> {
-                if (o1.getAlbumCount() > o2.getAlbumCount()) {
-                    return -1;
-                }
-                if (o1.getAlbumCount() < o2.getAlbumCount()) {
-                    return 1;
-                }
-                return 0;
-            });
-        } else {
-            genres.sort((o1, o2) -> {
-                if (o1.getSongCount() > o2.getSongCount()) {
-                    return -1;
-                }
-                if (o1.getSongCount() < o2.getSongCount()) {
-                    return 1;
-                }
-                return 0;
-            });
-        } */
         return artists;
     }
 }
