@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.sort.SortOrder;
@@ -135,7 +136,7 @@ public class PerformanceRawTestCase extends TestCase {
         "}";
 
       SearchRequestBuilder searchRequestBuilder = daoHelper.getClient().prepareSearch(daoHelper.indexNames())
-        .setQuery(jsonSearch).setVersion(true).setFrom(i * 10).setSize(10).addSort("created", SortOrder.DESC);
+        .setQuery(QueryBuilders.wrapperQuery(jsonSearch)).setVersion(true).setFrom(i * 10).setSize(10).addSort("created", SortOrder.DESC);
       SearchResponse response = searchRequestBuilder.execute().actionGet();
       SearchHits hits = response.getHits();
       execNewestAlbumsQueryTimerContext.stop();
@@ -184,7 +185,7 @@ public class PerformanceRawTestCase extends TestCase {
           "}";
 
         SearchRequestBuilder searchRequestBuilderSongsForAlbum = daoHelper.getClient().prepareSearch(daoHelper.indexNames())
-          .setQuery(jsonSongsForAlbum).setVersion(true);
+          .setQuery(QueryBuilders.wrapperQuery(jsonSongsForAlbum)).setVersion(true);
         SearchResponse responseSongsForAlbum = searchRequestBuilderSongsForAlbum.execute().actionGet();
         SearchHits hitsSongsForAlbum = responseSongsForAlbum.getHits();
         Iterator<SearchHit> itSongsForAlbum = hitsSongsForAlbum.iterator();

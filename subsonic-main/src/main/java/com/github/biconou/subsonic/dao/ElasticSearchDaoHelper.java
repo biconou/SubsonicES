@@ -16,6 +16,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -28,6 +29,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import net.sourceforge.subsonic.dao.MusicFolderDao;
 import net.sourceforge.subsonic.domain.MusicFolder;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -57,8 +59,10 @@ public class ElasticSearchDaoHelper {
 
     private Client obtainESClient() {
 
-        return TransportClient.builder().build()
+        TransportClient client = new PreBuiltTransportClient(Settings.EMPTY)
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getLoopbackAddress(), 9300));
+        return client;
+
     }
 
     public void deleteIndexes() {
@@ -281,7 +285,7 @@ public class ElasticSearchDaoHelper {
         }
 
         SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames())
-                .setQuery(jsonQuery).setVersion(true);
+                .setQuery(QueryBuilders.wrapperQuery(jsonQuery)).setVersion(true);
         SearchResponse response = searchRequestBuilder.execute().actionGet();
 
         long totalHits = response == null ? 0 : response.getHits().totalHits();
@@ -377,7 +381,7 @@ public class ElasticSearchDaoHelper {
                                                                      Map<String, SortOrder> sortClause,
                                                                      List<MusicFolder> musicFolders, Class<T> type) {
         SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(indexNames(musicFolders))
-                .setQuery(jsonSearch).setVersion(true);
+                .setQuery(QueryBuilders.wrapperQuery(jsonSearch)).setVersion(true);
         return extractObjects(searchRequestBuilder, from, size, sortClause, type);
     }
 

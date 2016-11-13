@@ -380,7 +380,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
         }
 
         return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
-                .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
+                .setQuery(QueryBuilders.wrapperQuery(jsonQuery)).setVersion(true).execute().actionGet().getHits().getTotalHits();
     }
 
     @Override
@@ -398,7 +398,7 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
 
         // TODO multifolders
         return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
-                .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
+                .setQuery(QueryBuilders.wrapperQuery(jsonQuery)).setVersion(true).execute().actionGet().getHits().getTotalHits();
     }
 
     @Override
@@ -416,9 +416,8 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             throw new RuntimeException(e);
         }
 
-        // TODO multifolders
         return (int) elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
-                .setQuery(jsonQuery).setVersion(true).execute().actionGet().getHits().getTotalHits();
+                .setQuery(QueryBuilders.wrapperQuery(jsonQuery)).setVersion(true).execute().actionGet().getHits().getTotalHits();
     }
 
     @Override

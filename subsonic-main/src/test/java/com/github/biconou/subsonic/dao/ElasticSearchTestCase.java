@@ -270,7 +270,7 @@ public class ElasticSearchTestCase extends TestCase {
 
 
     SearchResponse searchResponse = ESClient.getClient().prepareSearch("Music")
-            .setQuery(jsonSearch).execute().actionGet();
+            .setQuery(QueryBuilders.wrapperQuery(jsonSearch)).execute().actionGet();
 
     Assert.assertNotNull(searchResponse);
     Assert.assertEquals(1, searchResponse.getHits().totalHits());

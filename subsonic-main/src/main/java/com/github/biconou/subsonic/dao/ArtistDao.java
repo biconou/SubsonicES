@@ -51,7 +51,7 @@ public class ArtistDao extends net.sourceforge.subsonic.dao.ArtistDao {
 
         SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
                 .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
-                .addAggregation(AggregationBuilders.terms("artist_agg").field("artist").order(Terms.Order.aggregation("_term",true))
+                .addAggregation(AggregationBuilders.terms("artist_agg").field("artist").order(Terms.Order.term(true))
                         .subAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType"))).setSize(0).get();
 
 
