@@ -635,7 +635,7 @@ In the same way, we use aggregations in the ```ArtistDao.getAlphabetialArtists``
     }
 ```
 
-#Playing more this Kibana
+#Playing more with Kibana
 
 One valuable stuff with Elasticsearch is being able to easily visualize datas using Kibana.
 
