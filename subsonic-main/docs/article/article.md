@@ -539,3 +539,120 @@ The Subsonic API must respond to questions like :
  
 To respond to this we will play with the documents we got in the index using the ElasticSearch aggregation framework.
  
+The method ```MediaFileDao.getGenres``` returns a sorted list of all available genres as ```Genre``` objects. 
+The ```Genre``` domain object contains the genre name, the number of albums and the number of songs.
+
+Here is the implementation of the ```MediaFileDao.getGenres``` method.
+
+```java
+    public List<Genre> getGenres(boolean sortByAlbum) {
+
+        List<Genre> genres = new ArrayList();
+
+        SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch()
+                .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
+                .addAggregation(AggregationBuilders.terms("genre_agg").field("genre")
+                        .subAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType"))).setSize(0).get();
+
+
+        StringTerms genreAgg = genresResponse.getAggregations().get("genre_agg");
+        for (Terms.Bucket genreEntry : genreAgg.getBuckets()) {
+            Genre genre = new Genre(genreEntry.getKeyAsString());
+            StringTerms mediaTypeAgg = genreEntry.getAggregations().get("mediaType_agg");
+            for (Terms.Bucket mediaTypeEntry : mediaTypeAgg.getBuckets()) {
+                if ("ALBUM".equals(mediaTypeEntry.getKeyAsString())) {
+                    genre.setAlbumCount((int) mediaTypeEntry.getDocCount());
+                }
+                if ("MUSIC".equals(mediaTypeEntry.getKeyAsString())) {
+                    genre.setSongCount((int) mediaTypeEntry.getDocCount());
+                }
+            }
+            genres.add(genre);
+        }
+
+        // Sort the list.
+        if (sortByAlbum) {
+            genres.sort((o1, o2) -> {
+                if (o1.getAlbumCount() > o2.getAlbumCount()) {
+                    return -1;
+                }
+                if (o1.getAlbumCount() < o2.getAlbumCount()) {
+                    return 1;
+                }
+                return 0;
+            });
+        } else {
+            genres.sort((o1, o2) -> {
+                if (o1.getSongCount() > o2.getSongCount()) {
+                    return -1;
+                }
+                if (o1.getSongCount() < o2.getSongCount()) {
+                    return 1;
+                }
+                return 0;
+            });
+        }
+
+        return genres;
+    }
+```
+
+It runs a query over the whole indexes to consider all documents (both songs and albums). A first aggregation ```genre_agg``` dispatch documents in buckets by genre. 
+For each genre bucket a subaggregation ```mediaType_agg``` separates documents in two different buckets for songs and albums.
+
+Then the response is read and we just have to extract documents from different buckets. For each genre bucket we create a new Genre object then look at the nomber of documents contained in both songs and albums bucket.
+
+In the same way, we use aggregations in the ```ArtistDao.getAlphabetialArtists``` to construct an ordered list of all artists. 
+ 
+```java
+    public List<Artist> getAlphabetialArtists(int offset, int count, List<MusicFolder> musicFolders) {
+
+        List<Artist> artists = new ArrayList<>();
+
+        SearchResponse genresResponse = elasticSearchDaoHelper.getClient().prepareSearch(elasticSearchDaoHelper.indexNames(musicFolders))
+                .setQuery(QueryBuilders.typeQuery("MEDIA_FILE"))
+                .addAggregation(AggregationBuilders.terms("artist_agg").field("artist").order(Terms.Order.term(true))
+                        .subAggregation(AggregationBuilders.terms("mediaType_agg").field("mediaType"))).setSize(0).get();
+
+
+
+        StringTerms artistAgg = genresResponse.getAggregations().get("artist_agg");
+        for (Terms.Bucket entry : artistAgg.getBuckets()) {
+            String artistName = entry.getKeyAsString();
+            Artist artist = new Artist();
+            artists.add(artist);
+            artist.setName(artistName);
+            StringTerms mediaTypeAgg = entry.getAggregations().get("mediaType_agg");
+            for (Terms.Bucket mediaTypeEntry : mediaTypeAgg.getBuckets()) {
+                String mediaTypeKey = mediaTypeEntry.getKeyAsString();
+                if ("ALBUM".equals(mediaTypeKey)) {
+                    artist.setAlbumCount((int)mediaTypeEntry.getDocCount());
+                }
+            }
+        }
+
+        return artists;
+    }
+```
+
+#Playing more this Kibana
+
+One valuable stuff with Elasticsearch is being able to easily visualize datas using Kibana.
+
+For example it takes only minutes to create a dashboard to visualize the distribution of musical genres and diplay a list of top artists as shown bellow.
+
+![](kibana_dashboard.png)
+
+Indeed vidualizations are created using the same aggregation logic explained previously.
+The following screenshot shows the construction of the genres visualization. 
+We can recognize here the genre_agg/mediaType_agg aggregations organisation used ```MediaFileDao.getGenres``` method.
+Each bucket is represented as a part of the pie chart.
+
+![](genres_visu.png)
+
+It is also very usefull to browse all documents in the indexes filtering them just by clicking.
+The following picture shows how easy it is to visualy retrieve all albums of artist Sixteen Horsepower !
+
+![](sixteen_horsepower_albums.png)
+
+

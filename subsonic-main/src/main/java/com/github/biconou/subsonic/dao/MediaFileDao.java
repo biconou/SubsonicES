@@ -230,7 +230,6 @@ public class MediaFileDao extends net.sourceforge.subsonic.dao.MediaFileDao {
             });
         }
 
-
         return genres;
     }
 
